@@ -260,10 +260,128 @@
     border-radius:999px;
     margin-top:8px;
   }
+  .back-link{
+    display:inline-block;
+    font-size:.8rem;
+    font-weight:700;
+    color:var(--ink);
+    opacity:.65;
+    text-decoration:none;
+    margin-bottom:10px;
+  }
+  .back-link:hover{ opacity:1; }
+  .back-link-btn{
+    display:block;
+    background:var(--accent);
+    color:#fff;
+    font-size:1.05rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:14px 16px;
+    border-radius:14px;
+    margin-top:20px;
+    box-shadow:0 4px 0 var(--accent2);
+  }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2); }
+
+  .submit-zone{
+    margin-top:26px;
+    padding-top:16px;
+    border-top:1px dashed #c8a978;
+    text-align:center;
+  }
+  .submit-cta{
+    background:linear-gradient(160deg,#eef9ea,#dcf2d0);
+    border:3px dashed var(--gentle);
+    border-radius:18px;
+    padding:18px 14px;
+  }
+  .submit-headline{
+    font-size:1.15rem;
+    font-weight:bold;
+    color:var(--gentle);
+    margin-bottom:8px;
+    line-height:1.5;
+  }
+  .submit-desc{
+    font-size:.82rem;
+    line-height:1.75;
+    margin-bottom:14px;
+  }
+  .submit-list{
+    text-align:left;
+    max-width:320px;
+    margin:0 auto 14px;
+    font-size:.85rem;
+    line-height:1.9;
+    background:#fff;
+    border-radius:12px;
+    padding:12px 16px 12px 30px;
+    border:2px solid #cfe8c2;
+  }
+  .submit-list li{ margin-bottom:2px; }
+  .submit-how{
+    font-size:.8rem;
+    font-weight:bold;
+    color:var(--ink);
+    margin-bottom:12px;
+  }
+  .submit-btns{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-width:320px;
+    margin:0 auto 14px;
+  }
+  .x-link-btn{
+    display:block;
+    background:#000;
+    color:#fff;
+    font-size:1rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:14px 14px;
+    border-radius:14px;
+    box-shadow:0 4px 0 #444;
+  }
+  .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
+  .note-comment-btn{
+    display:block;
+    background:#41c9b4;
+    color:#fff;
+    font-size:1rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:14px 14px;
+    border-radius:14px;
+    box-shadow:0 4px 0 #2e9c8c;
+  }
+  .note-comment-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .submit-caution{
+    font-size:.72rem;
+    line-height:1.8;
+    opacity:.85;
+    text-align:left;
+    background:#fff8ea;
+    border-radius:10px;
+    padding:12px 14px;
+    border:1px solid #e8d2a0;
+    margin-top:14px;
+  }
+  .submit-caution .caution-title{
+    font-weight:bold;
+    color:var(--accent2);
+    display:block;
+    margin-bottom:4px;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
   <h1>理不尽献立おばちゃん</h1>
   <div class="sub">昨日のおかずを教えると、今日のメニューを勝手に決められます</div>
 
@@ -353,7 +471,39 @@
         <button type="button" class="line-btn" id="lineBtn">LINEでおばちゃんを送りつける</button>
       </div>
     </div>
+
+    <div class="submit-zone">
+      <div class="submit-cta">
+        <div class="submit-headline">おばちゃんにもっとメニューを<br>教えてあげてください！</div>
+        <div class="submit-desc">
+          おばちゃんはみなさんのイラストや写真でどんどんパワーアップしていく新感覚育成型おばちゃんです！<br>
+          あなたの料理をおばちゃんがおすすめしてくれるかも？美味しそうなお料理とメッセージをたくさん送ってね☆彡
+        </div>
+
+        <ul class="submit-list">
+          <li>おばちゃんのイラスト</li>
+          <li>お料理のイラスト</li>
+          <li>お料理のメッセージ</li>
+          <li>最後の一言</li>
+        </ul>
+
+        <div class="submit-how">投稿はこちらから👇（画像・メッセージをまとめて送ってね）</div>
+        <div class="submit-btns">
+          <a href="https://twitter.com/intent/tweet?hashtags=%E7%90%86%E4%B8%8D%E5%B0%BD%E7%8C%AE%E7%AB%8B%E3%81%8A%E3%81%B0%E3%81%A1%E3%82%83%E3%82%93&text=%E3%81%8A%E3%81%B0%E3%81%A1%E3%82%83%E3%82%93%E3%81%AB%E3%83%A1%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%92%E6%95%99%E3%81%88%E3%81%A6%E3%81%82%E3%81%92%E3%82%8B%EF%BC%81" target="_blank" rel="noopener" class="x-link-btn">🐦 Xで投稿する</a>
+          <a href="https://note.com/kanae_project/n/nce3421e8dfb5" target="_blank" rel="noopener" class="note-comment-btn">📝 noteのコメント欄で送る</a>
+        </div>
+
+        <div class="submit-caution">
+          <span class="caution-title">※注意書き※</span>
+          著作権が発生するもの・個人が特定できるような素材はご遠慮ください。<br>
+          言葉はやさしいものでお願いします。<br>
+          このおばちゃんはみなさんのやさしさでできています。
+        </div>
+      </div>
+    </div>
   </div>
+
+  <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
 </div>
 
 <script>
