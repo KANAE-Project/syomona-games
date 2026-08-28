@@ -1,69 +1,1428 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>しょーもなゲームズ</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>うまおかさん 雀卓精算帳</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap">
+
 <style>
-  :root{
-    --bg1:#fff3d6;
-    --bg2:#ffe0b0;
-    --ink:#3a2a1a;
-    --accent:#e8542a;
-    --accent2:#c0392b;
+  :root {
+    --bg: #f3eee1;
+    --surface: #fbf7ec;
+    --surface-2: #ece2c8;
+    --ink: #2b241c;
+    --ink-soft: #6f6552;
+    --border: #ddd0ac;
+    --felt: #9c6b1a;
+    --felt-soft: #c08a2e;
+    --accent: #8b2e22;
+    --accent-soft: #b5432e;
+    --good: #2e5b8b;
+    --bad: #8b2e22;
+    --shadow: 0 1px 2px rgba(43, 36, 28, 0.06), 0 6px 20px -8px rgba(43, 36, 28, 0.18);
+
+    /* player suits */
+    --p1: #b5432e; /* 萬子 */
+    --p2: #2f6b4f; /* 索子 */
+    --p3: #2e5b8b; /* 筒子 */
+    --p4: #96751a; /* 字牌 */
   }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    min-height:100vh;
-    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
-    background:linear-gradient(160deg,var(--bg1),var(--bg2));
-    color:var(--ink);
-    display:flex;
-    justify-content:center;
-    padding:40px 16px 60px;
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12201a;
+      --surface: #182c24;
+      --surface-2: #20392f;
+      --ink: #ece6d6;
+      --ink-soft: #a49a82;
+      --border: #33473d;
+      --felt: #e0a94a;
+      --felt-soft: #eec27a;
+      --accent: #e2836b;
+      --accent-soft: #ea9c87;
+      --good: #7fa8d6;
+      --bad: #e2836b;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+
+      --p1: #e2836b;
+      --p2: #7bc9a0;
+      --p3: #7fa8d6;
+      --p4: #d8b653;
+    }
   }
-  .wrap{ width:100%; max-width:480px; }
-  h1{ text-align:center; font-size:1.8rem; margin:0 0 6px; }
-  .sub{ text-align:center; font-size:.85rem; opacity:.7; margin-bottom:28px; }
-  .card{
-    display:block;
-    background:rgba(255,255,255,.6);
-    border:3px solid var(--ink);
-    border-radius:18px;
-    padding:18px 20px;
-    margin-bottom:16px;
-    text-decoration:none;
-    color:var(--ink);
-    transition:transform .15s ease;
+
+  :root[data-theme="dark"] {
+    --bg: #12201a;
+    --surface: #182c24;
+    --surface-2: #20392f;
+    --ink: #ece6d6;
+    --ink-soft: #a49a82;
+    --border: #33473d;
+    --felt: #e0a94a;
+    --felt-soft: #eec27a;
+    --accent: #e2836b;
+    --accent-soft: #ea9c87;
+    --good: #7fa8d6;
+    --bad: #e2836b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+
+    --p1: #e2836b;
+    --p2: #7bc9a0;
+    --p3: #7fa8d6;
+    --p4: #d8b653;
   }
-  .card:active{ transform:scale(.97); }
-  .card-title{ font-size:1.2rem; font-weight:bold; color:var(--accent2); margin-bottom:4px; }
-  .card-desc{ font-size:.85rem; opacity:.8; }
-  .foot{ text-align:center; font-size:.75rem; opacity:.5; margin-top:30px; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "BIZ UDGothic", "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card, button, input, select { transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease, transform .1s ease; }
+  }
+
+  h1, h2, h3 {
+    font-family: "BIZ UDGothic", "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
+    font-weight: 700;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 20px 16px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* ---- back link ---- */
+  .back-link {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    text-decoration: none;
+    align-self: flex-start;
+  }
+  .back-link:hover { color: var(--felt); }
+
+  /* ---- header ---- */
+  header.hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 24px;
+    background: linear-gradient(135deg, #fffdf7, #f6ecc7);
+    border-radius: 16px;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+  }
+  :root[data-theme="dark"] header.hero {
+    background: linear-gradient(135deg, var(--felt), var(--felt-soft));
+    color: #1c1712;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) header.hero {
+      background: linear-gradient(135deg, var(--felt), var(--felt-soft));
+      color: #1c1712;
+    }
+  }
+  header.hero .tile {
+    font-size: 34px;
+    line-height: 1;
+    background: color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 10px;
+    padding: 10px 12px;
+    flex-shrink: 0;
+  }
+  header.hero h1 { font-size: clamp(22px, 4vw, 30px); }
+  header.hero p { margin: 4px 0 0; font-size: 14px; opacity: .88; }
+
+  /* ---- generic section ---- */
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .section-head h2 { font-size: 20px; color: var(--felt); }
+  .section-head .note { font-size: 12.5px; color: var(--ink-soft); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  label { font-size: 12.5px; color: var(--ink-soft); display: block; margin-bottom: 4px; letter-spacing: .02em; }
+
+  input[type="number"], input[type="text"], select {
+    width: 100%;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    padding: 9px 10px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+  }
+  input:focus, select:focus, button:focus-visible {
+    outline: none;
+    border-color: var(--felt);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--felt) 25%, transparent);
+  }
+
+  .score-input-row { display: flex; align-items: center; gap: 6px; }
+  .score-input-row input { flex: 1; min-width: 0; }
+  .score-input-row .score-suffix {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    flex-shrink: 0;
+  }
+
+  /* ---- settings grid ---- */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+  }
+  .settings-grid .field.checkbox-field {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding-top: 20px;
+  }
+  .settings-grid .field.checkbox-field input { width: auto; }
+  .settings-grid .field.checkbox-field label { margin: 0; }
+
+  /* ---- players grid ---- */
+  .players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .player-card {
+    border-top: 4px solid var(--suit);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .player-card .suit-tag {
+    font-size: 11px;
+    color: var(--suit);
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+  .player-card .result-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-top: 1px dashed var(--border);
+    padding-top: 8px;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .player-card .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 6px;
+  }
+  .player-card .rank-badge.first { background: var(--suit); color: var(--surface); }
+  .player-card .pt-value { font-size: 17px; font-weight: 700; }
+  .player-card .pt-value.pos { color: var(--good); }
+  .player-card .pt-value.neg { color: var(--bad); }
+  .player-card .payout { font-size: 12.5px; color: var(--ink-soft); }
+
+  .player-card .breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .player-card .breakdown b {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .totals-banner {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--good) 12%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--good) 35%, var(--border));
+    color: var(--good);
+  }
+  .totals-banner.show { display: flex; }
+  .totals-banner.warn {
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+    color: var(--accent);
+  }
+  .totals-banner .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  .confirm-inline {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .confirm-inline.show { display: flex; }
+  .confirm-inline-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  button {
+    font: inherit;
+    font-weight: 700;
+    border: 1px solid var(--felt);
+    background: var(--felt);
+    color: var(--surface);
+    padding: 10px 18px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  :root[data-theme="dark"] button.primary { color: #0f1c16; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) button.primary { color: #0f1c16; }
+  }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button.ghost {
+    background: transparent;
+    color: var(--felt);
+  }
+  button.danger {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--bad);
+    font-weight: 500;
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  button.small {
+    padding: 5px 10px;
+    font-size: 12.5px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--ink-soft);
+    border-color: var(--border);
+  }
+
+  .msg {
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+  }
+  .msg.error { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, var(--surface)); }
+  .msg.success { color: var(--good); background: color-mix(in srgb, var(--good) 12%, var(--surface)); }
+
+  /* ---- stats table ---- */
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+  th, td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; font-variant-numeric: normal; }
+  thead th { color: var(--ink-soft); font-weight: 500; font-size: 12px; letter-spacing: .02em; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.name-cell { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .swatch { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .cell-pos { color: var(--good); font-weight: 700; }
+  .cell-neg { color: var(--bad); font-weight: 700; }
+
+  .chart-wrap { position: relative; }
+  canvas#trendChart { width: 100%; height: 220px; display: block; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); }
+
+  /* ---- history ---- */
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+  .history-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .history-item .hi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .history-item .hi-date { font-size: 12.5px; color: var(--ink-soft); }
+  .history-item .hi-rows {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    font-size: 13px;
+  }
+  .history-item .hi-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--surface-2);
+    border-radius: 7px;
+    font-variant-numeric: tabular-nums;
+    border-left: 3px solid var(--suit);
+  }
+
+  .history-day-group { display: flex; flex-direction: column; gap: 10px; }
+  .history-day-head {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--felt);
+    padding-left: 2px;
+  }
+  .day-summary { border: 1px solid var(--felt-soft); }
+  .day-summary-title { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 8px; font-weight: 700; }
+  .day-summary-rows {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+    font-size: 13px;
+  }
+  .day-summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--surface-2);
+    border-radius: 7px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  .empty-state {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    padding: 18px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+  }
+
+  /* ---- upgrade / lock ---- */
+  .upgrade-card { display: flex; flex-direction: column; gap: 10px; }
+  .upgrade-card p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+  .note-link-btn {
+    display: block;
+    background: #41c9b4;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 900;
+    text-decoration: none;
+    text-align: center;
+    padding: 14px 14px;
+    border-radius: 12px;
+    box-shadow: 0 4px 0 #2e9c8c;
+  }
+  .note-link-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #2e9c8c; }
+  .upgrade-input-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .upgrade-input-row input { flex: 1; min-width: 160px; }
+  .upgrade-unlocked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--good);
+  }
+  .locked-placeholder {
+    padding: 22px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+  }
+  .locked-placeholder .lock-icon { font-size: 22px; display: block; margin-bottom: 8px; }
+
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    padding-top: 8px;
+  }
+  footer .danger-zone { margin-top: 10px; }
+
+  @media (max-width: 520px) {
+    header.hero { flex-direction: row; padding: 16px; }
+    th, td { padding: 7px 6px; font-size: 12.5px; }
+  }
 </style>
 </head>
 <body>
+<!--
+  うまおかさん 雀卓精算帳
+  本ファイルは購入者ご本人およびそのグループ内での個人利用を目的として提供しています。
+  ファイルそのものの再配布・転売・無断複製はご遠慮ください。
+-->
+
 <div class="wrap">
-  <h1>しょーもなゲームズ</h1>
-  <div class="sub">サクッと遊べる、しょーもないブラウザゲーム集</div>
 
-  <a class="card" href="games/rifujin-okazu-obachan/">
-    <div class="card-title">理不尽献立おばちゃん</div>
-    <div class="card-desc">昨日のおかずを教えると、今日のメニューを勝手に決められます</div>
-  </a>
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
 
-  <a class="card" href="https://endearing-youtiao-3d3684.netlify.app">
-    <div class="card-title">呼んだ？相棒！</div>
-    <div class="card-desc">スパーク200を見つけてタップする、しょーもない反射神経ゲーム</div>
-  </a>
+  <header class="hero">
+    <div class="tile">🀄</div>
+    <div>
+      <h1>うまおかさん 雀卓精算帳</h1>
+      <p>対局後の素点からウマ・オカ・独自レートを自動計算して記録するツールです</p>
+    </div>
+  </header>
 
-  <a class="card" href="games/umaoka-seisan/">
-    <div class="card-title">うまおかさん 雀卓精算帳</div>
-    <div class="card-desc">対局後の素点からウマ・オカ・レートを自動計算する麻雀精算ツール</div>
-  </a>
+  <!-- 設定 -->
+  <section aria-labelledby="settings-h">
+    <div class="section-head">
+      <h2 id="settings-h">対局ルール設定</h2>
+      <span class="note">次回入力時も保持されます</span>
+    </div>
+    <div class="card settings-grid">
+      <div class="field">
+        <label for="startPoints">開始点(配給原点)</label>
+        <input type="number" id="startPoints" value="25000" step="1000">
+      </div>
+      <div class="field">
+        <label for="returnPoints">返し点(精算原点)</label>
+        <input type="number" id="returnPoints" value="30000" step="1000">
+      </div>
+      <div class="field">
+        <label for="umaPreset">ウマ</label>
+        <select id="umaPreset">
+          <option value="none">なし</option>
+          <option value="5-10" selected>5-10(1位+10 / 2位+5 / 3位-5 / 4位-10)</option>
+          <option value="10-20">10-20(1位+20 / 2位+10 / 3位-10 / 4位-20)</option>
+          <option value="10-30">10-30(1位+30 / 2位+10 / 3位-10 / 4位-30)</option>
+        </select>
+      </div>
+      <div class="field checkbox-field">
+        <input type="checkbox" id="okaEnabled" checked>
+        <label for="okaEnabled" style="margin-bottom:0">オカ(返し点差を1位に加算)</label>
+      </div>
+      <div class="field">
+        <label for="rate">レート(倍率・基本ptに掛けて精算ptを算出)</label>
+        <input type="number" id="rate" value="50" step="10">
+      </div>
+    </div>
+  </section>
 
-  <div class="foot">© しょーもなゲームズ</div>
+  <!-- 対局入力 -->
+  <section aria-labelledby="entry-h">
+    <div class="section-head">
+      <h2 id="entry-h">今回の対局</h2>
+    </div>
+
+    <div class="players-grid" id="playersGrid"></div>
+
+    <div class="totals-banner" id="totalsCheck"></div>
+
+    <div class="actions">
+      <button class="primary" id="recordBtn">この結果を記録する</button>
+      <button class="ghost" id="clearScoresBtn" type="button">素点をクリア</button>
+      <span class="msg" id="entryMsg" style="display:none"></span>
+    </div>
+
+    <div class="confirm-inline" id="recordConfirm">
+      <span id="recordConfirmText"></span>
+      <div class="confirm-inline-actions">
+        <button class="primary" id="recordConfirmYes" type="button">このまま記録する</button>
+        <button class="ghost" id="recordConfirmNo" type="button">キャンセル</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- グレードアップ -->
+  <section aria-labelledby="upgrade-h" id="upgradeSection">
+    <div class="section-head">
+      <h2 id="upgrade-h">グレードアップ(記録・成績機能)</h2>
+    </div>
+    <div class="card upgrade-card" id="upgradeCardLocked">
+      <p>対局結果の記録・メンバー別成績集計・ポイント推移グラフは、グレードアップキーワードを入力すると使えるようになります。</p>
+      <a href="https://note.com/kanae_project/n/n40cb06092ece" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
+      <div class="upgrade-input-row">
+        <input type="text" id="upgradeKeyword" placeholder="キーワードを入力">
+        <button class="primary" id="upgradeBtn" type="button">解除する</button>
+      </div>
+      <span class="msg" id="upgradeMsg" style="display:none"></span>
+    </div>
+    <div class="card upgrade-unlocked" id="upgradeCardUnlocked" style="display:none">
+      ✅ グレードアップ済みです。記録・成績機能をご利用いただけます。
+    </div>
+  </section>
+
+  <!-- 戦績 -->
+  <section aria-labelledby="stats-h">
+    <div class="section-head">
+      <h2 id="stats-h">メンバー別 戦績</h2>
+      <span class="note" id="statsNote"></span>
+    </div>
+    <div class="card" id="statsCard">
+      <div class="table-scroll">
+        <table id="statsTable">
+          <thead>
+            <tr>
+              <th>メンバー</th>
+              <th>半荘数</th>
+              <th>平均着順</th>
+              <th>1位</th>
+              <th>2位</th>
+              <th>3位</th>
+              <th>4位</th>
+              <th>累計pt</th>
+              <th>累計精算pt</th>
+            </tr>
+          </thead>
+          <tbody id="statsBody"></tbody>
+        </table>
+      </div>
+      <div class="chart-wrap" id="chartWrap" style="display:none">
+        <canvas id="trendChart"></canvas>
+        <div class="legend" id="chartLegend"></div>
+      </div>
+    </div>
+    <div class="locked-placeholder" id="statsLocked">
+      <span class="lock-icon">🔒</span>
+      グレードアップすると、メンバー別の成績集計とポイント推移グラフが表示されます。
+    </div>
+  </section>
+
+  <!-- 履歴 -->
+  <section aria-labelledby="history-h">
+    <div class="section-head">
+      <h2 id="history-h">対局履歴</h2>
+      <span class="note" id="historyCount"></span>
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="locked-placeholder" id="historyLocked">
+      <span class="lock-icon">🔒</span>
+      グレードアップすると、対局履歴の記録・確認ができます。
+    </div>
+  </section>
+
+  <footer>
+    <div id="storageNote">対局データはこのブラウザ内(localStorage)に保存されます。他の端末やブラウザとは共有されません。</div>
+    <div class="danger-zone">
+      <button class="danger" id="resetAllBtn" type="button">すべてのデータを削除</button>
+      <div class="confirm-inline" id="resetConfirm" style="margin-top:10px; text-align:left;">
+        <span>すべての設定・メンバー名・対局履歴を削除します。元に戻せません。よろしいですか?</span>
+        <div class="confirm-inline-actions">
+          <button class="danger" id="resetConfirmYes" type="button" style="border-color:var(--bad); color:var(--bad);">削除する</button>
+          <button class="ghost" id="resetConfirmNo" type="button">キャンセル</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px; font-size:11px; opacity:.75;">本ファイルはご購入者ご本人およびそのグループ内での利用を目的としています。再配布・転売はご遠慮ください。</div>
+  </footer>
+
 </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "mahjongSettleData_v2";
+  var UNLOCK_STORAGE_KEY = "mahjongSettleUnlocked_v1";
+  // キーワードの平文はコードに残さず、SHA-256ハッシュのみを保持しています。
+  // 新しいキーワードに変更する場合は、ブラウザの開発者ツールのコンソールで下記を実行し、
+  // 出力されたハッシュ値でこの定数を置き換えてください:
+  // crypto.subtle.digest("SHA-256", new TextEncoder().encode("新しいキーワード")).then(b => console.log(Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, "0")).join("")))
+  var UNLOCK_HASH = "7ae0f20250fd0af5136641af82a93039faf8904e23db37e58ef3643409dcd74e";
+  var SUITS = ["p1", "p2", "p3", "p4"];
+  var SUIT_LABELS = ["萬子", "索子", "筒子", "字牌"];
+  var UMA_PRESETS = {
+    "none":  [0, 0, 0, 0],
+    "5-10":  [10, 5, -5, -10],
+    "10-20": [20, 10, -10, -20],
+    "10-30": [30, 10, -10, -30]
+  };
+
+  // ---------- storage (with in-memory fallback) ----------
+  var memoryFallback = null;
+  var storageAvailable = (function () {
+    try {
+      var k = "__mj_test__";
+      window.localStorage.setItem(k, "1");
+      window.localStorage.removeItem(k);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  function loadData() {
+    var raw = null;
+    if (storageAvailable) {
+      try { raw = window.localStorage.getItem(STORAGE_KEY); } catch (e) { raw = null; }
+    } else {
+      raw = memoryFallback;
+    }
+    if (!raw) {
+      return {
+        settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50 },
+        players: ["", "", "", ""],
+        history: []
+      };
+    }
+    try {
+      var parsed = JSON.parse(raw);
+      if (!parsed.settings) parsed.settings = {};
+      if (!parsed.players) parsed.players = ["", "", "", ""];
+      if (!parsed.history) parsed.history = [];
+      return parsed;
+    } catch (e) {
+      return {
+        settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50 },
+        players: ["", "", "", ""],
+        history: []
+      };
+    }
+  }
+
+  function saveData() {
+    var raw = JSON.stringify(state);
+    if (storageAvailable) {
+      try { window.localStorage.setItem(STORAGE_KEY, raw); } catch (e) { storageAvailable = false; memoryFallback = raw; showStorageWarning(); }
+    } else {
+      memoryFallback = raw;
+    }
+  }
+
+  function showStorageWarning() {
+    var el = document.getElementById("storageNote");
+    el.textContent = "この環境ではブラウザ保存が利用できないため、データはこのページを開いている間だけ保持されます(再読み込みで消えます)。";
+  }
+
+  var state = loadData();
+  if (!storageAvailable) showStorageWarning();
+
+  // ---------- unlock (grade-up) state ----------
+  // データ本体とは別のキーで管理し、「すべてのデータを削除」を押しても解除状態は失われない
+  var unlocked = false;
+  try { unlocked = window.localStorage.getItem(UNLOCK_STORAGE_KEY) === "1"; } catch (e) { unlocked = false; }
+
+  function sha256Hex(text) {
+    if (!window.crypto || !window.crypto.subtle) return Promise.reject(new Error("no-subtle-crypto"));
+    var enc = new TextEncoder().encode(text);
+    return window.crypto.subtle.digest("SHA-256", enc).then(function (buf) {
+      return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+    });
+  }
+
+  // ---------- DOM refs ----------
+  var startPointsEl = document.getElementById("startPoints");
+  var returnPointsEl = document.getElementById("returnPoints");
+  var umaPresetEl = document.getElementById("umaPreset");
+  var okaEnabledEl = document.getElementById("okaEnabled");
+  var rateEl = document.getElementById("rate");
+  var playersGrid = document.getElementById("playersGrid");
+  var totalsCheckEl = document.getElementById("totalsCheck");
+  var recordBtn = document.getElementById("recordBtn");
+  var clearScoresBtn = document.getElementById("clearScoresBtn");
+  var entryMsg = document.getElementById("entryMsg");
+  var statsBody = document.getElementById("statsBody");
+  var statsNote = document.getElementById("statsNote");
+  var historyList = document.getElementById("historyList");
+  var historyCount = document.getElementById("historyCount");
+  var resetAllBtn = document.getElementById("resetAllBtn");
+  var chartWrap = document.getElementById("chartWrap");
+  var chartLegend = document.getElementById("chartLegend");
+  var trendChart = document.getElementById("trendChart");
+  var upgradeSection = document.getElementById("upgradeSection");
+  var upgradeKeywordEl = document.getElementById("upgradeKeyword");
+  var upgradeBtn = document.getElementById("upgradeBtn");
+  var upgradeMsg = document.getElementById("upgradeMsg");
+  var upgradeCardLocked = document.getElementById("upgradeCardLocked");
+  var upgradeCardUnlocked = document.getElementById("upgradeCardUnlocked");
+  var statsCardEl = document.getElementById("statsCard");
+  var statsLockedEl = document.getElementById("statsLocked");
+  var historyLockedEl = document.getElementById("historyLocked");
+
+  // ---------- settings init ----------
+  startPointsEl.value = state.settings.startPoints != null ? state.settings.startPoints : 25000;
+  returnPointsEl.value = state.settings.returnPoints != null ? state.settings.returnPoints : 30000;
+  umaPresetEl.value = state.settings.umaPreset || "5-10";
+  okaEnabledEl.checked = state.settings.oka !== false;
+  rateEl.value = state.settings.rate != null ? state.settings.rate : 50;
+
+  function persistSettings() {
+    state.settings = {
+      startPoints: Number(startPointsEl.value) || 0,
+      returnPoints: Number(returnPointsEl.value) || 0,
+      umaPreset: umaPresetEl.value,
+      oka: okaEnabledEl.checked,
+      rate: Number(rateEl.value) || 0
+    };
+    saveData();
+  }
+
+  [startPointsEl, returnPointsEl, umaPresetEl, okaEnabledEl, rateEl].forEach(function (el) {
+    el.addEventListener("change", function () { persistSettings(); renderPlayers(); });
+  });
+
+  // ---------- players input ----------
+  function buildPlayerCards() {
+    playersGrid.innerHTML = "";
+    for (var i = 0; i < 4; i++) {
+      var card = document.createElement("div");
+      card.className = "card player-card";
+      card.style.setProperty("--suit", "var(--" + SUITS[i] + ")");
+      card.innerHTML =
+        '<span class="suit-tag">' + SUIT_LABELS[i] + '</span>' +
+        '<div class="field">' +
+          '<label for="name' + i + '">名前</label>' +
+          '<input type="text" id="name' + i + '" placeholder="プレイヤー' + (i + 1) + '" maxlength="12">' +
+        '</div>' +
+        '<div class="field">' +
+          '<label for="score' + i + '">素点(下2桁00は自動)</label>' +
+          '<div class="score-input-row">' +
+            '<input type="number" id="score' + i + '" step="1" placeholder="250">' +
+            '<span class="score-suffix">00点</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="breakdown" id="breakdown' + i + '">' +
+          '<span>素点差 <b id="bdDiff' + i + '">-</b></span>' +
+          '<span>ウマ <b id="bdUma' + i + '">-</b></span>' +
+          '<span>オカ <b id="bdOka' + i + '">-</b></span>' +
+        '</div>' +
+        '<div class="result-row">' +
+          '<span><span class="rank-badge" id="rankBadge' + i + '">-</span>結果</span>' +
+          '<span><span class="pt-value" id="ptValue' + i + '">-</span><br><span class="payout" id="payoutValue' + i + '"></span></span>' +
+        '</div>';
+      playersGrid.appendChild(card);
+      document.getElementById("name" + i).value = state.players[i] || "";
+      document.getElementById("name" + i).addEventListener("input", function () {
+        state.players = [0, 1, 2, 3].map(function (j) { return document.getElementById("name" + j).value; });
+        saveData();
+      });
+      document.getElementById("score" + i).addEventListener("input", renderPlayers);
+    }
+  }
+
+  function clearScoreInputs() {
+    for (var i = 0; i < 4; i++) {
+      document.getElementById("score" + i).value = "";
+    }
+  }
+
+  function getCurrentSettings() {
+    return {
+      startPoints: Number(startPointsEl.value) || 0,
+      returnPoints: Number(returnPointsEl.value) || 0,
+      umaPreset: umaPresetEl.value,
+      oka: okaEnabledEl.checked,
+      rate: Number(rateEl.value) || 0
+    };
+  }
+
+  function getCurrentEntries() {
+    var entries = [];
+    for (var i = 0; i < 4; i++) {
+      var nameEl = document.getElementById("name" + i);
+      var scoreEl = document.getElementById("score" + i);
+      var name = (nameEl.value || "").trim() || ("プレイヤー" + (i + 1));
+      var raw = scoreEl.value;
+      // 入力は下2桁(00)を省略した形式。実際の素点は100倍して扱う
+      entries.push({ name: name, score: raw === "" ? null : Number(raw) * 100, hasScore: raw !== "" });
+    }
+    return entries;
+  }
+
+  // core calc: returns array aligned with input order,
+  // each: { rankTop, rankBottom, uma, oka, diffPt, finalPt, payout }
+  function computeResults(entries, settings) {
+    var n = entries.length;
+    var scores = entries.map(function (e) { return e.score == null ? settings.returnPoints : e.score; });
+    var order = entries.map(function (_, i) { return i; }).sort(function (a, b) { return scores[b] - scores[a]; });
+    var ranks = new Array(n);
+    var i = 0;
+    while (i < n) {
+      var j = i;
+      while (j + 1 < n && scores[order[j + 1]] === scores[order[i]]) j++;
+      for (var k = i; k <= j; k++) ranks[order[k]] = { top: i + 1, bottom: j + 1 };
+      i = j + 1;
+    }
+    var umaTable = UMA_PRESETS[settings.umaPreset] || UMA_PRESETS.none;
+    var okaTotal = settings.oka ? ((settings.returnPoints - settings.startPoints) * n) / 1000 : 0;
+
+    return entries.map(function (e, idx) {
+      var r = ranks[idx];
+      var span = r.bottom - r.top + 1;
+      var umaSum = 0;
+      for (var rk = r.top; rk <= r.bottom; rk++) umaSum += umaTable[rk - 1];
+      var umaAvg = umaSum / span;
+      var okaShare = (r.top === 1) ? okaTotal / span : 0;
+      var diffPoints = scores[idx] - settings.returnPoints;
+      var diffPt = diffPoints / 1000;
+      var finalPt = diffPt + umaAvg + okaShare;
+      var payout = finalPt * settings.rate;
+      return { rankTop: r.top, rankBottom: r.bottom, uma: umaAvg, oka: okaShare, diffPoints: diffPoints, diffPt: diffPt, finalPt: finalPt, payout: payout };
+    });
+  }
+
+  function fmtPt(v) {
+    var s = v.toFixed(1);
+    return (v > 0 ? "+" : "") + s;
+  }
+  function fmtSettlePt(v) {
+    var r = Math.round(v);
+    return (r > 0 ? "+" : "") + r.toLocaleString("ja-JP") + "pt";
+  }
+  function fmtPoints(v) {
+    return (v > 0 ? "+" : "") + v.toLocaleString("ja-JP") + "点";
+  }
+  function fmtUmaOka(v) {
+    // 同着按分で小数になる場合があるため、整数ならそのまま・小数なら1桁表示
+    var isInt = Math.abs(v - Math.round(v)) < 1e-9;
+    var s = isInt ? Math.round(v).toString() : v.toFixed(1);
+    return (v > 0 ? "+" : "") + s + "pt";
+  }
+  function rankLabel(r) {
+    return r.top === r.bottom ? (r.top + "位") : (r.top + "〜" + r.bottom + "位");
+  }
+
+  function renderPlayers() {
+    var settings = getCurrentSettings();
+    var entries = getCurrentEntries();
+    var results = computeResults(entries, settings);
+    var anyScore = entries.some(function (e) { return e.hasScore; });
+
+    for (var i = 0; i < 4; i++) {
+      var badge = document.getElementById("rankBadge" + i);
+      var ptEl = document.getElementById("ptValue" + i);
+      var payEl = document.getElementById("payoutValue" + i);
+      var bdDiff = document.getElementById("bdDiff" + i);
+      var bdUma = document.getElementById("bdUma" + i);
+      var bdOka = document.getElementById("bdOka" + i);
+      if (!anyScore) {
+        badge.textContent = "-";
+        badge.className = "rank-badge";
+        ptEl.textContent = "-";
+        ptEl.className = "pt-value";
+        payEl.textContent = "";
+        bdDiff.textContent = "-";
+        bdUma.textContent = "-";
+        bdOka.textContent = "-";
+        continue;
+      }
+      var r = results[i];
+      badge.textContent = r.rankTop === r.rankBottom ? r.rankTop : (r.rankTop + "-" + r.rankBottom);
+      badge.className = "rank-badge" + (r.rankTop === 1 ? " first" : "");
+      ptEl.textContent = fmtPt(r.finalPt) + "pt";
+      ptEl.className = "pt-value " + (r.finalPt > 0 ? "pos" : (r.finalPt < 0 ? "neg" : ""));
+      payEl.textContent = "精算 " + fmtSettlePt(r.payout);
+      bdDiff.textContent = fmtPoints(r.diffPoints);
+      bdUma.textContent = fmtUmaOka(r.uma);
+      bdOka.textContent = fmtUmaOka(r.oka);
+    }
+
+    // totals check
+    var sum = entries.reduce(function (acc, e) { return acc + (e.score || 0); }, 0);
+    var expected = settings.startPoints * 4;
+    if (!anyScore) {
+      totalsCheckEl.innerHTML = "";
+      totalsCheckEl.className = "totals-banner";
+    } else if (sum === expected) {
+      totalsCheckEl.innerHTML = '<span class="dot"></span>合計 ' + sum.toLocaleString("ja-JP") + '点 — 基準(' + expected.toLocaleString("ja-JP") + '点)と一致しています';
+      totalsCheckEl.className = "totals-banner show";
+    } else {
+      var diff = sum - expected;
+      var diffLabel = diff > 0
+        ? ('基準より ' + diff.toLocaleString("ja-JP") + '点多い')
+        : ('基準より ' + Math.abs(diff).toLocaleString("ja-JP") + '点少ない');
+      totalsCheckEl.innerHTML = '<span class="dot"></span>合計 ' + sum.toLocaleString("ja-JP") + '点(基準 ' + expected.toLocaleString("ja-JP") + '点 / ' + diffLabel + ')';
+      totalsCheckEl.className = "totals-banner show warn";
+    }
+  }
+
+  buildPlayerCards();
+  renderPlayers();
+
+  // ---------- upgrade (unlock) ----------
+  function applyLockState() {
+    if (unlocked) {
+      upgradeCardLocked.style.display = "none";
+      upgradeCardUnlocked.style.display = "flex";
+      statsCardEl.style.display = "";
+      statsLockedEl.style.display = "none";
+      historyList.style.display = "";
+      historyLockedEl.style.display = "none";
+    } else {
+      upgradeCardLocked.style.display = "flex";
+      upgradeCardUnlocked.style.display = "none";
+      statsCardEl.style.display = "none";
+      statsLockedEl.style.display = "block";
+      historyList.style.display = "none";
+      historyLockedEl.style.display = "block";
+    }
+  }
+
+  function showUpgradeMsg(text, type) {
+    upgradeMsg.textContent = text;
+    upgradeMsg.className = "msg" + (type ? " " + type : "");
+    upgradeMsg.style.display = "inline-block";
+  }
+
+  upgradeBtn.addEventListener("click", function () {
+    var kw = (upgradeKeywordEl.value || "").trim();
+    if (!kw) {
+      showUpgradeMsg("キーワードを入力してください。", "error");
+      return;
+    }
+    sha256Hex(kw).then(function (hash) {
+      if (hash === UNLOCK_HASH) {
+        unlocked = true;
+        try { window.localStorage.setItem(UNLOCK_STORAGE_KEY, "1"); } catch (e) {}
+        applyLockState();
+        renderStats();
+        renderHistory();
+        showUpgradeMsg("グレードアップしました。記録・成績機能をご利用いただけます。", "success");
+      } else {
+        showUpgradeMsg("キーワードが正しくありません。", "error");
+      }
+    }).catch(function () {
+      showUpgradeMsg("この環境では解除処理を実行できませんでした。別のブラウザ(Chrome / Safari 最新版など)でお試しください。", "error");
+    });
+  });
+
+  applyLockState();
+
+  // ---------- record ----------
+  function showMsg(text, type) {
+    entryMsg.textContent = text;
+    entryMsg.className = "msg" + (type ? " " + type : "");
+    entryMsg.style.display = "inline-block";
+    if (type === "success") {
+      setTimeout(function () {
+        if (entryMsg.textContent === text) entryMsg.style.display = "none";
+      }, 3500);
+    }
+  }
+
+  var recordConfirm = document.getElementById("recordConfirm");
+  var recordConfirmText = document.getElementById("recordConfirmText");
+  var recordConfirmYes = document.getElementById("recordConfirmYes");
+  var recordConfirmNo = document.getElementById("recordConfirmNo");
+
+  function hideRecordConfirm() {
+    recordConfirm.className = "confirm-inline";
+  }
+
+  function doRecord(entries, settings) {
+    var results = computeResults(entries, settings);
+    var record = {
+      id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+      date: new Date().toISOString(),
+      settings: settings,
+      players: entries.map(function (e, i) {
+        return {
+          name: e.name,
+          score: e.score,
+          rankTop: results[i].rankTop,
+          rankBottom: results[i].rankBottom,
+          finalPt: results[i].finalPt,
+          payout: results[i].payout
+        };
+      })
+    };
+    state.history.unshift(record);
+    persistSettings();
+    saveData();
+    showMsg("記録しました。", "success");
+    clearScoreInputs();
+    renderPlayers();
+    renderStats();
+    renderHistory();
+  }
+
+  recordBtn.addEventListener("click", function () {
+    hideRecordConfirm();
+    if (!unlocked) {
+      showMsg("この機能はグレードアップが必要です。下の「グレードアップ」でキーワードを入力してください。", "error");
+      upgradeSection.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    var entries = getCurrentEntries();
+    var missing = entries.some(function (e) { return !e.hasScore; });
+    if (missing) {
+      showMsg("4人全員分の素点を入力してください。", "error");
+      return;
+    }
+    var settings = getCurrentSettings();
+    var sum = entries.reduce(function (acc, e) { return acc + (e.score || 0); }, 0);
+    var expected = settings.startPoints * 4;
+    if (sum !== expected) {
+      var diff = sum - expected;
+      var diffLabel = diff > 0
+        ? (diff.toLocaleString("ja-JP") + "点多い")
+        : (Math.abs(diff).toLocaleString("ja-JP") + "点少ない");
+      recordConfirmText.textContent =
+        "素点の合計が基準と一致していません(合計: " + sum.toLocaleString("ja-JP") + "点 / 基準: " + expected.toLocaleString("ja-JP") + "点、" + diffLabel + ")。このまま記録しますか?";
+      recordConfirm.className = "confirm-inline show";
+      recordConfirmYes.onclick = function () {
+        hideRecordConfirm();
+        doRecord(entries, settings);
+      };
+      recordConfirmNo.onclick = function () {
+        hideRecordConfirm();
+      };
+      return;
+    }
+    doRecord(entries, settings);
+  });
+
+  clearScoresBtn.addEventListener("click", function () {
+    clearScoreInputs();
+    renderPlayers();
+    entryMsg.style.display = "none";
+  });
+
+  // ---------- stats ----------
+  function suitColorFor(index) {
+    return "var(--" + SUITS[index % SUITS.length] + ")";
+  }
+
+  function computeStats() {
+    var byName = {};
+    var order = [];
+    state.history.forEach(function (rec) {
+      rec.players.forEach(function (p) {
+        if (!byName[p.name]) {
+          byName[p.name] = { name: p.name, games: 0, rankCounts: [0, 0, 0, 0], ptSum: 0, payoutSum: 0, rankSum: 0 };
+          order.push(p.name);
+        }
+        var s = byName[p.name];
+        s.games++;
+        s.ptSum += p.finalPt;
+        s.payoutSum += p.payout;
+        var mid = (p.rankTop + p.rankBottom) / 2;
+        s.rankSum += mid;
+        // split fractional tie across adjacent rank buckets proportionally-ish: simplest -> count at rounded rank
+        var lo = p.rankTop, hi = p.rankBottom;
+        var span = hi - lo + 1;
+        for (var r = lo; r <= hi; r++) s.rankCounts[r - 1] += 1 / span;
+      });
+    });
+    return order.map(function (name) { return byName[name]; });
+  }
+
+  function renderStats() {
+    var stats = computeStats();
+    statsBody.innerHTML = "";
+    if (stats.length === 0) {
+      statsNote.textContent = "";
+      var tr = document.createElement("tr");
+      var td = document.createElement("td");
+      td.colSpan = 9;
+      td.style.textAlign = "center";
+      td.style.color = "var(--ink-soft)";
+      td.style.fontVariantNumeric = "normal";
+      td.textContent = "まだ記録がありません。対局結果を記録すると集計が表示されます。";
+      tr.appendChild(td);
+      statsBody.appendChild(tr);
+      chartWrap.style.display = "none";
+      return;
+    }
+    statsNote.textContent = "記録数: " + state.history.length + "半荘";
+    stats
+      .slice()
+      .sort(function (a, b) { return b.ptSum - a.ptSum; })
+      .forEach(function (s, idx) {
+        var tr = document.createElement("tr");
+        var avgRank = (s.rankSum / s.games).toFixed(2);
+        tr.innerHTML =
+          '<td class="name-cell"><span class="swatch" style="background:' + suitColorFor(order_index(stats, s)) + '"></span>' + escapeHtml(s.name) + '</td>' +
+          '<td>' + s.games + '</td>' +
+          '<td>' + avgRank + '</td>' +
+          '<td>' + s.rankCounts[0].toFixed(1) + '</td>' +
+          '<td>' + s.rankCounts[1].toFixed(1) + '</td>' +
+          '<td>' + s.rankCounts[2].toFixed(1) + '</td>' +
+          '<td>' + s.rankCounts[3].toFixed(1) + '</td>' +
+          '<td class="' + (s.ptSum > 0 ? "cell-pos" : (s.ptSum < 0 ? "cell-neg" : "")) + '">' + fmtPt(s.ptSum) + '</td>' +
+          '<td class="' + (s.payoutSum > 0 ? "cell-pos" : (s.payoutSum < 0 ? "cell-neg" : "")) + '">' + fmtSettlePt(s.payoutSum) + '</td>';
+        statsBody.appendChild(tr);
+      });
+
+    renderChart(stats);
+  }
+
+  function order_index(stats, s) {
+    return stats.indexOf(s);
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function renderChart(stats) {
+    if (state.history.length < 2) { chartWrap.style.display = "none"; return; }
+    chartWrap.style.display = "block";
+
+    // build cumulative series in chronological order (history is newest-first)
+    var chrono = state.history.slice().reverse();
+    var names = stats.map(function (s) { return s.name; });
+    var series = {};
+    names.forEach(function (n) { series[n] = [0]; });
+
+    chrono.forEach(function (rec) {
+      var seen = {};
+      rec.players.forEach(function (p) { seen[p.name] = p.finalPt; });
+      names.forEach(function (n) {
+        var prev = series[n][series[n].length - 1];
+        var delta = seen.hasOwnProperty(n) ? seen[n] : 0;
+        series[n].push(prev + delta);
+      });
+    });
+
+    var dpr = window.devicePixelRatio || 1;
+    var rect = trendChart.getBoundingClientRect();
+    var w = Math.max(rect.width, 280);
+    var h = 220;
+    trendChart.width = w * dpr;
+    trendChart.height = h * dpr;
+    trendChart.style.height = h + "px";
+    var ctx = trendChart.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var pad = { l: 40, r: 14, t: 14, b: 22 };
+    var plotW = w - pad.l - pad.r;
+    var plotH = h - pad.t - pad.b;
+
+    var allVals = [];
+    names.forEach(function (n) { series[n].forEach(function (v) { allVals.push(v); }); });
+    var minV = Math.min(0, Math.min.apply(null, allVals));
+    var maxV = Math.max(0, Math.max.apply(null, allVals));
+    if (minV === maxV) { minV -= 1; maxV += 1; }
+    var pointCount = series[names[0]].length;
+
+    function xAt(i) { return pad.l + (pointCount === 1 ? 0 : (plotW * i) / (pointCount - 1)); }
+    function yAt(v) { return pad.t + plotH - ((v - minV) / (maxV - minV)) * plotH; }
+
+    var styles = getComputedStyle(document.documentElement);
+    var borderColor = styles.getPropertyValue("--border").trim();
+    var inkSoft = styles.getPropertyValue("--ink-soft").trim();
+
+    // grid + zero line
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, yAt(0));
+    ctx.lineTo(w - pad.r, yAt(0));
+    ctx.stroke();
+
+    ctx.fillStyle = inkSoft;
+    ctx.font = "11px 'BIZ UDGothic', sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(maxV.toFixed(0), pad.l - 6, yAt(maxV) + 4);
+    ctx.fillText(minV.toFixed(0), pad.l - 6, yAt(minV) + 4);
+    ctx.fillText("0", pad.l - 6, yAt(0) + 4);
+
+    names.forEach(function (n, idx) {
+      var color = styles.getPropertyValue("--" + SUITS[idx % SUITS.length]).trim();
+      var pts = series[n];
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      pts.forEach(function (v, i) {
+        var x = xAt(i), y = yAt(v);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      // endpoint
+      var lastX = xAt(pts.length - 1), lastY = yAt(pts[pts.length - 1]);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    chartLegend.innerHTML = names.map(function (n, idx) {
+      var color = "var(--" + SUITS[idx % SUITS.length] + ")";
+      return '<span><span class="swatch" style="background:' + color + '"></span>' + escapeHtml(n) + '</span>';
+    }).join("");
+  }
+
+  // ---------- history ----------
+  function groupHistoryByDate(history) {
+    var groups = [];
+    var byKey = {};
+    history.forEach(function (rec) {
+      var d = new Date(rec.date);
+      var key = isNaN(d.getTime()) ? "unknown" : (d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate());
+      if (!byKey[key]) {
+        var label = isNaN(d.getTime()) ? "日付不明" : d.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", weekday: "short" });
+        var g = { key: key, label: label, records: [] };
+        byKey[key] = g;
+        groups.push(g);
+      }
+      byKey[key].records.push(rec);
+    });
+    return groups;
+  }
+
+  function computeDaySummary(records) {
+    var byName = {};
+    var order = [];
+    records.forEach(function (rec) {
+      rec.players.forEach(function (p) {
+        if (!byName[p.name]) { byName[p.name] = { name: p.name, ptSum: 0, payoutSum: 0 }; order.push(p.name); }
+        byName[p.name].ptSum += p.finalPt;
+        byName[p.name].payoutSum += p.payout;
+      });
+    });
+    return order.map(function (n) { return byName[n]; });
+  }
+
+  function renderHistory() {
+    historyList.innerHTML = "";
+    historyCount.textContent = state.history.length ? (state.history.length + "件") : "";
+    if (state.history.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "まだ対局履歴がありません。上のフォームから記録してください。";
+      historyList.appendChild(empty);
+      return;
+    }
+
+    var groups = groupHistoryByDate(state.history);
+
+    groups.forEach(function (group) {
+      var groupEl = document.createElement("div");
+      groupEl.className = "history-day-group";
+
+      var headEl = document.createElement("div");
+      headEl.className = "history-day-head";
+      headEl.textContent = group.label + "(" + group.records.length + "半荘)";
+      groupEl.appendChild(headEl);
+
+      group.records.forEach(function (rec) {
+        var item = document.createElement("div");
+        item.className = "card history-item";
+        var d = new Date(rec.date);
+        var timeStr = isNaN(d.getTime()) ? "" : d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+
+        var rowsHtml = rec.players.map(function (p, i) {
+          var rankStr = p.rankTop === p.rankBottom ? (p.rankTop + "位") : (p.rankTop + "〜" + p.rankBottom + "位");
+          return '<div class="hi-row" style="--suit: var(--' + SUITS[i] + ')">' +
+            '<span>' + escapeHtml(p.name) + ' <span style="color:var(--ink-soft)">(' + rankStr + ')</span></span>' +
+            '<span>' + p.score.toLocaleString("ja-JP") + '点 → ' + fmtPt(p.finalPt) + 'pt(精算' + fmtSettlePt(p.payout) + ')</span>' +
+          '</div>';
+        }).join("");
+
+        item.innerHTML =
+          '<div class="hi-top"><span class="hi-date">' + timeStr + '</span><button class="small" data-id="' + rec.id + '">削除</button></div>' +
+          '<div class="hi-rows">' + rowsHtml + '</div>';
+        groupEl.appendChild(item);
+      });
+
+      if (group.records.length >= 2) {
+        var summary = computeDaySummary(group.records);
+        var summaryEl = document.createElement("div");
+        summaryEl.className = "card day-summary";
+        var summaryRowsHtml = summary.map(function (s) {
+          return '<div class="day-summary-row"><span>' + escapeHtml(s.name) + '</span><span class="' +
+            (s.ptSum > 0 ? "cell-pos" : (s.ptSum < 0 ? "cell-neg" : "")) + '">' +
+            fmtPt(s.ptSum) + 'pt(精算' + fmtSettlePt(s.payoutSum) + ')</span></div>';
+        }).join("");
+        summaryEl.innerHTML =
+          '<div class="day-summary-title">この日の合計(' + group.records.length + '半荘)</div>' +
+          '<div class="day-summary-rows">' + summaryRowsHtml + '</div>';
+        groupEl.appendChild(summaryEl);
+      }
+
+      historyList.appendChild(groupEl);
+    });
+
+    historyList.querySelectorAll("button[data-id]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-id");
+        if (!window.confirm("この対局記録を削除します。元に戻せません。よろしいですか?")) return;
+        state.history = state.history.filter(function (r) { return r.id !== id; });
+        saveData();
+        renderStats();
+        renderHistory();
+      });
+    });
+  }
+
+  var resetConfirm = document.getElementById("resetConfirm");
+  var resetConfirmYes = document.getElementById("resetConfirmYes");
+  var resetConfirmNo = document.getElementById("resetConfirmNo");
+
+  resetAllBtn.addEventListener("click", function () {
+    resetConfirm.className = "confirm-inline show";
+  });
+
+  resetConfirmNo.addEventListener("click", function () {
+    resetConfirm.className = "confirm-inline";
+  });
+
+  resetConfirmYes.addEventListener("click", function () {
+    resetConfirm.className = "confirm-inline";
+    state = {
+      settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50 },
+      players: ["", "", "", ""],
+      history: []
+    };
+    saveData();
+    startPointsEl.value = state.settings.startPoints;
+    returnPointsEl.value = state.settings.returnPoints;
+    umaPresetEl.value = state.settings.umaPreset;
+    okaEnabledEl.checked = state.settings.oka;
+    rateEl.value = state.settings.rate;
+    buildPlayerCards();
+    renderPlayers();
+    renderStats();
+    renderHistory();
+  });
+
+  window.addEventListener("resize", function () {
+    var stats = computeStats();
+    if (state.history.length >= 2) renderChart(stats);
+  });
+
+  renderStats();
+  renderHistory();
+})();
+</script>
 </body>
 </html>
