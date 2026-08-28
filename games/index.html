@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>呼んだ？相棒！</title>
+<meta property="og:title" content="呼んだ？相棒！">
+<meta property="og:description" content="スパーク200を見つけてタップする、しょーもない反射神経ゲーム">
+<meta property="og:image" content="https://kanae-project.github.io/syomona-games/games/yonda-aibou/og-image.png">
+<meta property="og:url" content="https://kanae-project.github.io/syomona-games/games/yonda-aibou/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://kanae-project.github.io/syomona-games/games/yonda-aibou/og-image.png">
+<style>
+  :root{
+    --bg1:#fff3d6;
+    --bg2:#ffe0b0;
+    --bubble:#ffffff;
+    --ink:#3a2a1a;
+    --accent:#e8542a;
+    --accent2:#c0392b;
+    --gentle:#2e7d32;
+    --road:#555049;
+    --road-line:#f4e8c8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.4rem; margin:0 0 4px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:18px; }
+  .stage{
+    background:rgba(255,255,255,.55);
+    border-radius:22px;
+    padding:22px 16px 26px;
+    box-shadow:0 8px 24px rgba(120,70,20,.15);
+  }
+
+  .pal{ display:block; margin:0 auto 6px; width:110px; height:80px; filter:drop-shadow(0 6px 8px rgba(0,0,0,.15)); }
+  .name-tag{ text-align:center; font-weight:bold; color:var(--accent2); margin-bottom:14px; font-size:.95rem; }
+
+  .bubble{
+    position:relative;
+    background:var(--bubble);
+    border:3px solid var(--ink);
+    border-radius:18px;
+    padding:14px 16px;
+    margin:0 auto 16px;
+    max-width:360px;
+    font-size:1rem;
+    line-height:1.6;
+    text-align:center;
+    opacity:0;
+    transform:translateY(8px) scale(.97);
+    transition:opacity .3s ease, transform .3s ease;
+  }
+  .bubble::after{
+    content:""; position:absolute; left:30px; bottom:-14px;
+    border:10px solid transparent; border-top-color:var(--ink);
+  }
+  .bubble::before{
+    content:""; position:absolute; left:33px; bottom:-9px;
+    border:8px solid transparent; border-top-color:var(--bubble); z-index:1;
+  }
+  .bubble.show{ opacity:1; transform:translateY(0) scale(1); }
+  .bubble.shake{ animation:shake .4s ease; }
+  .bubble.fx-green{ background:#dff5df; border-color:#2e7d32; }
+  .bubble.fx-green::before{ border-top-color:#dff5df; }
+  .bubble.fx-yellow{ background:#fff6cc; border-color:#b8901a; }
+  .bubble.fx-yellow::before{ border-top-color:#fff6cc; }
+  .bubble.fx-red{ background:#ffd9d9; border-color:#c0392b; }
+  .bubble.fx-red::before{ border-top-color:#ffd9d9; }
+  .bubble.fx-rainbow{
+    background:linear-gradient(90deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#b56bff,#ff6bcb);
+    background-size:300% 100%;
+    animation:rainbow-shift 1.2s linear infinite;
+    color:#1a1a1a;
+    font-weight:bold;
+  }
+  .bubble.fx-rainbow::before{ border-top-color:#ff6b6b; }
+  @keyframes rainbow-shift{
+    0%{ background-position:0% 50%; }
+    100%{ background-position:100% 50%; }
+  }
+  @media (prefers-reduced-motion: reduce){ .bubble.fx-rainbow{ animation:none; } }
+  @media (prefers-reduced-motion: reduce){ .bubble{transition:none;} .bubble.shake{animation:none;} }
+  @keyframes shake{
+    0%,100%{transform:translateY(0) scale(1) rotate(0);}
+    25%{transform:translateY(0) scale(1.03) rotate(-1.5deg);}
+    75%{transform:translateY(0) scale(1.03) rotate(1.5deg);}
+  }
+
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:12px;
+    padding:10px 16px; font-size:.95rem; font-weight:bold;
+    background:var(--accent); color:#fff; transition:transform .15s ease;
+  }
+  button:focus-visible{ outline:3px solid var(--accent2); outline-offset:2px; }
+  button:active{ transform:scale(.95); }
+  .start-row{ text-align:center; margin:10px 0 4px; }
+  .start-row button{ font-size:1.1rem; padding:14px 28px; }
+  .mode-select-label{ font-size:.85rem; opacity:.7; margin-bottom:10px; }
+  .mode-buttons{ display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .mode-buttons button{ width:100%; max-width:280px; }
+  .mode-hard{ background:var(--accent2); }
+
+  .hidden{ display:none !important; }
+
+  .road-wrap{ position:relative; margin:16px 0; }
+  .road{
+    position:relative;
+    height:120px;
+    background:
+      repeating-linear-gradient(90deg, var(--road-line) 0 24px, transparent 24px 48px) center / 100% 4px no-repeat,
+      var(--road);
+    border-radius:14px;
+    border:3px solid var(--ink);
+    overflow:hidden;
+  }
+  .car{
+    position:absolute;
+    top:8px;
+    left:-240px;
+    width:175px;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .car svg{ width:100%; display:block; }
+  .car.caught{ animation:pop .3s ease; }
+  @keyframes pop{
+    0%{ transform:scale(1); }
+    50%{ transform:scale(1.25); }
+    100%{ transform:scale(0); opacity:0; }
+  }
+  .car.stakes-glow svg{ animation:glow 1s ease-in-out infinite; }
+  @keyframes glow{
+    0%,100%{ filter:drop-shadow(0 0 2px #fff700); }
+    50%{ filter:drop-shadow(0 0 12px #fff700); }
+  }
+
+  .score-popup{
+    position:absolute;
+    top:50%; left:50%;
+    text-align:center;
+    pointer-events:none;
+    opacity:0;
+    z-index:5;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+  }
+  .popup-label{
+    font-size:1.1rem;
+    font-weight:bold;
+    text-shadow:0 2px 0 rgba(0,0,0,.25), 0 0 6px rgba(255,255,255,.5);
+  }
+  .popup-score{
+    font-size:2.4rem;
+    font-weight:900;
+    text-shadow:0 2px 0 rgba(0,0,0,.25), 0 0 6px rgba(255,255,255,.5);
+  }
+  .score-popup.pop-green{ color:#2e7d32; animation:pop-float 1.1s ease forwards; }
+  .score-popup.pop-yellow{ color:#b8901a; animation:pop-float 1.1s ease forwards; }
+  .score-popup.pop-red{ color:#c0392b; animation:pop-float 1.1s ease forwards; }
+  .score-popup.pop-rainbow{
+    animation:pop-float 1.3s ease forwards;
+  }
+  .score-popup.pop-rainbow .popup-label,
+  .score-popup.pop-rainbow .popup-score{
+    background:linear-gradient(90deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#b56bff,#ff6bcb);
+    background-size:300% 100%;
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    animation:rainbow-shift .8s linear infinite;
+  }
+  @keyframes pop-float{
+    0%{ opacity:0; transform:translate(-50%,-50%) scale(.5); }
+    15%{ opacity:1; transform:translate(-50%,-50%) scale(1.2); }
+    30%{ opacity:1; transform:translate(-50%,-65%) scale(1); }
+    100%{ opacity:0; transform:translate(-50%,-160%) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .score-popup.pop-green,.score-popup.pop-yellow,.score-popup.pop-red,.score-popup.pop-rainbow{
+      animation:none; opacity:1; transform:translate(-50%,-50%);
+      transition:opacity .8s ease 1.5s;
+    }
+  }
+
+  .countdown{
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    font-size:4rem;
+    font-weight:900;
+    color:#fff;
+    text-shadow:0 3px 0 rgba(0,0,0,.35), 0 0 12px rgba(0,0,0,.4);
+    z-index:8;
+    pointer-events:none;
+    animation:count-pop .7s ease;
+  }
+  @keyframes count-pop{
+    0%{ transform:translate(-50%,-50%) scale(.4); opacity:0; }
+    30%{ transform:translate(-50%,-50%) scale(1.15); opacity:1; }
+    100%{ transform:translate(-50%,-50%) scale(1); opacity:1; }
+  }
+
+  .hint-btn-row button:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+  }
+
+  .score-row{
+    display:flex; justify-content:center; gap:22px;
+    font-size:.85rem; font-weight:bold; margin-top:6px;
+  }
+  .score-row .hit{ color:var(--gentle); }
+  .score-row .miss{ color:var(--accent2); }
+  .score-row .score{ color:#7a5ea8; }
+  .wave-row{ text-align:center; font-size:.75rem; opacity:.7; margin-top:2px; }
+
+  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed #c8a978; text-align:center; }
+  .grade-cta{
+    background:linear-gradient(160deg,#fff0e4,#ffdcc2);
+    border:3px dashed var(--accent2);
+    border-radius:18px;
+    padding:18px 14px;
+  }
+  .grade-headline{ font-size:1.15rem; font-weight:bold; color:var(--accent2); margin-bottom:6px; }
+  .note-link-btn{
+    display:block;
+    background:#41c9b4;
+    color:#fff;
+    font-size:1.15rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:16px 14px;
+    border-radius:14px;
+    margin-bottom:14px;
+    box-shadow:0 4px 0 #2e9c8c;
+  }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .back-link{
+    display:inline-block;
+    font-size:.8rem;
+    font-weight:700;
+    color:var(--ink);
+    opacity:.65;
+    text-decoration:none;
+    margin-bottom:10px;
+  }
+  .back-link:hover{ opacity:1; }
+  .back-link-btn{
+    display:block;
+    background:var(--accent);
+    color:#fff;
+    font-size:1.05rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:14px 14px;
+    border-radius:14px;
+    margin-top:20px;
+    box-shadow:0 4px 0 var(--accent2);
+  }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2); }
+  .grade-teaser{ font-size:.85rem; font-weight:bold; color:var(--ink); margin-bottom:14px; }
+  .grade-form{ display:flex; flex-direction:column; gap:10px; max-width:320px; margin:0 auto; }
+  .grade-form input[type=text]{ text-align:center; padding:10px 12px; border-radius:12px; border:2px solid #d8bd8c; font-size:1rem; }
+  .grade-form #unlockBtn{ font-size:1.05rem; padding:13px 16px; background:var(--accent2); }
+  .grade-msg{ font-size:.8rem; margin-top:8px; }
+  .unlocked-badge{
+    display:inline-block; background:#06C755; color:#fff; font-size:.7rem;
+    padding:3px 10px; border-radius:999px; margin-top:8px;
+  }
+  .hint-btn-row{ text-align:center; margin-top:10px; }
+  .hint-btn-row button{ background:#8a6d3b; font-size:.85rem; padding:9px 16px; }
+
+  .result-panel{
+    text-align:center;
+    background:rgba(255,255,255,.6);
+    border:3px solid var(--ink);
+    border-radius:18px;
+    padding:20px 16px;
+  }
+  .result-label{ font-size:.9rem; font-weight:bold; opacity:.75; margin-bottom:4px; }
+  .result-score{ font-size:2.6rem; font-weight:900; color:#7a5ea8; margin-bottom:10px; }
+  .result-breakdown{ font-size:.85rem; opacity:.8; margin-bottom:16px; line-height:1.8; }
+  .unlock-announce{
+    display:inline-block;
+    background:#7a5ea8;
+    color:#fff;
+    font-weight:bold;
+    font-size:.85rem;
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:14px;
+    animation:pop-float-badge .6s ease;
+  }
+  @keyframes pop-float-badge{
+    0%{ transform:scale(.6); opacity:0; }
+    60%{ transform:scale(1.1); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+  .result-panel .start-row{ margin:0 0 10px; }
+  .result-panel .start-row:last-child{ margin-bottom:0; }
+  .brag-btn{ background:#000; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <h1>呼んだ？相棒！</h1>
+  <div class="sub">一桁足りない相棒の車「スパーク200」を見つけてタップしよう（たまに伝説の「2000」も走ってくる、どちらも見逃し厳禁！）</div>
+
+  <div class="stage">
+    <svg class="pal" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="100" cy="125" rx="90" ry="8" fill="rgba(0,0,0,.12)"/>
+      <path d="M15 105 Q15 70 50 65 L75 65 Q92 35 130 35 L155 35 Q182 35 192 65 L192 90 Q192 100 180 100 L20 100 Q15 100 15 105Z" fill="#e8542a" stroke="#3a2a1a" stroke-width="3"/>
+      <path d="M83 63 Q97 42 128 42 L150 42 Q170 42 180 63 Z" fill="#bfe8ff" stroke="#3a2a1a" stroke-width="2"/>
+      <circle cx="55" cy="100" r="17" fill="#3a2a1a"/>
+      <circle cx="55" cy="100" r="7" fill="#999"/>
+      <circle cx="155" cy="100" r="17" fill="#3a2a1a"/>
+      <circle cx="155" cy="100" r="7" fill="#999"/>
+      <circle cx="70" cy="80" r="8" fill="#fff" stroke="#3a2a1a" stroke-width="2"/>
+      <circle cx="70" cy="80" r="3" fill="#3a2a1a"/>
+      <circle cx="112" cy="80" r="8" fill="#fff" stroke="#3a2a1a" stroke-width="2"/>
+      <circle cx="112" cy="80" r="3" fill="#3a2a1a"/>
+      <path d="M78 90 Q95 98 112 90" stroke="#3a2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <rect x="73" y="101" width="54" height="22" rx="3" fill="#fff" stroke="#3a2a1a" stroke-width="2"/>
+      <text x="100" y="117" font-size="14" font-weight="bold" text-anchor="middle" fill="#3a2a1a" font-family="monospace">200</text>
+    </svg>
+    <div class="name-tag">相棒AIカー「スパーク200」</div>
+
+    <div id="bubbleMain" class="bubble show">
+      道路を見張って、プレートに「200」って書かれた車が来たらタップしてくれよな！たまに本物の「2000」も走ってくるけど、そっちも見逃したら台無しだぞ。
+    </div>
+
+    <div class="start-row" id="startRow">
+      <div class="mode-select-label" id="modeLabel"></div>
+      <div class="mode-buttons">
+        <button type="button" id="startNormalBtn">ノーマルで挑戦</button>
+        <button type="button" id="startHardBtn" class="mode-hard hidden">ハードモードで挑戦</button>
+      </div>
+    </div>
+
+    <div id="gameArea" class="hidden">
+      <div class="road-wrap">
+        <div class="road" id="road"></div>
+        <div id="scorePopup" class="score-popup">
+          <div class="popup-label"></div>
+          <div class="popup-score"></div>
+        </div>
+        <div id="countdown" class="countdown hidden"></div>
+      </div>
+      <div class="score-row">
+        <span class="hit">的中 <span id="hitCount">0</span></span>
+        <span class="miss">からぶり <span id="missCount">0</span></span>
+        <span class="score">スコア <span id="scoreCount">0</span></span>
+      </div>
+      <div class="wave-row" id="waveRow">1 / 10台目</div>
+      <div class="hint-btn-row">
+        <button type="button" id="hardModeBtn">ハードモードに挑戦</button>
+      </div>
+    </div>
+
+    <div id="resultPanel" class="result-panel hidden">
+      <div class="result-label">あなたのスコア</div>
+      <div class="result-score" id="resultScore">0</div>
+      <div class="result-breakdown" id="resultBreakdown"></div>
+      <div id="unlockAnnounce" class="unlock-announce hidden">🔓 ハードモード解放！</div>
+      <div class="start-row">
+        <button type="button" id="bragBtn" class="brag-btn">🏆 スコアを自慢する</button>
+      </div>
+      <div class="start-row">
+        <button type="button" id="replayBtn">もう一度遊ぶ</button>
+      </div>
+    </div>
+
+    <div class="grade-zone">
+      <div class="grade-cta" id="gradeForm">
+        <div class="grade-headline">損しかない課金はこちら💁</div>
+        <a href="https://note.com/kanae_project/n/neaf59c5017af" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
+        <div class="grade-teaser">課金すると、スコアが100倍に！ハードモードと合わせれば最大1万倍…！（本当にお金をドブに捨てる気ですか？）</div>
+        <div class="grade-form">
+          <input type="text" id="passwordInput" placeholder="合言葉">
+          <button type="button" id="unlockBtn">解放する</button>
+        </div>
+      </div>
+      <div id="gradeMsg" class="grade-msg"></div>
+      <div id="unlockedZone" class="hidden">
+        <span class="unlocked-badge">🔥 スコア100倍 解放済み</span>
+      </div>
+    </div>
+
+    <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
+  const PASSWORD = "パル500";
+  const STORAGE_KEY = "yondasoubou_unlocked";
+  const HARD_UNLOCK_KEY = "yondasoubou_hardmode_unlocked";
+  const HARD_UNLOCK_SCORE = 1000; // ノーマルでこの点数以上取るとハードモードが解放される
+
+  const introLine = "了解、相棒！プレートに「200」って書かれた車が来たら、すぐ教えてくれよな！たまに本物の「2000」が走ってくることもあるから、見逃すなよ！";
+
+  const successLines = [
+    "はい、相棒！お呼びですか？",
+    "見つけてくれたんですね、相棒！さすがです！",
+    "今日のご機嫌はいかがですか、相棒？",
+    "相棒、今日も冴えてますね！"
+  ];
+
+  const failLines = [
+    "誰ですか、あなたは。",
+    "人違いです、相棒じゃありません。",
+    "急に話しかけないでください。",
+    "残念、それはただの車です。"
+  ];
+
+  const bragConfirmLine = "ほんとに課金するんですか？金ドブですよ";
+
+  const missedLines = [
+    "あ、行っちゃいました…",
+    "見えてました？あれでしたよ。",
+    "反応、遅かったですね。"
+  ];
+
+  const specialLine = "そいつはスペシャルだぜ！";
+
+  // "2000"はスペシャルカー専用のプレート番号なので、ここには含めない
+  const decoyPlates = ["199","2001","20","300","2200","250","1200"];
+  const carColors = ["#e8542a","#2e7d32","#3b6ea5","#c0392b","#caa15a","#7a5ea8"];
+  const TARGET_POINTS = 100;
+  const SPECIAL_POINTS = 2000;
+  const WRONG_TAP_PENALTY = -100;
+  const MISSED_PENALTY = -1000;
+  const IGNORE_POINTS = 100; // 200以外を正しくスルーできた時のボーナス
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  // localStorageが使えない環境でもエラーで止まらないようにする
+  function safeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
+  function safeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
+
+  // ブラウザ内蔵の読み上げ機能。非対応環境や失敗時は静かに諦める
+  function speak(text){
+    try {
+      if(!('speechSynthesis' in window)) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ja-JP';
+      u.rate = 1.05;
+      speechSynthesis.speak(u);
+    } catch(e){ /* 読み上げが無理でも、字幕(吹き出し)だけで成立するようにしてある */ }
+  }
+
+  const bubbleMain = document.getElementById('bubbleMain');
+  function showBubbleText(text, shake, fx){
+    bubbleMain.textContent = text;
+    bubbleMain.classList.remove('show','shake','fx-green','fx-yellow','fx-red','fx-rainbow');
+    void bubbleMain.offsetWidth; // reflow でアニメーションを再トリガー
+    bubbleMain.classList.add('show');
+    if(shake) bubbleMain.classList.add('shake');
+    if(fx) bubbleMain.classList.add('fx-' + fx);
+  }
+
+  // ==== 効果音（外部ファイル不要、Web Audio APIでその場合成） ====
+  let audioCtx = null;
+  function getAudioCtx(){
+    try {
+      if(!audioCtx){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return null;
+        audioCtx = new AC();
+      }
+      if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+      return audioCtx;
+    } catch(e){ return null; }
+  }
+  function beep(freq, duration, delay, type, vol){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'square';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + (delay || 0);
+      gain.gain.setValueAtTime(vol != null ? vol : 0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + duration + 0.02);
+    } catch(e){ /* 音が鳴らなくてもゲーム進行には影響しない */ }
+  }
+  function sfxCorrect(){ // ピンポン
+    beep(1046, 0.15, 0, 'sine', 0.2);
+    beep(784, 0.18, 0.16, 'sine', 0.2);
+  }
+  function sfxWrong(){ // ブー
+    beep(160, 0.28, 0, 'sawtooth', 0.18);
+  }
+  function sfxMissed(){ // ブーブー
+    beep(140, 0.22, 0, 'sawtooth', 0.2);
+    beep(140, 0.22, 0.28, 'sawtooth', 0.2);
+  }
+  function sfxSpecial(){ // テッテレー
+    beep(523, 0.12, 0, 'triangle', 0.22);
+    beep(659, 0.12, 0.12, 'triangle', 0.22);
+    beep(784, 0.12, 0.24, 'triangle', 0.22);
+    beep(1046, 0.35, 0.38, 'triangle', 0.25);
+  }
+
+  const scorePopup = document.getElementById('scorePopup');
+  const popupLabelEl = scorePopup.querySelector('.popup-label');
+  const popupScoreEl = scorePopup.querySelector('.popup-score');
+  function showScorePopup(delta, cls, label){
+    const text = (delta > 0 ? '+' : '') + delta;
+    popupLabelEl.textContent = label || '';
+    popupScoreEl.textContent = text;
+    scorePopup.className = 'score-popup'; // クラスをリセットしてアニメーションを再トリガー
+    void scorePopup.offsetWidth;
+    scorePopup.classList.add(cls);
+  }
+
+  const startRow = document.getElementById('startRow');
+  const startNormalBtn = document.getElementById('startNormalBtn');
+  const startHardBtn = document.getElementById('startHardBtn');
+  const gameArea = document.getElementById('gameArea');
+  const road = document.getElementById('road');
+  const hitCountEl = document.getElementById('hitCount');
+  const missCountEl = document.getElementById('missCount');
+  const scoreCountEl = document.getElementById('scoreCount');
+  const waveRow = document.getElementById('waveRow');
+  const resultPanel = document.getElementById('resultPanel');
+  const resultScore = document.getElementById('resultScore');
+  const resultBreakdown = document.getElementById('resultBreakdown');
+  const unlockAnnounce = document.getElementById('unlockAnnounce');
+  const replayBtn = document.getElementById('replayBtn');
+  const modeLabel = document.getElementById('modeLabel');
+
+  // ==== ハードモード解放（ノーマルでHARD_UNLOCK_SCORE点以上を取ると解放） ====
+  let hardModeUnlocked = safeGet(HARD_UNLOCK_KEY) === '1';
+  function refreshStartScreen(){
+    if(hardModeUnlocked){
+      startHardBtn.classList.remove('hidden');
+      modeLabel.textContent = 'モードを選んでね';
+    } else {
+      startHardBtn.classList.add('hidden');
+      modeLabel.textContent = '';
+    }
+  }
+  refreshStartScreen();
+  const bragBtn = document.getElementById('bragBtn');
+  const countdownEl = document.getElementById('countdown');
+
+  // 3・2・1のカウントダウンをしてからcallbackを実行する
+  function runCountdown(callback){
+    const seq = ['3', '2', '1'];
+    let i = 0;
+    countdownEl.classList.remove('hidden');
+    function step(){
+      if(i >= seq.length){
+        countdownEl.classList.add('hidden');
+        callback();
+        return;
+      }
+      countdownEl.textContent = seq[i];
+      countdownEl.style.animation = 'none';
+      void countdownEl.offsetWidth;
+      countdownEl.style.animation = '';
+      speak(seq[i]);
+      i++;
+      setTimeout(step, 700);
+    }
+    step();
+  }
+
+  // ==== 自慢ボタン: note公開後、GAME_URLに実際のURLを入れると投稿文にリンクが付く ====
+  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/yonda-aibou/";
+  bragBtn.addEventListener('click', function(){
+    let text = '「呼んだ？相棒！」で' + score + '点とった！\n#しょーもなゲームズ';
+    if(GAME_URL){ text += '\n' + GAME_URL; }
+    const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+    window.open(url, '_blank');
+  });
+
+  let hit = 0, miss = 0, score = 0;
+  let roundTimer = null;
+  let hardMode = false;
+  let carInFlight = false; // 車が動いている間はtrue。この間はハードモード切替を禁止する
+  function syncHardModeBtn(){ hardModeBtn.disabled = carInFlight; }
+  let scoreMultiplier = 1; // 課金すると100になる
+  const HARD_MODE_MULTIPLIER = 100; // ハードモード中もさらに100倍（課金と両方で1万倍）
+  function getMultiplier(){ return scoreMultiplier * (hardMode ? HARD_MODE_MULTIPLIER : 1); }
+
+  const ROUND_SIZE = 10;
+  let carIndex = 0; // 1〜10台目
+
+  // carIndexが進むほど少しずつ速くなる（1台目が一番ゆっくり、10台目が一番速い）
+  function durationRange(n){
+    return {
+      min: Math.max(1300, 2800 - (n-1)*150),
+      max: Math.max(1800, 3800 - (n-1)*200)
+    };
+  }
+  function gapRange(n){
+    return {
+      min: Math.max(300, 700 - (n-1)*40),
+      max: Math.max(600, 1500 - (n-1)*60)
+    };
+  }
+
+  // 車は常に「左向き（進行方向）」で描く。左端=フロント（ヘッドライト）、右端=リア（テールライト）。
+  // CSSでの反転は一切使わない（プレート文字が崩れる原因になっていたため）
+  function carSVG(color, plate, isSpecial){
+    const stripe = isSpecial
+      ? '<path d="M20 62 L205 62 L205 70 L20 70 Z" fill="#c0392b"/>'
+      : '';
+    return '<svg viewBox="0 0 220 110" xmlns="http://www.w3.org/2000/svg">' +
+      '<ellipse cx="110" cy="98" rx="95" ry="7" fill="rgba(0,0,0,.15)"/>' +
+      '<path d="M15 85 Q15 55 45 50 L70 50 Q85 25 120 25 L150 25 Q175 25 185 50 L205 50 Q215 50 215 65 L215 80 Q215 88 205 88 L20 88 Q15 88 15 85Z" fill="' + color + '" stroke="#3a2a1a" stroke-width="3"/>' +
+      stripe +
+      '<path d="M78 48 Q90 30 118 30 L145 30 Q163 30 172 48 Z" fill="#bfe8ff" stroke="#3a2a1a" stroke-width="2"/>' +
+      '<circle cx="60" cy="88" r="16" fill="#3a2a1a"/><circle cx="60" cy="88" r="7" fill="#999"/>' +
+      '<circle cx="175" cy="88" r="16" fill="#3a2a1a"/><circle cx="175" cy="88" r="7" fill="#999"/>' +
+      '<rect x="83" y="55" width="70" height="30" rx="3" fill="#fff" stroke="#3a2a1a" stroke-width="2.5"/>' +
+      '<text x="118" y="77" font-size="18" font-weight="bold" text-anchor="middle" fill="#3a2a1a" font-family="monospace">' + plate + '</text>' +
+      '<circle cx="24" cy="68" r="6" fill="#fff9c4" stroke="#3a2a1a" stroke-width="1.5"/>' +
+      '<rect x="204" y="58" width="10" height="14" rx="2" fill="#c0392b" stroke="#3a2a1a" stroke-width="1.5"/>' +
+      '</svg>';
+  }
+
+  function spawnRound(){
+    carIndex++;
+    waveRow.textContent = carIndex + ' / ' + ROUND_SIZE + '台目';
+    road.innerHTML = '';
+    carInFlight = true;
+    syncHardModeBtn();
+
+    const roll = Math.random();
+    const isSpecial = roll < 0.07;
+    const isTarget = !isSpecial && roll < 0.07 + 0.28;
+    const plate = isSpecial ? "2000" : (isTarget ? "200" : pick(decoyPlates));
+    const color = isSpecial ? "#1a1a1a" : pick(carColors);
+
+    const carEl = document.createElement('div');
+    carEl.className = 'car';
+    if(getMultiplier() > 1){ carEl.classList.add('stakes-glow'); } // 倍率が付いてる間は車が光って「ハイリスク中」が分かるようにする
+    carEl.innerHTML = carSVG(color, plate, isSpecial);
+    road.appendChild(carEl);
+
+    let resolved = false;
+    const dRange = hardMode ? {min:400,max:700} : durationRange(carIndex);
+    const duration = Math.floor(Math.random()*(dRange.max-dRange.min)+dRange.min);
+
+    // 右→左に進行（車は最初から左向きに描いてあるので反転は不要）
+    carEl.style.left = (road.clientWidth + 40) + 'px';
+    requestAnimationFrame(function(){
+      carEl.style.transition = 'left ' + duration + 'ms linear';
+      carEl.style.left = '-240px';
+    });
+
+    carEl.addEventListener('click', function(){
+      if(resolved) return;
+      resolved = true;
+      carInFlight = false;
+      syncHardModeBtn();
+      carEl.style.transition = 'none';
+      carEl.classList.add('caught');
+      judge(isTarget, isSpecial, false);
+      afterCar();
+    });
+
+    carEl.addEventListener('transitionend', function(){
+      if(resolved) return;
+      resolved = true;
+      carInFlight = false;
+      syncHardModeBtn();
+      carEl.style.visibility = 'hidden'; // 通過した車は次のラウンドまでの間、見えなくしておく
+      judge(isTarget, isSpecial, true); // タップせず通過した時の判定（200/2000なら見逃し、それ以外ならスルー成功）
+      afterCar();
+    });
+
+  }
+
+  function registerMissed(line){ // 見逃し: -1000, 赤, ブーブー（課金中は-100000）
+    miss++;
+    const delta = MISSED_PENALTY * getMultiplier();
+    score += delta;
+    missCountEl.textContent = miss;
+    scoreCountEl.textContent = score;
+    showBubbleText(line, true, 'red');
+    showScorePopup(delta, 'pop-red', '見逃し');
+    speak(line);
+    sfxMissed();
+  }
+
+  function registerWrongTap(line){ // 間違いタップ: -100, 黄, ブー（課金中は-10000）
+    miss++;
+    const delta = WRONG_TAP_PENALTY * getMultiplier();
+    score += delta;
+    missCountEl.textContent = miss;
+    scoreCountEl.textContent = score;
+    showBubbleText(line, true, 'yellow');
+    showScorePopup(delta, 'pop-yellow', '間違い');
+    speak(line);
+    sfxWrong();
+  }
+
+  function registerTargetHit(){ // 200をタップ: +100, 緑, ピンポン（課金中は+10000）
+    hit++;
+    const delta = TARGET_POINTS * getMultiplier();
+    score += delta;
+    hitCountEl.textContent = hit;
+    scoreCountEl.textContent = score;
+    const line = pick(successLines);
+    showBubbleText(line, false, 'green');
+    showScorePopup(delta, 'pop-green', '✅正解!');
+    speak(line);
+    sfxCorrect();
+  }
+
+  function registerSpecialHit(){ // 2000をタップ: +2000, レインボー, テッテレー（課金中は+200000）
+    hit++;
+    const delta = SPECIAL_POINTS * getMultiplier();
+    score += delta;
+    hitCountEl.textContent = hit;
+    scoreCountEl.textContent = score;
+    showBubbleText(specialLine, true, 'rainbow');
+    showScorePopup(delta, 'pop-rainbow', '🌈スペシャル!');
+    speak(specialLine);
+    sfxSpecial();
+  }
+
+  function registerCorrectIgnore(){ // 200/2000以外を正しくスルー: +100, 緑（課金中は+10000）
+    hit++;
+    const delta = IGNORE_POINTS * getMultiplier();
+    score += delta;
+    hitCountEl.textContent = hit;
+    scoreCountEl.textContent = score;
+    showScorePopup(delta, 'pop-green', '✅正解!');
+    sfxCorrect();
+    // 声の演出は正解タップ時のみ（毎回喋らせると煩くなるため、スルー成功時はポップアップのみ）
+  }
+
+  function judge(isTarget, isSpecial, missedByTimeout){
+    if(isSpecial){
+      if(missedByTimeout){ registerMissed(pick(missedLines)); }
+      else { registerSpecialHit(); }
+    } else if(isTarget){
+      if(missedByTimeout){ registerMissed(pick(missedLines)); }
+      else { registerTargetHit(); }
+    } else {
+      if(missedByTimeout){ registerCorrectIgnore(); }
+      else { registerWrongTap(pick(failLines)); }
+    }
+  }
+
+  function afterCar(){
+    clearTimeout(roundTimer);
+    if(carIndex >= ROUND_SIZE){
+      // 直前の演出(色・音)が見えるよう、少し間を空けてから結果画面を出す
+      roundTimer = setTimeout(showResult, 900);
+    } else {
+      const gRange = hardMode ? {min:150,max:400} : gapRange(carIndex);
+      const gap = Math.floor(Math.random()*(gRange.max-gRange.min)+gRange.min);
+      roundTimer = setTimeout(spawnRound, gap);
+    }
+  }
+
+  function showResult(){
+    gameArea.classList.add('hidden');
+    resultScore.textContent = (score > 0 ? '+' : '') + score;
+    resultBreakdown.textContent = '的中 ' + hit + '回 ／ からぶり ' + miss + '回';
+    resultPanel.classList.remove('hidden');
+
+    // ノーマルモードでHARD_UNLOCK_SCORE点以上を取ると、ハードモードが解放される
+    const justUnlocked = !hardMode && !hardModeUnlocked && score >= HARD_UNLOCK_SCORE;
+    if(justUnlocked){
+      hardModeUnlocked = true;
+      safeSet(HARD_UNLOCK_KEY, '1');
+      refreshStartScreen();
+      unlockAnnounce.classList.remove('hidden');
+    } else {
+      unlockAnnounce.classList.add('hidden');
+    }
+
+    const line = justUnlocked
+      ? 'お疲れ様でした、相棒！今回のスコアは' + score + '点です！しかもハードモードが解放されましたよ！'
+      : 'お疲れ様でした、相棒！今回のスコアは' + score + '点です！';
+    showBubbleText(line, false);
+    speak(line);
+  }
+
+  replayBtn.addEventListener('click', function(){
+    hit = 0; miss = 0; score = 0; carIndex = 0;
+    hitCountEl.textContent = 0;
+    missCountEl.textContent = 0;
+    scoreCountEl.textContent = 0;
+    resultPanel.classList.add('hidden');
+    refreshStartScreen(); // 解放直後ならハードモードのボタンがここで見えるようになる
+    startRow.classList.remove('hidden');
+    showBubbleText('もう一回どっちで行く？', false);
+  });
+
+  function beginGame(isHard){
+    hardMode = isHard;
+    hardModeBtn.textContent = hardMode ? 'ノーマルに戻す' : 'ハードモードに挑戦';
+    startRow.classList.add('hidden');
+    gameArea.classList.remove('hidden');
+    const line = isHard
+      ? introLine + '得点' + (getMultiplier() >= 10000 ? '1万倍' : '100倍') + 'のハードモードで行きますよ'
+      : introLine;
+    showBubbleText(line, false);
+    runCountdown(spawnRound);
+  }
+  startNormalBtn.addEventListener('click', function(){ beginGame(false); });
+  startHardBtn.addEventListener('click', function(){ beginGame(true); });
+
+  // ==== グレードアップ（合言葉）まわり ====
+  const gradeForm = document.getElementById('gradeForm');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const gradeMsg = document.getElementById('gradeMsg');
+  const unlockedZone = document.getElementById('unlockedZone');
+
+  function setUnlocked(){
+    gradeForm.classList.add('hidden');
+    gradeMsg.textContent = '';
+    unlockedZone.classList.remove('hidden');
+    scoreMultiplier = 100;
+  }
+
+  if(safeGet(STORAGE_KEY) === '1'){
+    setUnlocked(); // 前回すでに課金済みの場合は、警告メッセージなしで静かに復元する
+  }
+
+  unlockBtn.addEventListener('click', function(){
+    const val = document.getElementById('passwordInput').value.trim();
+    if(val === PASSWORD){
+      safeSet(STORAGE_KEY, '1');
+      setUnlocked();
+      // 今まさに課金した時だけ、念押しの警告を見せる
+      showBubbleText(bragConfirmLine, true, 'yellow');
+      speak(bragConfirmLine);
+    } else {
+      gradeMsg.textContent = '違います、もう一度確認してください。';
+    }
+  });
+
+  const hardModeBtn = document.getElementById('hardModeBtn');
+  hardModeBtn.addEventListener('click', function(){
+    hardMode = !hardMode;
+    if(hardMode){
+      hardModeBtn.textContent = 'ノーマルに戻す';
+      const multText = getMultiplier() >= 10000 ? '1万倍' : '100倍';
+      const line = '得点' + multText + 'のハードモードで行きますよ';
+      showBubbleText(line, false);
+      speak(line);
+    } else {
+      hardModeBtn.textContent = 'ハードモードに挑戦';
+      showBubbleText('ノーマルモードに戻ったぞ、相棒。', false);
+      speak('ノーマルモードに戻ったぞ、相棒。');
+    }
+  });
+})();
+</script>
+</body>
+</html>
