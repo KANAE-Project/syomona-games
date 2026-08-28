@@ -489,7 +489,7 @@
 
         <div class="submit-how">投稿はこちらから👇（画像・メッセージをまとめて送ってね）</div>
         <div class="submit-btns">
-          <a href="https://twitter.com/intent/tweet?hashtags=%E7%90%86%E4%B8%8D%E5%B0%BD%E7%8C%AE%E7%AB%8B%E3%81%8A%E3%81%B0%E3%81%A1%E3%82%83%E3%82%93&text=%E3%81%8A%E3%81%B0%E3%81%A1%E3%82%83%E3%82%93%E3%81%AB%E3%83%A1%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%92%E6%95%99%E3%81%88%E3%81%A6%E3%81%82%E3%81%92%E3%82%8B%EF%BC%81" target="_blank" rel="noopener" class="x-link-btn">🐦 Xで投稿する</a>
+          <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xで投稿する</button>
           <a href="https://note.com/kanae_project/n/nce3421e8dfb5" target="_blank" rel="noopener" class="note-comment-btn">📝 noteのコメント欄で送る</a>
         </div>
 
@@ -659,6 +659,21 @@
       gradeMsg.textContent = "違うで、もう一回確認してみ。";
     }
   });
+
+  // ==== X（旧Twitter）投稿ボタン ====
+  // href に直接URLを書かず、押した時にJSでURLを組み立てて開く方式にしている。
+  // 一部ブラウザのコンテンツブロッカー(広告ブロック機能拡張)が
+  // 「twitter.com/intent/tweet」を含む<a href>を自動でSNSシェアボタンとみなして
+  // 非表示にしてしまう現象が確認されたための対策。
+  const xShareBtn = document.getElementById("xShareBtn");
+  if(xShareBtn){
+    xShareBtn.addEventListener("click", function(){
+      const hashtag = "理不尽献立おばちゃん";
+      const text = "おばちゃんにメニューを教えてあげる！";
+      const url = "https://x.com/intent/tweet?hashtags=" + encodeURIComponent(hashtag) + "&text=" + encodeURIComponent(text);
+      window.open(url, "_blank");
+    });
+  }
 
   lineBtn.addEventListener("click", function(){
     let food = lastResult ? lastResult.todayEmoji + " " + lastResult.todayFood : "🍜 今日もラーメンや";
