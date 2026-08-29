@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>解放の儀</title>
+<meta property="og:title" content="解放の儀">
+<meta property="og:description" content="鎖を引きちぎり、木戸を叩き割り、最後は鉄の扉をぶち破る。気持ちよさ全振りの連打ゲーム。">
+<meta property="og:url" content="https://kanae-project.github.io/syomona-games/games/kaihou-no-gi/">
+<meta property="og:type" content="website">
+<!-- OGP画像は他ゲーム同様、公開直前にPillowで1200x630生成して追加する -->
+<style>
+  :root{
+    --bg1:#141020;
+    --bg2:#241a30;
+    --panel:rgba(255,255,255,.06);
+    --panel-border:rgba(255,255,255,.14);
+    --ink:#f3ece0;
+    --ink-dim:#c9bfae;
+    --accent:#e0a72e;
+    --accent2:#b9841c;
+    --danger:#c0392b;
+    --glow:#fff6c8;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 70%);
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+    overflow-x:hidden;
+  }
+  .wrap{ width:100%; max-width:480px; position:relative; }
+  h1{ text-align:center; font-size:1.5rem; margin:0 0 4px; letter-spacing:.06em; }
+  .sub{ text-align:center; font-size:.8rem; color:var(--ink-dim); margin-bottom:18px; line-height:1.6; }
+  .stage{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:22px;
+    padding:22px 16px 26px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+
+  .back-link{
+    display:inline-block; font-size:.8rem; font-weight:700;
+    color:var(--ink); opacity:.6; text-decoration:none; margin-bottom:10px;
+  }
+  .back-link:hover{ opacity:1; }
+  .back-link-btn{
+    display:block; background:var(--accent); color:#211705;
+    font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:14px 14px; border-radius:14px; margin-top:20px;
+    box-shadow:0 4px 0 var(--accent2);
+  }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2); }
+
+  .stage-dots{ display:flex; justify-content:center; gap:8px; margin-bottom:10px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.18); }
+  .dot.active{ background:var(--accent); box-shadow:0 0 8px var(--accent); }
+  .dot.done{ background:var(--ink-dim); }
+  .stage-label{ text-align:center; font-weight:bold; color:var(--accent); font-size:.95rem; margin-bottom:4px; }
+  .stage-name{ text-align:center; font-size:1.1rem; font-weight:900; margin-bottom:14px; }
+
+  .seal-stage-wrap{ position:relative; width:100%; max-width:260px; margin:0 auto 14px; }
+  .seal-stage-wrap svg{ width:100%; display:block; }
+  .arch-bg{ display:block; }
+  .overlay-svg{ position:absolute; inset:0; }
+  .piece{ transform-origin:center; opacity:1; }
+
+  .seal-stage-wrap.shake-burst{ animation:shakeBurst .22s ease; }
+  @keyframes shakeBurst{
+    0%,100%{ transform:translate(0,0) rotate(0); }
+    20%{ transform:translate(calc(var(--shake-amt,4px) * -1), calc(var(--shake-amt,4px) * .6)) rotate(-1deg); }
+    40%{ transform:translate(var(--shake-amt,4px), calc(var(--shake-amt,4px) * -.6)) rotate(1deg); }
+    60%{ transform:translate(calc(var(--shake-amt,4px) * -.6), var(--shake-amt,4px)) rotate(-1deg); }
+    80%{ transform:translate(calc(var(--shake-amt,4px) * .6), calc(var(--shake-amt,4px) * -.4)) rotate(1deg); }
+  }
+  @media (prefers-reduced-motion: reduce){ .seal-stage-wrap.shake-burst{ animation:none; } }
+
+  .shard{
+    position:absolute; top:50%; left:50%; margin:-4px 0 0 -4px;
+    border-radius:2px; opacity:1; pointer-events:none; z-index:6;
+    transition:transform .9s cubic-bezier(.16,.8,.3,1), opacity .9s ease;
+  }
+
+  .gauge-wrap{
+    background:rgba(0,0,0,.35); border-radius:999px; height:16px; overflow:hidden;
+    margin:4px 0 16px; border:1px solid rgba(255,255,255,.12);
+  }
+  .gauge-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg,#ffb300,#ff5b1f);
+    transition:width .1s ease;
+  }
+
+  .tap-row{ text-align:center; }
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:14px;
+    background:var(--accent); color:#211705; transition:transform .1s ease;
+  }
+  button:focus-visible{ outline:3px solid var(--accent2); outline-offset:2px; }
+  button:active{ transform:scale(.96); }
+  #tapBtn{
+    width:100%; font-size:1.15rem; font-weight:900; padding:22px 14px;
+    box-shadow:0 5px 0 var(--accent2);
+    -webkit-user-select:none; user-select:none; touch-action:manipulation;
+  }
+  #tapBtn:active{ transform:translateY(3px) scale(.98); box-shadow:0 2px 0 var(--accent2); }
+  #tapBtn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .flash-overlay{
+    position:fixed; inset:0; background:#fff; opacity:0;
+    pointer-events:none; z-index:50;
+  }
+
+  .hidden{ display:none !important; }
+
+  .result-panel{
+    text-align:center; background:rgba(0,0,0,.25);
+    border:1px solid var(--panel-border); border-radius:18px; padding:26px 16px;
+  }
+  .result-title{ font-size:1.4rem; font-weight:900; color:var(--accent); margin-bottom:10px; }
+  .result-stat{ font-size:.85rem; color:var(--ink-dim); margin-bottom:18px; line-height:1.8; }
+  .result-panel .start-row{ margin:0 0 10px; }
+  .result-panel .start-row:last-child{ margin-bottom:0; }
+  .result-panel button{ width:100%; max-width:280px; font-size:1.05rem; font-weight:900; padding:14px 16px; box-shadow:0 4px 0 var(--accent2); }
+  .brag-btn{ background:#000; color:#fff; box-shadow:0 4px 0 #333 !important; }
+
+  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(255,255,255,.2); text-align:center; }
+  .grade-cta{
+    background:rgba(224,167,46,.08);
+    border:3px dashed var(--accent);
+    border-radius:18px; padding:18px 14px;
+  }
+  .grade-headline{ font-size:1.1rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
+  .note-link-btn{
+    display:block; background:#41c9b4; color:#fff; font-size:1.15rem; font-weight:900;
+    text-decoration:none; text-align:center; padding:16px 14px; border-radius:14px;
+    margin-bottom:14px; box-shadow:0 4px 0 #2e9c8c;
+  }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{ font-size:.85rem; font-weight:bold; color:var(--ink); margin-bottom:14px; line-height:1.7; }
+  .grade-form{ display:flex; flex-direction:column; gap:10px; max-width:320px; margin:0 auto; }
+  .grade-form input[type=text]{
+    text-align:center; padding:10px 12px; border-radius:12px;
+    border:2px solid rgba(255,255,255,.25); font-size:1rem;
+    background:rgba(255,255,255,.08); color:var(--ink);
+  }
+  .grade-form input[type=text]::placeholder{ color:var(--ink-dim); }
+  .grade-form #unlockBtn{ font-size:1.05rem; padding:13px 16px; background:var(--danger); color:#fff; box-shadow:0 4px 0 #7a231a; }
+  .grade-msg{ font-size:.8rem; margin-top:8px; color:#ff9d9d; }
+  .unlocked-badge{
+    display:inline-block; background:#e0a72e; color:#211705; font-size:.75rem; font-weight:900;
+    padding:4px 12px; border-radius:999px; margin-top:8px;
+  }
+
+  .usage-notice{
+    margin-top:18px; font-size:.72rem; line-height:1.8; color:var(--ink-dim);
+    text-align:left; background:rgba(255,255,255,.05); border-radius:10px;
+    padding:12px 14px; border:1px solid rgba(255,255,255,.12);
+  }
+  .usage-notice .usage-title{ font-weight:bold; color:var(--accent); display:block; margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="flash-overlay" id="flashOverlay"></div>
+<div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <h1>解放の儀</h1>
+  <div class="sub">連打で封を解け。鎖、木戸、そして最後の鉄扉——ぶち破った瞬間の気持ちよさだけを追求したゲームです。</div>
+
+  <div class="stage">
+    <div class="stage-dots" id="stageDots">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+    <div class="stage-label" id="stageLabel">第一の封</div>
+    <div class="stage-name" id="stageName">鎖</div>
+
+    <div id="gameArea">
+      <div class="seal-stage-wrap" id="sealWrap">
+        <svg class="arch-bg" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 285 L20 95 Q20 20 120 20 Q220 20 220 95 L220 285 Z" fill="#3a3040" stroke="#191420" stroke-width="6"/>
+          <path id="doorGlow" d="M42 272 L42 98 Q42 42 120 42 Q198 42 198 98 L198 272 Z" fill="url(#glowGrad)" opacity="0.12"/>
+          <defs>
+            <radialGradient id="glowGrad" cx="50%" cy="60%" r="75%">
+              <stop offset="0%" stop-color="#fff6c8"/>
+              <stop offset="100%" stop-color="#fff6c8" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+        </svg>
+        <svg class="overlay-svg" id="overlaySvg" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+
+      <div class="gauge-wrap"><div class="gauge-fill" id="gaugeFill"></div></div>
+      <div class="tap-row"><button type="button" id="tapBtn">連打して鎖を引きちぎれ！</button></div>
+    </div>
+
+    <div id="resultPanel" class="result-panel hidden">
+      <div class="result-title">🎉 解放完了</div>
+      <div class="result-stat" id="resultStat"></div>
+      <div class="start-row">
+        <button type="button" id="bragBtn" class="brag-btn">🏆 解放の儀を自慢する</button>
+      </div>
+      <div class="start-row">
+        <button type="button" id="replayBtn">もう一度封印する</button>
+      </div>
+    </div>
+
+    <div class="grade-zone">
+      <div class="grade-cta" id="gradeForm">
+        <div class="grade-headline">もっと気持ちよくなりたい方はこちら💁</div>
+        <!-- note記事公開後、正しいURLに差し替える -->
+        <a href="#" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
+        <div class="grade-teaser">課金すると、破壊の瞬間だけスローモーション・破片が大増量・重低音つきに。ここだけは「損しかない」わけじゃありません。</div>
+        <div class="grade-form">
+          <input type="text" id="passwordInput" placeholder="合言葉">
+          <button type="button" id="unlockBtn">解放する</button>
+        </div>
+      </div>
+      <div id="gradeMsg" class="grade-msg"></div>
+      <div id="unlockedZone" class="hidden">
+        <span class="unlocked-badge">🔥 フル演出 解放済み</span>
+      </div>
+    </div>
+
+    <div class="usage-notice">
+      <span class="usage-title">🎥 実況・動画での使用について</span>
+      「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください（他の方が正規の手順を踏まずに解放できてしまうため）。<br>
+      それ以外は自由に、しょーもなく広めていただけると嬉しいです。
+    </div>
+
+    <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
+  const PASSWORD = "カイホウ500";
+  const STORAGE_KEY = "kaihou_no_gi_unlocked";
+  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/kaihou-no-gi/";
+
+  function safeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
+  function safeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
+  function vibrate(pattern){ try { if(navigator.vibrate) navigator.vibrate(pattern); } catch(e){} }
+
+  // ==== 効果音（外部ファイル不要、Web Audio APIでその場合成） ====
+  let audioCtx = null;
+  let noiseBufferCache = null;
+  function getAudioCtx(){
+    try {
+      if(!audioCtx){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return null;
+        audioCtx = new AC();
+      }
+      if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+      return audioCtx;
+    } catch(e){ return null; }
+  }
+  function getNoiseBuffer(ctx){
+    if(!noiseBufferCache){
+      const size = ctx.sampleRate * 1.5;
+      const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for(let i=0;i<size;i++){ data[i] = Math.random()*2-1; }
+      noiseBufferCache = buffer;
+    }
+    return noiseBufferCache;
+  }
+  function beep(freq, duration, delay, type, vol){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'square';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + (delay || 0);
+      gain.gain.setValueAtTime(vol != null ? vol : 0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + duration + 0.02);
+    } catch(e){}
+  }
+  function sweep(startFreq, endFreq, duration, delay, type, vol){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      const t = ctx.currentTime + (delay || 0);
+      osc.frequency.setValueAtTime(startFreq, t);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(endFreq,1), t + duration);
+      gain.gain.setValueAtTime(vol != null ? vol : 0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + duration + 0.02);
+    } catch(e){}
+  }
+  function noiseBurst(duration, filterType, freq, q, vol, delay){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = getNoiseBuffer(ctx);
+      const filter = ctx.createBiquadFilter();
+      filter.type = filterType || 'lowpass';
+      filter.frequency.value = freq || 1000;
+      filter.Q.value = q != null ? q : 1;
+      const gain = ctx.createGain();
+      const t = ctx.currentTime + (delay || 0);
+      gain.gain.setValueAtTime(vol != null ? vol : 0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+      src.start(t); src.stop(t + duration + 0.05);
+    } catch(e){}
+  }
+
+  function sfxTap(ratio){ // 連打のたびの小さいクリック音。溜まるほど音程が上がる
+    beep(260 + ratio * 500, 0.045, 0, 'square', 0.06);
+  }
+  function sfxCreak(){ // 溜め中の「ミシッ」という軋み
+    noiseBurst(0.35, 'bandpass', 300 + Math.random()*200, 4, 0.1, 0);
+    sweep(140, 90, 0.3, 0, 'sawtooth', 0.06);
+  }
+  function sfxBreak(key, isPaid){
+    if(key === 'chain'){
+      noiseBurst(0.25, 'bandpass', 2400, 6, isPaid ? 0.3 : 0.22, 0); // 金属の弾ける高音
+      sweep(1400, 300, 0.3, 0, 'triangle', isPaid ? 0.22 : 0.16); // 金属が跳ねる音
+      for(let i=0;i<(isPaid?4:2);i++){ beep(1800 - i*220, 0.08, 0.05 + i*0.06, 'triangle', 0.1); }
+    } else if(key === 'wood'){
+      noiseBurst(0.35, 'lowpass', 900, 1.2, isPaid ? 0.32 : 0.24, 0); // 木が裂ける低めのノイズ
+      for(let i=0;i<(isPaid?5:3);i++){ noiseBurst(0.12, 'bandpass', 500 + Math.random()*500, 3, 0.14, i*0.07); }
+      sweep(220, 60, 0.3, 0, 'sawtooth', isPaid ? 0.18 : 0.12);
+    } else { // iron / 最終ステージ：一番派手にする
+      sweep(160, 35, isPaid ? 0.9 : 0.5, 0, 'sine', isPaid ? 0.35 : 0.24); // 重低音の「ドン」
+      noiseBurst(isPaid ? 0.7 : 0.45, 'lowpass', 1800, 0.8, isPaid ? 0.4 : 0.3, 0); // 広帯域のクラッシュ音
+      for(let i=0;i<(isPaid?8:4);i++){ beep(900 + Math.random()*900, 0.15, 0.05 + i*0.06, 'triangle', 0.09); } // ガラスのような高音の欠片
+      if(isPaid){
+        // 課金時だけ、余韻代わりに減衰する残響っぽいノイズを重ねる
+        noiseBurst(0.5, 'lowpass', 1200, 0.6, 0.14, 0.35);
+        noiseBurst(0.4, 'lowpass', 900, 0.6, 0.08, 0.6);
+        // 締めに軽やかなチャイムを一つ
+        beep(1046, 0.5, 0.75, 'sine', 0.12);
+        beep(1568, 0.6, 0.85, 'sine', 0.1);
+      }
+    }
+  }
+
+  // ==== ステージ定義 ====
+  const stagesData = [
+    { key:'chain', label:'第一の封', name:'鎖', taps:16, tapLabel:'連打して鎖を引きちぎれ！', shardColors:['#c9c9c9','#8a8a8a','#e8e8e8'] },
+    { key:'wood',  label:'第二の封', name:'木戸', taps:22, tapLabel:'連打して扉板を叩き割れ！', shardColors:['#8a5a33','#6b421f','#c98f52'] },
+    { key:'iron',  label:'最後の封', name:'鉄扉', taps:28, tapLabel:'連打して鉄扉をぶち破れ！', shardColors:['#5a636b','#8a1f1f','#c9c9c9','#ffdd55'] }
+  ];
+
+  function stagePiecesSVG(key){
+    if(key === 'chain'){
+      let s = '';
+      const spots = [[62,90],[92,130],[122,170],[152,210],[178,246]];
+      spots.forEach(function(p, i){
+        s += '<g class="piece"><ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="20" ry="11" fill="none" stroke="#9a9a9a" stroke-width="8" transform="rotate(38 '+p[0]+' '+p[1]+')"/></g>';
+      });
+      s += '<g class="piece"><rect x="103" y="150" width="34" height="30" rx="5" fill="#c9a227" stroke="#7a5e12" stroke-width="3"/><path d="M110 150 v-15 a10 10 0 0 1 20 0 v15" fill="none" stroke="#7a5e12" stroke-width="6"/></g>';
+      return s;
+    }
+    if(key === 'wood'){
+      let s = '';
+      for(let i=0;i<5;i++){
+        const x = 46 + i*24;
+        s += '<rect class="piece" x="'+x+'" y="58" width="20" height="204" fill="#8a5a33" stroke="#5b3a1f" stroke-width="3"/>';
+      }
+      s += '<rect class="piece" x="42" y="108" width="156" height="14" fill="#6b421f" stroke="#4a2c14" stroke-width="2"/>';
+      s += '<rect class="piece" x="42" y="198" width="156" height="14" fill="#6b421f" stroke="#4a2c14" stroke-width="2"/>';
+      return s;
+    }
+    // iron
+    let s = '';
+    s += '<rect class="piece" x="42" y="46" width="78" height="228" fill="#5a636b" stroke="#2b3238" stroke-width="4"/>';
+    s += '<rect class="piece" x="120" y="46" width="78" height="228" fill="#4c545b" stroke="#2b3238" stroke-width="4"/>';
+    s += '<rect class="piece" x="42" y="150" width="156" height="16" fill="#8a1f1f" stroke="#4a0f0f" stroke-width="3"/>';
+    const rivets = [[60,70],[100,70],[140,70],[180,70],[60,240],[100,240],[140,240],[180,240]];
+    rivets.forEach(function(p){
+      s += '<circle class="piece" cx="'+p[0]+'" cy="'+p[1]+'" r="6" fill="#dcdcdc" stroke="#2b3238" stroke-width="2"/>';
+    });
+    return s;
+  }
+
+  const overlaySvg = document.getElementById('overlaySvg');
+  const sealWrap = document.getElementById('sealWrap');
+  const doorGlow = document.getElementById('doorGlow');
+  const gaugeFill = document.getElementById('gaugeFill');
+  const tapBtn = document.getElementById('tapBtn');
+  const stageLabel = document.getElementById('stageLabel');
+  const stageName = document.getElementById('stageName');
+  const stageDots = document.getElementById('stageDots').children;
+  const gameArea = document.getElementById('gameArea');
+  const resultPanel = document.getElementById('resultPanel');
+  const resultStat = document.getElementById('resultStat');
+  const flashOverlay = document.getElementById('flashOverlay');
+
+  let stageIndex = 0;
+  let gauge = 0;
+  let breaking = false;
+  let unlocked = safeGet(STORAGE_KEY) === '1';
+  let totalTaps = 0;
+  let startTime = Date.now();
+
+  function refreshDots(){
+    for(let i=0;i<stageDots.length;i++){
+      stageDots[i].className = 'dot' + (i < stageIndex ? ' done' : (i === stageIndex ? ' active' : ''));
+    }
+  }
+
+  function renderStage(){
+    const s = stagesData[stageIndex];
+    gauge = 0;
+    breaking = false;
+    gaugeFill.style.width = '0%';
+    stageLabel.textContent = s.label;
+    stageName.textContent = s.name;
+    tapBtn.textContent = s.tapLabel;
+    tapBtn.disabled = false;
+    overlaySvg.innerHTML = stagePiecesSVG(s.key);
+    overlaySvg.style.opacity = '1';
+    Array.prototype.forEach.call(overlaySvg.querySelectorAll('.piece'), function(p){
+      p.style.transition = '';
+      p.style.transform = '';
+      p.style.opacity = '1';
+    });
+    refreshDots();
+  }
+
+  function triggerShake(amt){
+    sealWrap.style.setProperty('--shake-amt', amt + 'px');
+    sealWrap.classList.remove('shake-burst');
+    void sealWrap.offsetWidth;
+    sealWrap.classList.add('shake-burst');
+  }
+
+  function shatterPieces(distance, duration){
+    const pieces = overlaySvg.querySelectorAll('.piece');
+    pieces.forEach(function(p){
+      const angle = Math.random() * Math.PI * 2;
+      const dist = distance * (0.55 + Math.random() * 0.8);
+      const tx = Math.cos(angle) * dist;
+      const ty = Math.sin(angle) * dist - 30;
+      const rot = Math.random() * 720 - 360;
+      p.style.transition = 'transform ' + (duration/1000) + 's cubic-bezier(.16,.8,.3,1), opacity ' + (duration/1000) + 's ease';
+      requestAnimationFrame(function(){
+        p.style.transform = 'translate(' + tx + 'px,' + ty + 'px) rotate(' + rot + 'deg)';
+        p.style.opacity = '0';
+      });
+    });
+  }
+
+  function spawnShards(count, colors){
+    for(let i=0;i<count;i++){
+      const el = document.createElement('div');
+      el.className = 'shard';
+      el.style.background = colors[Math.floor(Math.random()*colors.length)];
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 70 + Math.random() * 170;
+      const tx = Math.cos(angle) * dist;
+      const ty = Math.sin(angle) * dist - 25;
+      const rot = Math.random() * 720 - 360;
+      const size = 4 + Math.random() * 8;
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      sealWrap.appendChild(el);
+      requestAnimationFrame(function(){
+        el.style.transform = 'translate(' + tx + 'px,' + ty + 'px) rotate(' + rot + 'deg)';
+        el.style.opacity = '0';
+      });
+      (function(node){ setTimeout(function(){ node.remove(); }, 1000); })(el);
+    }
+  }
+
+  function flash(intensity, holdMs, fadeMs){
+    flashOverlay.style.transition = 'opacity .05s ease';
+    flashOverlay.style.opacity = intensity;
+    setTimeout(function(){
+      flashOverlay.style.transition = 'opacity ' + (fadeMs/1000) + 's ease';
+      flashOverlay.style.opacity = '0';
+    }, holdMs);
+  }
+
+  function handleTap(){
+    if(breaking) return;
+    const s = stagesData[stageIndex];
+    getAudioCtx(); // 初回タップでAudioContextを起動（ブラウザの自動再生制限対策）
+    gauge++;
+    totalTaps++;
+    const ratio = Math.min(1, gauge / s.taps);
+    gaugeFill.style.width = (ratio * 100) + '%';
+    sfxTap(ratio);
+    vibrate(10);
+    triggerShake(2 + ratio * 9);
+    if(gauge === Math.round(s.taps*0.35) || gauge === Math.round(s.taps*0.7)){
+      sfxCreak();
+    }
+    if(gauge >= s.taps){
+      breaking = true;
+      tapBtn.disabled = true;
+      doBreak();
+    }
+  }
+
+  function doBreak(){
+    const s = stagesData[stageIndex];
+    const isFinal = stageIndex === stagesData.length - 1;
+    triggerShake(isFinal ? (unlocked ? 26 : 17) : (unlocked ? 14 : 9));
+    const distance = isFinal ? (unlocked ? 340 : 230) : (unlocked ? 200 : 140);
+    const duration = isFinal ? (unlocked ? 1700 : 1000) : (unlocked ? 850 : 600);
+    shatterPieces(distance, duration);
+    spawnShards(unlocked ? (isFinal ? 40 : 20) : (isFinal ? 16 : 8), s.shardColors);
+    sfxBreak(s.key, unlocked);
+    vibrate(unlocked ? [40,30,80,20,60] : [40,20,60]);
+
+    // 封が解けるたび、扉の奥の光が少しずつ強くなる
+    const glowLevels = [0.4, 0.7, 1];
+    doorGlow.style.transition = 'opacity .6s ease';
+    doorGlow.style.opacity = glowLevels[stageIndex];
+
+    if(isFinal){
+      flash(unlocked ? 0.95 : 0.7, unlocked ? 260 : 140, unlocked ? 900 : 500);
+    }
+
+    const holdTime = isFinal ? (unlocked ? 1900 : 1200) : (unlocked ? 1000 : 700);
+    setTimeout(function(){
+      if(isFinal){
+        showResult();
+      } else {
+        stageIndex++;
+        renderStage();
+      }
+    }, holdTime);
+  }
+
+  tapBtn.addEventListener('click', handleTap);
+
+  function showResult(){
+    gameArea.classList.add('hidden');
+    const seconds = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+    resultStat.textContent = '合計 ' + totalTaps + '回の連打、' + seconds + '秒で全ての封を解いた。';
+    resultPanel.classList.remove('hidden');
+  }
+
+  document.getElementById('replayBtn').addEventListener('click', function(){
+    stageIndex = 0;
+    totalTaps = 0;
+    startTime = Date.now();
+    doorGlow.style.transition = 'opacity .3s ease';
+    doorGlow.style.opacity = '0.12';
+    resultPanel.classList.add('hidden');
+    gameArea.classList.remove('hidden');
+    renderStage();
+  });
+
+  document.getElementById('bragBtn').addEventListener('click', function(){
+    let text = '「解放の儀」を' + totalTaps + '回の連打で完遂した！\n#しょーもなゲームズ';
+    if(GAME_URL){ text += '\n' + GAME_URL; }
+    const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
+    window.open(url, '_blank');
+  });
+
+  // ==== グレードアップ（合言葉）まわり ====
+  const gradeForm = document.getElementById('gradeForm');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const gradeMsg = document.getElementById('gradeMsg');
+  const unlockedZone = document.getElementById('unlockedZone');
+
+  function setUnlocked(){
+    gradeForm.classList.add('hidden');
+    gradeMsg.textContent = '';
+    unlockedZone.classList.remove('hidden');
+    unlocked = true;
+  }
+  if(unlocked){ setUnlocked(); }
+
+  unlockBtn.addEventListener('click', function(){
+    const val = document.getElementById('passwordInput').value.trim();
+    if(val === PASSWORD){
+      safeSet(STORAGE_KEY, '1');
+      setUnlocked();
+    } else {
+      gradeMsg.textContent = '違います、もう一度確認してください。';
+    }
+  });
+
+  renderStage();
+})();
+</script>
+</body>
+</html>
