@@ -159,6 +159,35 @@
   }
 
   .chest-panel{ text-align:center; padding:6px 0 4px; }
+  .time-announce{ margin-bottom:16px; }
+  .time-number{
+    font-size:3.2rem; font-weight:900; color:var(--accent); line-height:1;
+    font-variant-numeric:tabular-nums; text-shadow:0 0 18px rgba(224,167,46,.5);
+  }
+  .time-unit{ font-size:.85rem; color:var(--ink-dim); margin-bottom:8px; }
+  .time-praise{ font-size:1rem; font-weight:bold; color:var(--ink); min-height:1.4em; }
+
+  .stage.impact-zoom{ animation:impactZoom .4s ease; }
+  @keyframes impactZoom{
+    0%{ transform:scale(1); }
+    30%{ transform:scale(1.035); }
+    100%{ transform:scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce){ .stage.impact-zoom{ animation:none; } }
+
+  .impact-burst{
+    position:absolute; inset:-70px; z-index:7; pointer-events:none; border-radius:50%;
+    background:repeating-conic-gradient(from 0deg, rgba(255,214,120,.9) 0deg 4deg, transparent 4deg 13deg);
+    opacity:0;
+    animation:impactBurstAnim .8s ease forwards;
+  }
+  @keyframes impactBurstAnim{
+    0%{ opacity:0; transform:scale(.2) rotate(0deg); }
+    25%{ opacity:1; }
+    100%{ opacity:0; transform:scale(1.7) rotate(50deg); }
+  }
+  @media (prefers-reduced-motion: reduce){ .impact-burst{ animation:impactBurstAnim .3s ease forwards; } }
+
   .burst-wrap{
     position:relative; width:190px; height:190px; margin:0 auto 8px;
     display:flex; align-items:center; justify-content:center;
@@ -249,6 +278,11 @@
     </div>
 
     <div id="chestPanel" class="chest-panel hidden">
+      <div class="time-announce">
+        <div class="time-number" id="timeNumber">0.0</div>
+        <div class="time-unit">秒で解放！</div>
+        <div class="time-praise" id="timePraise"></div>
+      </div>
       <div class="burst-wrap">
         <div class="burst-bg"></div>
         <div class="chest-emoji" id="chestEmoji">🎁</div>
@@ -297,7 +331,7 @@
     <div class="usage-notice">
       <span class="usage-title">🎥 実況・動画での使用について</span>
       「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
-      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください（他の方が正規の手順を踏まずに解放できてしまうため）。<br>
+      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
       それ以外は自由に、しょーもなく広めていただけると嬉しいです。
     </div>
 
@@ -403,6 +437,13 @@
     noiseBurst(0.35, 'bandpass', 300 + Math.random()*200, 4, 0.1, 0);
     sweep(140, 90, 0.3, 0, 'sawtooth', 0.06);
   }
+  function sfxImpactStab(){ // 課金時の最終ステージだけ、破壊音の直前に鳴らす「一撃」の前振り
+    sweep(90, 28, 0.55, 0, 'sine', 0.42);
+    noiseBurst(0.18, 'lowpass', 400, 1, 0.38, 0);
+    beep(220, 0.3, 0, 'sawtooth', 0.16);
+    beep(330, 0.3, 0.02, 'sawtooth', 0.13);
+    beep(440, 0.35, 0.04, 'sawtooth', 0.13);
+  }
   function sfxBreak(key, isPaid){
     if(key === 'chain'){
       noiseBurst(0.25, 'bandpass', 2400, 6, isPaid ? 0.3 : 0.22, 0); // 金属の弾ける高音
@@ -413,16 +454,20 @@
       for(let i=0;i<(isPaid?5:3);i++){ noiseBurst(0.12, 'bandpass', 500 + Math.random()*500, 3, 0.14, i*0.07); }
       sweep(220, 60, 0.3, 0, 'sawtooth', isPaid ? 0.18 : 0.12);
     } else { // iron / 最終ステージ：一番派手にする
-      sweep(160, 35, isPaid ? 0.9 : 0.5, 0, 'sine', isPaid ? 0.35 : 0.24); // 重低音の「ドン」
-      noiseBurst(isPaid ? 0.7 : 0.45, 'lowpass', 1800, 0.8, isPaid ? 0.4 : 0.3, 0); // 広帯域のクラッシュ音
-      for(let i=0;i<(isPaid?8:4);i++){ beep(900 + Math.random()*900, 0.15, 0.05 + i*0.06, 'triangle', 0.09); } // ガラスのような高音の欠片
+      if(isPaid){ sfxImpactStab(); } // 課金時だけ、破壊音の前に重い前振りを追加
+      sweep(160, 35, isPaid ? 1.1 : 0.5, 0, 'sine', isPaid ? 0.42 : 0.24); // 重低音の「ドン」
+      noiseBurst(isPaid ? 0.9 : 0.45, 'lowpass', 1800, 0.8, isPaid ? 0.48 : 0.3, 0); // 広帯域のクラッシュ音
+      for(let i=0;i<(isPaid?14:4);i++){ beep(900 + Math.random()*1000, 0.15, 0.05 + i*0.05, 'triangle', 0.09); } // ガラスのような高音の欠片
       if(isPaid){
-        // 課金時だけ、余韻代わりに減衰する残響っぽいノイズを重ねる
-        noiseBurst(0.5, 'lowpass', 1200, 0.6, 0.14, 0.35);
-        noiseBurst(0.4, 'lowpass', 900, 0.6, 0.08, 0.6);
-        // 締めに軽やかなチャイムを一つ
-        beep(1046, 0.5, 0.75, 'sine', 0.12);
-        beep(1568, 0.6, 0.85, 'sine', 0.1);
+        // 課金時だけ、余韻代わりに減衰する残響っぽいノイズを重ねる（多層にして長く伸ばす）
+        noiseBurst(0.5, 'lowpass', 1200, 0.6, 0.16, 0.5);
+        noiseBurst(0.45, 'lowpass', 1000, 0.6, 0.12, 0.8);
+        noiseBurst(0.4, 'lowpass', 800, 0.6, 0.08, 1.1);
+        // 締めに華やかな和音のチャイムを鳴らす
+        beep(659, 0.5, 1.0, 'sine', 0.12);
+        beep(831, 0.55, 1.08, 'sine', 0.12);
+        beep(1046, 0.6, 1.16, 'sine', 0.13);
+        beep(1568, 0.7, 1.28, 'sine', 0.11);
       }
     }
   }
@@ -526,6 +571,8 @@
   const chestEmoji = document.getElementById('chestEmoji');
   const tierBadge = document.getElementById('tierBadge');
   const tierItemText = document.getElementById('tierItemText');
+  const timeNumber = document.getElementById('timeNumber');
+  const timePraise = document.getElementById('timePraise');
   const resultPanel = document.getElementById('resultPanel');
   const resultStat = document.getElementById('resultStat');
   const flashOverlay = document.getElementById('flashOverlay');
@@ -608,6 +655,20 @@
     }
   }
 
+  function spawnImpactBurst(){ // 課金時の最終ステージだけ、破壊の瞬間に光の集中線を飛ばす
+    const el = document.createElement('div');
+    el.className = 'impact-burst';
+    sealWrap.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 850);
+  }
+
+  const stageEl = document.querySelector('.stage');
+  function triggerImpactZoom(){
+    stageEl.classList.remove('impact-zoom');
+    void stageEl.offsetWidth;
+    stageEl.classList.add('impact-zoom');
+  }
+
   function flash(intensity, holdMs, fadeMs){
     flashOverlay.style.transition = 'opacity .05s ease';
     flashOverlay.style.opacity = intensity;
@@ -638,16 +699,26 @@
     }
   }
 
+  // 課金×最終ステージだけ「見た目が別物」と分かるくらい派手にする（中身＝確率は変わらない）
+  const CONFETTI_COLORS = ['#ffd93d','#ff6b6b','#4d96ff','#6bcb77','#b56bff','#ff6bcb'];
+
   function doBreak(){
     const s = stagesData[stageIndex];
     const isFinal = stageIndex === stagesData.length - 1;
-    triggerShake(isFinal ? (unlocked ? 26 : 17) : (unlocked ? 14 : 9));
-    const distance = isFinal ? (unlocked ? 340 : 230) : (unlocked ? 200 : 140);
-    const duration = isFinal ? (unlocked ? 1700 : 1000) : (unlocked ? 850 : 600);
+    const bigPaidFinale = isFinal && unlocked;
+
+    triggerShake(isFinal ? (unlocked ? 34 : 17) : (unlocked ? 14 : 9));
+    const distance = isFinal ? (unlocked ? 520 : 230) : (unlocked ? 200 : 140);
+    const duration = isFinal ? (unlocked ? 2300 : 1000) : (unlocked ? 850 : 600);
     shatterPieces(distance, duration);
-    spawnShards(unlocked ? (isFinal ? 40 : 20) : (isFinal ? 16 : 8), s.shardColors);
+    spawnShards(unlocked ? (isFinal ? 90 : 20) : (isFinal ? 16 : 8), s.shardColors);
+    if(bigPaidFinale){
+      spawnShards(70, CONFETTI_COLORS); // 課金時だけ、素材とは別に派手な紙吹雪を追加
+      spawnImpactBurst();
+      triggerImpactZoom();
+    }
     sfxBreak(s.key, unlocked);
-    vibrate(unlocked ? [40,30,80,20,60] : [40,20,60]);
+    vibrate(bigPaidFinale ? [50,40,100,30,100,30,150] : (unlocked ? [40,30,80,20,60] : [40,20,60]));
 
     // 封が解けるたび、扉の奥の光が少しずつ強くなる
     const glowLevels = [0.4, 0.7, 1];
@@ -655,10 +726,14 @@
     doorGlow.style.opacity = glowLevels[stageIndex];
 
     if(isFinal){
-      flash(unlocked ? 0.95 : 0.7, unlocked ? 260 : 140, unlocked ? 900 : 500);
+      flash(unlocked ? 1 : 0.7, unlocked ? 340 : 140, unlocked ? 1300 : 500);
+    }
+    if(bigPaidFinale){
+      // 二段構えのフラッシュにして、より派手な「爆発した感」を出す
+      setTimeout(function(){ flash(0.7, 200, 900); }, 260);
     }
 
-    const holdTime = isFinal ? (unlocked ? 1900 : 1200) : (unlocked ? 1000 : 700);
+    const holdTime = isFinal ? (unlocked ? 2700 : 1200) : (unlocked ? 1000 : 700);
     setTimeout(function(){
       if(isFinal){
         revealChest();
@@ -671,9 +746,34 @@
 
   tapBtn.addEventListener('click', handleTap);
 
+  // ==== タイムアタック発表：常にポジティブに褒める（速さで煽らない） ====
+  function animateCountUp(target, durationMs, el){
+    const start = performance.now();
+    function step(now){
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out
+      el.textContent = (target * eased).toFixed(1);
+      if(t < 1){ requestAnimationFrame(step); }
+      else { el.textContent = target.toFixed(1); }
+    }
+    requestAnimationFrame(step);
+  }
+  function praiseForTime(sec){
+    const fast = ['はやい！職人の所業！', 'その指さばき、プロ！'];
+    const mid = ['いいペース！さすが！', '安定の連打、いいね！'];
+    const slow = ['丁寧な仕事、嫌いじゃない！', 'じっくり派、それもいい！'];
+    const list = sec < 25 ? fast : (sec < 55 ? mid : slow);
+    return list[Math.floor(Math.random() * list.length)];
+  }
+
   // ==== 宝箱の開封演出：レア度の抽選確率は課金の有無に関わらず一切変わらない ====
   function revealChest(){
     gameArea.classList.add('hidden');
+    const elapsedSec = (Date.now() - startTime) / 1000;
+    timeNumber.textContent = '0.0';
+    timePraise.textContent = '';
+    animateCountUp(elapsedSec, 900, timeNumber);
+    setTimeout(function(){ timePraise.textContent = praiseForTime(elapsedSec); }, 950);
     const tier = rollRarity();
     lastTier = tier;
     if(collection.indexOf(tier.key) === -1){
@@ -703,8 +803,7 @@
   });
 
   function showResult(){
-    const seconds = Math.max(1, Math.round((Date.now() - startTime) / 1000));
-    resultStat.textContent = '合計 ' + totalTaps + '回の連打、' + seconds + '秒で全ての封を解いた。';
+    resultStat.textContent = '合計 ' + totalTaps + '回の連打で、全ての封を解いた。';
     resultPanel.classList.remove('hidden');
   }
 
