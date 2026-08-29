@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>解放の儀</title>
 <meta property="og:title" content="解放の儀">
-<meta property="og:description" content="鎖を引きちぎり、木戸を叩き割り、最後は鉄の扉をぶち破る。気持ちよさ全振りの連打ゲーム。">
+<meta property="og:description" content="30秒でどこまで板を破壊できるか？「1枚」から始まり、どんどん増えていく連打(＆爆弾)タイムアタックゲーム。">
 <meta property="og:url" content="https://kanae-project.github.io/syomona-games/games/kaihou-no-gi/">
 <meta property="og:type" content="website">
 <!-- OGP画像は他ゲーム同様、公開直前にPillowで1200x630生成して追加する -->
@@ -58,17 +58,17 @@
   }
   .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2); }
 
-  .stage-dots{ display:flex; justify-content:center; gap:8px; margin-bottom:10px; }
-  .dot{ width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.18); }
-  .dot.active{ background:var(--accent); box-shadow:0 0 8px var(--accent); }
-  .dot.done{ background:var(--ink-dim); }
   .stage-label{ text-align:center; font-weight:bold; color:var(--accent); font-size:.95rem; margin-bottom:4px; }
-  .stage-name{ text-align:center; font-size:1.1rem; font-weight:900; margin-bottom:14px; }
+  .stage-name{ text-align:center; font-size:1.25rem; font-weight:900; margin-bottom:14px; }
   .live-timer{
-    text-align:center; font-size:1.7rem; font-weight:900; color:var(--accent);
-    font-variant-numeric:tabular-nums; margin-bottom:12px; letter-spacing:.02em;
+    text-align:center; font-size:1.9rem; font-weight:900; color:var(--accent);
+    font-variant-numeric:tabular-nums; margin-bottom:8px; letter-spacing:.02em;
     text-shadow:0 0 14px rgba(224,167,46,.4);
   }
+
+  .start-panel{ text-align:center; padding:10px 0 4px; }
+  .start-desc{ font-size:.9rem; color:var(--ink-dim); margin-bottom:20px; line-height:1.9; }
+  #startBtn{ width:100%; font-size:1.2rem; font-weight:900; padding:24px 14px; box-shadow:0 5px 0 var(--accent2); }
 
   .seal-stage-wrap{ position:relative; width:100%; max-width:260px; margin:0 auto 14px; }
   .seal-stage-wrap svg{ width:100%; display:block; }
@@ -110,12 +110,27 @@
   button:focus-visible{ outline:3px solid var(--accent2); outline-offset:2px; }
   button:active{ transform:scale(.96); }
   #tapBtn{
-    width:100%; font-size:1.15rem; font-weight:900; padding:22px 14px;
+    width:100%; font-size:1.1rem; font-weight:900; padding:20px 14px;
     box-shadow:0 5px 0 var(--accent2);
     -webkit-user-select:none; user-select:none; touch-action:manipulation;
   }
   #tapBtn:active{ transform:translateY(3px) scale(.98); box-shadow:0 2px 0 var(--accent2); }
   #tapBtn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  #bombBtn{
+    width:100%; margin-top:10px; font-size:1.05rem; font-weight:900; padding:16px 14px;
+    background:linear-gradient(160deg,#ff5b1f,#c0392b); color:#fff;
+    box-shadow:0 5px 0 #7a231a;
+    -webkit-user-select:none; user-select:none; touch-action:manipulation;
+    animation:bombPulse 1.2s ease-in-out infinite;
+  }
+  #bombBtn:active{ transform:translateY(3px) scale(.98); box-shadow:0 2px 0 #7a231a; }
+  #bombBtn:disabled{ opacity:.4; cursor:not-allowed; animation:none; }
+  @keyframes bombPulse{
+    0%,100%{ box-shadow:0 5px 0 #7a231a, 0 0 0 rgba(255,91,31,0); }
+    50%{ box-shadow:0 5px 0 #7a231a, 0 0 16px rgba(255,91,31,.65); }
+  }
+  @media (prefers-reduced-motion: reduce){ #bombBtn{ animation:none; } }
 
   .flash-overlay{
     position:fixed; inset:0; background:#fff; opacity:0;
@@ -259,21 +274,23 @@
 <div class="wrap">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
   <h1>解放の儀</h1>
-  <div class="sub">連打で封を解け。鎖、木戸、そして最後の鉄扉——ぶち破った瞬間の気持ちよさだけを追求したゲームです。</div>
+  <div class="sub">30秒でどこまで板を破壊できるか？「1枚」から始まり、どんどん枚数が増えていく連打タイムアタックです。</div>
 
   <div class="stage">
-    <div class="stage-dots" id="stageDots">
-      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <div id="startPanel" class="start-panel">
+      <div class="start-desc">連打して板を叩き割れ。<br>「まずは1枚」→「次は2枚だ」…とどんどん増えていく。<br>制限時間は30秒、何枚抜けるか挑戦しよう！</div>
+      <button type="button" id="startBtn">▶ 30秒スタート！</button>
     </div>
-    <div class="stage-label" id="stageLabel">第一の封</div>
-    <div class="stage-name" id="stageName">鎖</div>
 
-    <div id="gameArea">
-      <div class="live-timer" id="liveTimer">0.0秒</div>
+    <div id="gameArea" class="hidden">
+      <div class="live-timer" id="liveTimer">30.0秒</div>
+      <div class="stage-label" id="roundLabel">ラウンド 1</div>
+      <div class="stage-name" id="roundAnnounce">まずは1枚</div>
+
       <div class="seal-stage-wrap" id="sealWrap">
         <svg class="arch-bg" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 285 L20 95 Q20 20 120 20 Q220 20 220 95 L220 285 Z" fill="#3a3040" stroke="#191420" stroke-width="6"/>
-          <path id="doorGlow" d="M42 272 L42 98 Q42 42 120 42 Q198 42 198 98 L198 272 Z" fill="url(#glowGrad)" opacity="0.12"/>
+          <path id="doorGlow" d="M42 272 L42 98 Q42 42 120 42 Q198 42 198 98 L198 272 Z" fill="url(#glowGrad)" opacity="0.15"/>
           <defs>
             <radialGradient id="glowGrad" cx="50%" cy="60%" r="75%">
               <stop offset="0%" stop-color="#fff6c8"/>
@@ -285,13 +302,14 @@
       </div>
 
       <div class="gauge-wrap"><div class="gauge-fill" id="gaugeFill"></div></div>
-      <div class="tap-row"><button type="button" id="tapBtn">連打して鎖を引きちぎれ！</button></div>
+      <div class="tap-row"><button type="button" id="tapBtn">連打して叩き割れ！</button></div>
+      <div class="tap-row"><button type="button" id="bombBtn" class="hidden">💣 爆弾でぶち破る</button></div>
     </div>
 
     <div id="chestPanel" class="chest-panel hidden">
       <div class="time-announce">
-        <div class="time-number" id="timeNumber">0.0</div>
-        <div class="time-unit">秒で解放！</div>
+        <div class="time-number" id="timeNumber">0</div>
+        <div class="time-unit">枚、ぶち破った！</div>
         <div class="time-praise" id="timePraise"></div>
       </div>
       <div class="burst-wrap">
@@ -306,13 +324,13 @@
     </div>
 
     <div id="resultPanel" class="result-panel hidden">
-      <div class="result-title">🎉 解放完了</div>
+      <div class="result-title">🎉 タイムアップ！</div>
       <div class="result-stat" id="resultStat"></div>
       <div class="start-row">
         <button type="button" id="bragBtn" class="brag-btn">🏆 解放の儀を自慢する</button>
       </div>
       <div class="start-row">
-        <button type="button" id="replayBtn">もう一度封印する</button>
+        <button type="button" id="replayBtn">1枚目からやり直す</button>
       </div>
     </div>
 
@@ -328,7 +346,7 @@
         <div class="grade-price">🪙 ワンコイン500円</div>
         <!-- note記事公開後、正しいURLに差し替える -->
         <a href="#" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
-        <div class="grade-teaser">課金しても、宝箱から出るレア度の確率は1ミリも変わりません。変わるのは破壊演出が派手になるだけ。それでも課金しますか？</div>
+        <div class="grade-teaser">課金すると💣爆弾ボタンが使えるように。押すたびボカンボカンと約5倍の威力で瞬時にぶち破れます。ただし宝箱のレア度確率は1ミリも変わりません。</div>
         <div class="grade-form">
           <input type="text" id="passwordInput" placeholder="合言葉">
           <button type="button" id="unlockBtn">解放する</button>
@@ -336,7 +354,7 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">🔥 フル演出 解放済み（確率は変わりません）</span>
+        <span class="unlocked-badge">🔥 爆弾ボタン解放済み（確率は変わりません）</span>
       </div>
     </div>
 
@@ -354,11 +372,11 @@
 <script>
 (function(){
   // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
-  // ※シリーズの「〇〇500」固定パターンはやめて、ゲームごとに自由な言葉にする方針（2026年8月29日〜）
   const PASSWORD = "とびら爆破";
   const STORAGE_KEY = "kaihou_no_gi_unlocked";
   const COLLECTION_KEY = "kaihou_no_gi_collection";
   const GAME_URL = "https://kanae-project.github.io/syomona-games/games/kaihou-no-gi/";
+  const RUN_SECONDS = 30;
 
   function safeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
   function safeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
@@ -374,8 +392,6 @@
         if(!AC) return null;
         audioCtx = new AC();
       }
-      // suspended状態のまま音を鳴らそうとすると無音になる端末があるため、
-      // resume()の完了を待たずに使う場合でも、必ず呼び出しだけはしておく
       if(audioCtx.state === 'suspended'){
         audioCtx.resume().catch(function(){});
       }
@@ -446,81 +462,27 @@
     beep(260 + ratio * 500, 0.045, 0, 'square', 0.06);
   }
   function sfxCreak(){ // 溜め中の「ミシッ」という軋み
-    noiseBurst(0.35, 'bandpass', 300 + Math.random()*200, 4, 0.1, 0);
-    sweep(140, 90, 0.3, 0, 'sawtooth', 0.06);
+    noiseBurst(0.3, 'bandpass', 300 + Math.random()*200, 4, 0.09, 0);
+    sweep(140, 90, 0.25, 0, 'sawtooth', 0.05);
   }
-  function sfxImpactStab(){ // 課金時の最終ステージだけ、破壊音の直前に鳴らす「一撃」の前振り
-    sweep(90, 28, 0.55, 0, 'sine', 0.42);
-    noiseBurst(0.18, 'lowpass', 400, 1, 0.38, 0);
-    beep(220, 0.3, 0, 'sawtooth', 0.16);
-    beep(330, 0.3, 0.02, 'sawtooth', 0.13);
-    beep(440, 0.35, 0.04, 'sawtooth', 0.13);
-  }
-  function sfxBreak(key, isPaid){
-    if(key === 'chain'){
-      noiseBurst(0.25, 'bandpass', 2400, 6, isPaid ? 0.3 : 0.22, 0); // 金属の弾ける高音
-      sweep(1400, 300, 0.3, 0, 'triangle', isPaid ? 0.22 : 0.16); // 金属が跳ねる音
-      for(let i=0;i<(isPaid?4:2);i++){ beep(1800 - i*220, 0.08, 0.05 + i*0.06, 'triangle', 0.1); }
-    } else if(key === 'wood'){
-      noiseBurst(0.35, 'lowpass', 900, 1.2, isPaid ? 0.32 : 0.24, 0); // 木が裂ける低めのノイズ
-      for(let i=0;i<(isPaid?5:3);i++){ noiseBurst(0.12, 'bandpass', 500 + Math.random()*500, 3, 0.14, i*0.07); }
-      sweep(220, 60, 0.3, 0, 'sawtooth', isPaid ? 0.18 : 0.12);
-    } else { // iron / 最終ステージ：一番派手にする
-      if(isPaid){ sfxImpactStab(); } // 課金時だけ、破壊音の前に重い前振りを追加
-      sweep(160, 35, isPaid ? 1.1 : 0.5, 0, 'sine', isPaid ? 0.42 : 0.24); // 重低音の「ドン」
-      noiseBurst(isPaid ? 0.9 : 0.45, 'lowpass', 1800, 0.8, isPaid ? 0.48 : 0.3, 0); // 広帯域のクラッシュ音
-      for(let i=0;i<(isPaid?14:4);i++){ beep(900 + Math.random()*1000, 0.15, 0.05 + i*0.05, 'triangle', 0.09); } // ガラスのような高音の欠片
-      if(isPaid){
-        // 課金時だけ、余韻代わりに減衰する残響っぽいノイズを重ねる（多層にして長く伸ばす）
-        noiseBurst(0.5, 'lowpass', 1200, 0.6, 0.16, 0.5);
-        noiseBurst(0.45, 'lowpass', 1000, 0.6, 0.12, 0.8);
-        noiseBurst(0.4, 'lowpass', 800, 0.6, 0.08, 1.1);
-        // 締めに華やかな和音のチャイムを鳴らす
-        beep(659, 0.5, 1.0, 'sine', 0.12);
-        beep(831, 0.55, 1.08, 'sine', 0.12);
-        beep(1046, 0.6, 1.16, 'sine', 0.13);
-        beep(1568, 0.7, 1.28, 'sine', 0.11);
-      }
+  // tier: 0=無料の連打, 1=課金中の連打, 2=爆弾ボタン（約5倍の威力）
+  function sfxBoardBreak(tier){
+    if(tier >= 2){
+      // ボカン、と短く鋭い一撃（連打しても被らないよう短め・でも強烈に）
+      noiseBurst(0.2, 'lowpass', 550, 1, 0.44, 0);
+      sweep(150, 40, 0.32, 0, 'sine', 0.42);
+      beep(180, 0.16, 0, 'sawtooth', 0.2);
+      beep(260, 0.14, 0.03, 'sawtooth', 0.16);
+      noiseBurst(0.15, 'lowpass', 1600, 0.8, 0.2, 0.02);
+    } else if(tier === 1){
+      noiseBurst(0.32, 'lowpass', 900, 1.2, 0.26, 0);
+      for(let i=0;i<4;i++){ noiseBurst(0.1, 'bandpass', 500 + Math.random()*500, 3, 0.12, i*0.06); }
+      sweep(220, 60, 0.28, 0, 'sawtooth', 0.15);
+    } else {
+      noiseBurst(0.28, 'lowpass', 900, 1.2, 0.2, 0);
+      for(let i=0;i<2;i++){ noiseBurst(0.09, 'bandpass', 500 + Math.random()*400, 3, 0.1, i*0.06); }
+      sweep(220, 70, 0.25, 0, 'sawtooth', 0.1);
     }
-  }
-
-  // ==== ステージ定義 ====
-  const stagesData = [
-    { key:'chain', label:'第一の封', name:'鎖', taps:16, tapLabel:'連打して鎖を引きちぎれ！', shardColors:['#c9c9c9','#8a8a8a','#e8e8e8'] },
-    { key:'wood',  label:'第二の封', name:'木戸', taps:22, tapLabel:'連打して扉板を叩き割れ！', shardColors:['#8a5a33','#6b421f','#c98f52'] },
-    { key:'iron',  label:'最後の封', name:'鉄扉', taps:28, tapLabel:'連打して鉄扉をぶち破れ！', shardColors:['#5a636b','#8a1f1f','#c9c9c9','#ffdd55'] }
-  ];
-
-  function stagePiecesSVG(key){
-    if(key === 'chain'){
-      let s = '';
-      const spots = [[62,90],[92,130],[122,170],[152,210],[178,246]];
-      spots.forEach(function(p, i){
-        s += '<g class="piece"><ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="20" ry="11" fill="none" stroke="#9a9a9a" stroke-width="8" transform="rotate(38 '+p[0]+' '+p[1]+')"/></g>';
-      });
-      s += '<g class="piece"><rect x="103" y="150" width="34" height="30" rx="5" fill="#c9a227" stroke="#7a5e12" stroke-width="3"/><path d="M110 150 v-15 a10 10 0 0 1 20 0 v15" fill="none" stroke="#7a5e12" stroke-width="6"/></g>';
-      return s;
-    }
-    if(key === 'wood'){
-      let s = '';
-      for(let i=0;i<5;i++){
-        const x = 46 + i*24;
-        s += '<rect class="piece" x="'+x+'" y="58" width="20" height="204" fill="#8a5a33" stroke="#5b3a1f" stroke-width="3"/>';
-      }
-      s += '<rect class="piece" x="42" y="108" width="156" height="14" fill="#6b421f" stroke="#4a2c14" stroke-width="2"/>';
-      s += '<rect class="piece" x="42" y="198" width="156" height="14" fill="#6b421f" stroke="#4a2c14" stroke-width="2"/>';
-      return s;
-    }
-    // iron
-    let s = '';
-    s += '<rect class="piece" x="42" y="46" width="78" height="228" fill="#5a636b" stroke="#2b3238" stroke-width="4"/>';
-    s += '<rect class="piece" x="120" y="46" width="78" height="228" fill="#4c545b" stroke="#2b3238" stroke-width="4"/>';
-    s += '<rect class="piece" x="42" y="150" width="156" height="16" fill="#8a1f1f" stroke="#4a0f0f" stroke-width="3"/>';
-    const rivets = [[60,70],[100,70],[140,70],[180,70],[60,240],[100,240],[140,240],[180,240]];
-    rivets.forEach(function(p){
-      s += '<circle class="piece" cx="'+p[0]+'" cy="'+p[1]+'" r="6" fill="#dcdcdc" stroke="#2b3238" stroke-width="2"/>';
-    });
-    return s;
   }
 
   // ==== 宝箱ガチャ：ランクは課金しても確率が変わらない（＝損しかしない）仕様 ====
@@ -570,14 +532,17 @@
     collectionComplete.classList.toggle('hidden', collection.length < RARITY_TIERS.length);
   }
 
+  // ==== DOM参照 ====
   const overlaySvg = document.getElementById('overlaySvg');
   const sealWrap = document.getElementById('sealWrap');
   const doorGlow = document.getElementById('doorGlow');
   const gaugeFill = document.getElementById('gaugeFill');
   const tapBtn = document.getElementById('tapBtn');
-  const stageLabel = document.getElementById('stageLabel');
-  const stageName = document.getElementById('stageName');
-  const stageDots = document.getElementById('stageDots').children;
+  const bombBtn = document.getElementById('bombBtn');
+  const roundLabelEl = document.getElementById('roundLabel');
+  const roundAnnounceEl = document.getElementById('roundAnnounce');
+  const startPanel = document.getElementById('startPanel');
+  const startBtn = document.getElementById('startBtn');
   const gameArea = document.getElementById('gameArea');
   const chestPanel = document.getElementById('chestPanel');
   const chestEmoji = document.getElementById('chestEmoji');
@@ -589,48 +554,62 @@
   const resultPanel = document.getElementById('resultPanel');
   const resultStat = document.getElementById('resultStat');
   const flashOverlay = document.getElementById('flashOverlay');
+  const stageEl = document.querySelector('.stage');
 
-  let stageIndex = 0;
+  let round = 1;
   let gauge = 0;
   let breaking = false;
+  let running = false;
+  let pendingEnd = false; // タイマーが0になった瞬間、ちょうど破壊演出の途中だった場合に立てるフラグ
   let unlocked = safeGet(STORAGE_KEY) === '1';
-  let totalTaps = 0;
-  let startTime = Date.now();
+  let boardsCleared = 0;
   let lastTier = null;
-  let liveTimerHandle = null;
+  let timerHandle = null;
+  let runStartedAt = 0;
 
-  // ==== スタートした瞬間からはっきり見える、プレイ中のライブタイマー ====
-  function startLiveTimer(){
-    clearInterval(liveTimerHandle);
-    liveTimer.textContent = '0.0秒';
-    liveTimerHandle = setInterval(function(){
-      liveTimer.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + '秒';
-    }, 100);
-  }
+  // ラウンドが進むほど必要な連打数も少しずつ増える（上限あり）
+  function tapsForRound(r){ return Math.min(24, 6 + (r - 1) * 2); }
+  function roundPhrase(r){ return r === 1 ? 'まずは1枚' : ('次は' + r + '枚だ'); }
 
-  function refreshDots(){
-    for(let i=0;i<stageDots.length;i++){
-      stageDots[i].className = 'dot' + (i < stageIndex ? ' done' : (i === stageIndex ? ' active' : ''));
+  // N枚の板を、扉の幅いっぱいに並べて描く（枚数が多くても崩れないよう幅を自動調整）
+  const BOARD_COLORS = ['#8a5a33','#6b421f','#c98f52'];
+  const CONFETTI_COLORS = ['#ffd93d','#ff6b6b','#4d96ff','#6bcb77','#b56bff','#ff6bcb'];
+  function boardPiecesSVG(n){
+    const x0 = 42, x1 = 198, w = x1 - x0;
+    const plankW = Math.max(2, w / n);
+    let s = '';
+    for(let i=0;i<n;i++){
+      const x = x0 + i * plankW;
+      const sw = plankW > 10 ? 3 : 1;
+      const rectW = Math.max(1, plankW - (plankW > 6 ? 2 : 0));
+      s += '<rect class="piece" x="' + x.toFixed(2) + '" y="46" width="' + rectW.toFixed(2) + '" height="228" fill="#8a5a33" stroke="#5b3a1f" stroke-width="' + sw + '"/>';
     }
+    if(n <= 12){
+      s += '<rect class="piece" x="42" y="108" width="156" height="14" fill="#6b421f" stroke="#4a2c14" stroke-width="2"/>';
+      s += '<rect class="piece" x="42" y="198" width="156" height="14" fill="#6b421f" stroke="#4a2c14" stroke-width="2"/>';
+    }
+    return s;
   }
 
-  function renderStage(){
-    const s = stagesData[stageIndex];
+  function renderRound(){
     gauge = 0;
     breaking = false;
     gaugeFill.style.width = '0%';
-    stageLabel.textContent = s.label;
-    stageName.textContent = s.name;
-    tapBtn.textContent = s.tapLabel;
+    roundLabelEl.textContent = 'ラウンド ' + round;
+    roundAnnounceEl.textContent = roundPhrase(round);
     tapBtn.disabled = false;
-    overlaySvg.innerHTML = stagePiecesSVG(s.key);
-    overlaySvg.style.opacity = '1';
+    tapBtn.textContent = round + '枚、連打して叩き割れ！';
+    bombBtn.disabled = false;
+    bombBtn.classList.toggle('hidden', !unlocked);
+    overlaySvg.innerHTML = boardPiecesSVG(round);
     Array.prototype.forEach.call(overlaySvg.querySelectorAll('.piece'), function(p){
       p.style.transition = '';
       p.style.transform = '';
       p.style.opacity = '1';
     });
-    refreshDots();
+    const glowLevel = Math.min(1, 0.15 + round * 0.06);
+    doorGlow.style.transition = 'opacity .4s ease';
+    doorGlow.style.opacity = glowLevel;
   }
 
   function triggerShake(amt){
@@ -678,14 +657,13 @@
     }
   }
 
-  function spawnImpactBurst(){ // 課金時の最終ステージだけ、破壊の瞬間に光の集中線を飛ばす
+  function spawnImpactBurst(){ // 爆弾ボタンの時だけ、破壊の瞬間に光の集中線を飛ばす
     const el = document.createElement('div');
     el.className = 'impact-burst';
     sealWrap.appendChild(el);
     setTimeout(function(){ el.remove(); }, 850);
   }
 
-  const stageEl = document.querySelector('.stage');
   function triggerImpactZoom(){
     stageEl.classList.remove('impact-zoom');
     void stageEl.offsetWidth;
@@ -702,102 +680,147 @@
   }
 
   function handleTap(){
-    if(breaking) return;
-    const s = stagesData[stageIndex];
-    getAudioCtx(); // 初回タップでAudioContextを起動（ブラウザの自動再生制限対策）
+    if(!running || breaking) return;
+    getAudioCtx();
     gauge++;
-    totalTaps++;
-    const ratio = Math.min(1, gauge / s.taps);
+    const needed = tapsForRound(round);
+    const ratio = Math.min(1, gauge / needed);
     gaugeFill.style.width = (ratio * 100) + '%';
     sfxTap(ratio);
     vibrate(10);
     triggerShake(2 + ratio * 9);
-    if(gauge === Math.round(s.taps*0.35) || gauge === Math.round(s.taps*0.7)){
+    if(gauge === Math.round(needed*0.4) || gauge === Math.round(needed*0.75)){
       sfxCreak();
     }
-    if(gauge >= s.taps){
+    if(gauge >= needed){
       breaking = true;
       tapBtn.disabled = true;
-      doBreak();
+      bombBtn.disabled = true;
+      doBreak(unlocked ? 1 : 0);
     }
   }
 
-  // 課金×最終ステージだけ「見た目が別物」と分かるくらい派手にする（中身＝確率は変わらない）
-  const CONFETTI_COLORS = ['#ffd93d','#ff6b6b','#4d96ff','#6bcb77','#b56bff','#ff6bcb'];
+  function handleBomb(){
+    if(!running || breaking || !unlocked) return;
+    getAudioCtx();
+    breaking = true;
+    tapBtn.disabled = true;
+    bombBtn.disabled = true;
+    doBreak(2);
+  }
 
-  function doBreak(){
-    const s = stagesData[stageIndex];
-    const isFinal = stageIndex === stagesData.length - 1;
-    const bigPaidFinale = isFinal && unlocked;
-
-    triggerShake(isFinal ? (unlocked ? 34 : 17) : (unlocked ? 14 : 9));
-    const distance = isFinal ? (unlocked ? 520 : 230) : (unlocked ? 200 : 140);
-    const duration = isFinal ? (unlocked ? 2300 : 1000) : (unlocked ? 850 : 600);
+  // tier: 0=無料連打, 1=課金中の連打, 2=爆弾ボタン
+  function doBreak(tier){
+    const isBomb = tier >= 2;
+    triggerShake(isBomb ? 30 : (tier === 1 ? 16 : 10));
+    const distance = isBomb ? 480 : (tier === 1 ? 220 : 150);
+    const duration = isBomb ? 520 : (tier === 1 ? 700 : 550);
     shatterPieces(distance, duration);
-    spawnShards(unlocked ? (isFinal ? 90 : 20) : (isFinal ? 16 : 8), s.shardColors);
-    if(bigPaidFinale){
-      spawnShards(70, CONFETTI_COLORS); // 課金時だけ、素材とは別に派手な紙吹雪を追加
+    spawnShards(isBomb ? 70 : (tier === 1 ? 26 : 10), BOARD_COLORS);
+    if(isBomb){
+      spawnShards(50, CONFETTI_COLORS); // 爆弾の時だけ、素材とは別に派手な紙吹雪を追加
       spawnImpactBurst();
       triggerImpactZoom();
     }
-    sfxBreak(s.key, unlocked);
-    vibrate(bigPaidFinale ? [50,40,100,30,100,30,150] : (unlocked ? [40,30,80,20,60] : [40,20,60]));
-
-    // 封が解けるたび、扉の奥の光が少しずつ強くなる
-    const glowLevels = [0.4, 0.7, 1];
-    doorGlow.style.transition = 'opacity .6s ease';
-    doorGlow.style.opacity = glowLevels[stageIndex];
-
-    if(isFinal){
-      flash(unlocked ? 1 : 0.7, unlocked ? 340 : 140, unlocked ? 1300 : 500);
-    }
-    if(bigPaidFinale){
-      // 二段構えのフラッシュにして、より派手な「爆発した感」を出す
-      setTimeout(function(){ flash(0.7, 200, 900); }, 260);
+    sfxBoardBreak(tier);
+    vibrate(isBomb ? [40,30,90,20,90] : (tier === 1 ? [30,20,60] : [30]));
+    if(isBomb){
+      flash(0.9, 180, 500);
+      setTimeout(function(){ flash(0.5, 120, 400); }, 180);
+    } else if(tier === 1){
+      flash(0.4, 100, 300);
     }
 
-    const holdTime = isFinal ? (unlocked ? 2700 : 1200) : (unlocked ? 1000 : 700);
+    // 爆弾は「何度でも押せる爽快感」優先で、演出時間を短めに保つ
+    const holdTime = isBomb ? 620 : (tier === 1 ? 550 : 480);
     setTimeout(function(){
-      if(isFinal){
-        revealChest();
+      boardsCleared++;
+      round++;
+      breaking = false;
+      if(pendingEnd || !running){
+        pendingEnd = false;
+        finishRun();
       } else {
-        stageIndex++;
-        renderStage();
+        renderRound();
       }
     }, holdTime);
   }
 
   tapBtn.addEventListener('click', handleTap);
+  bombBtn.addEventListener('click', handleBomb);
 
-  // ==== タイムアタック発表：常にポジティブに褒める（速さで煽らない） ====
+  // ==== 30秒のカウントダウン ====
+  function updateTimerDisplay(t){ liveTimer.textContent = t.toFixed(1) + '秒'; }
+
+  function startCountdown(){
+    clearInterval(timerHandle);
+    runStartedAt = Date.now();
+    updateTimerDisplay(RUN_SECONDS);
+    timerHandle = setInterval(function(){
+      const elapsed = (Date.now() - runStartedAt) / 1000;
+      const left = Math.max(0, RUN_SECONDS - elapsed);
+      updateTimerDisplay(left);
+      if(left <= 0){
+        clearInterval(timerHandle);
+        running = false;
+        tapBtn.disabled = true;
+        bombBtn.disabled = true;
+        if(breaking){
+          pendingEnd = true; // 演出が終わってからfinishRun()を呼ぶ
+        } else {
+          finishRun();
+        }
+      }
+    }, 100);
+  }
+
+  function startRun(){
+    round = 1;
+    boardsCleared = 0;
+    breaking = false;
+    pendingEnd = false;
+    running = true;
+    startPanel.classList.add('hidden');
+    chestPanel.classList.add('hidden');
+    resultPanel.classList.add('hidden');
+    gameArea.classList.remove('hidden');
+    renderRound();
+    startCountdown();
+  }
+
+  startBtn.addEventListener('click', function(){
+    getAudioCtx(); // スタートのタップでAudioContextを起動（ブラウザの自動再生制限対策）
+    startRun();
+  });
+
+  // ==== タイムアップ発表：常にポジティブに褒める ====
   function animateCountUp(target, durationMs, el){
     const start = performance.now();
     function step(now){
       const t = Math.min(1, (now - start) / durationMs);
       const eased = 1 - Math.pow(1 - t, 3); // ease-out
-      el.textContent = (target * eased).toFixed(1);
+      el.textContent = Math.round(target * eased);
       if(t < 1){ requestAnimationFrame(step); }
-      else { el.textContent = target.toFixed(1); }
+      else { el.textContent = target; }
     }
     requestAnimationFrame(step);
   }
-  function praiseForTime(sec){
-    const fast = ['はやい！職人の所業！', 'その指さばき、プロ！'];
-    const mid = ['いいペース！さすが！', '安定の連打、いいね！'];
-    const slow = ['丁寧な仕事、嫌いじゃない！', 'じっくり派、それもいい！'];
-    const list = sec < 25 ? fast : (sec < 55 ? mid : slow);
+  function praiseForBoards(n){
+    const low = ['集中力、見事！', '手堅いプレイ！'];
+    const mid = ['いいペース！さすが！', 'なかなかの枚数！'];
+    const high = ['化け物か！？', '指、大丈夫！？'];
+    const list = n < 4 ? low : (n < 9 ? mid : high);
     return list[Math.floor(Math.random() * list.length)];
   }
 
-  // ==== 宝箱の開封演出：レア度の抽選確率は課金の有無に関わらず一切変わらない ====
-  function revealChest(){
-    clearInterval(liveTimerHandle);
+  // ==== 宝箱の開封演出（1プレイ＝30秒につき1回）：レア度の抽選確率は課金の有無に関わらず一切変わらない ====
+  function finishRun(){
     gameArea.classList.add('hidden');
-    const elapsedSec = (Date.now() - startTime) / 1000;
-    timeNumber.textContent = '0.0';
+    timeNumber.textContent = '0';
     timePraise.textContent = '';
-    animateCountUp(elapsedSec, 900, timeNumber);
-    setTimeout(function(){ timePraise.textContent = praiseForTime(elapsedSec); }, 950);
+    animateCountUp(boardsCleared, 900, timeNumber);
+    setTimeout(function(){ timePraise.textContent = praiseForBoards(boardsCleared); }, 950);
+
     const tier = rollRarity();
     lastTier = tier;
     if(collection.indexOf(tier.key) === -1){
@@ -827,24 +850,17 @@
   });
 
   function showResult(){
-    resultStat.textContent = '合計 ' + totalTaps + '回の連打で、全ての封を解いた。';
+    resultStat.textContent = '30秒で ' + boardsCleared + ' 枚、ぶち破った。';
     resultPanel.classList.remove('hidden');
   }
 
   document.getElementById('replayBtn').addEventListener('click', function(){
-    stageIndex = 0;
-    totalTaps = 0;
-    startTime = Date.now();
-    doorGlow.style.transition = 'opacity .3s ease';
-    doorGlow.style.opacity = '0.12';
     resultPanel.classList.add('hidden');
-    gameArea.classList.remove('hidden');
-    renderStage();
-    startLiveTimer();
+    startRun();
   });
 
   document.getElementById('bragBtn').addEventListener('click', function(){
-    let text = '「解放の儀」を' + totalTaps + '回の連打で完遂した！';
+    let text = '「解放の儀」で30秒に' + boardsCleared + '枚ぶち破った！';
     if(lastTier){ text += '\n出た景品：【' + lastTier.name + '】' + lastTier.item; }
     text += '\n#しょーもなゲームズ';
     if(GAME_URL){ text += '\n' + GAME_URL; }
@@ -863,6 +879,7 @@
     gradeMsg.textContent = '';
     unlockedZone.classList.remove('hidden');
     unlocked = true;
+    bombBtn.classList.remove('hidden');
   }
   if(unlocked){ setUnlocked(); }
 
@@ -876,9 +893,7 @@
     }
   });
 
-  renderStage();
   renderCollection();
-  startLiveTimer();
 })();
 </script>
 </body>
