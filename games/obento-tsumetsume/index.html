@@ -107,6 +107,7 @@
     cursor:pointer;
   }
   .btn-sub:active{ transform:translateY(2px); }
+  .btn-sub:disabled{ opacity:.5; cursor:not-allowed; }
 
   .hud{
     display:flex;
@@ -212,6 +213,15 @@
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:10px;
+    margin-top:10px;
+  }
+  .controls .btn-sub, .controls .btn-main{
+    height:56px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    margin:0;
   }
   .btn-skip{
     display:block;
@@ -228,10 +238,8 @@
     cursor:pointer;
   }
   .btn-skip:active{ transform:translateY(2px); box-shadow:0 1px 0 #c98a2b; }
+  .btn-skip:disabled{ opacity:.5; cursor:not-allowed; }
 
-  .result-count{ text-align:center; font-size:20px; font-weight:bold; margin:6px 0; }
-  #finalCount{ font-size:34px; color:var(--accent-dark); }
-  .result-comment{ text-align:center; color:var(--sub2); margin-bottom:18px; }
   .btn-x{
     display:block;
     width:100%;
@@ -339,31 +347,24 @@
     <p class="mode-note">お弁当箱の形も大きさもどんどん変わります。ぜんぶ綺麗に埋まると嬉しいことが起きるかも？</p>
   </div>
 
-  <!-- ゲーム画面 -->
+  <!-- ゲーム画面（終了後も同じ画面のまま） -->
   <div id="gameScreen" class="screen" hidden>
     <div class="hud">
       <div class="count">詰めた数: <span id="packedCount">0</span>個</div>
     </div>
     <div id="boxGrid" class="box-grid"></div>
     <div class="timer-bar">⏱ <span id="timeLeft">30</span>秒</div>
-    <div id="speechBubble" class="speech-bubble"></div>
+    <div class="controls">
+      <button id="rotateBtn" class="btn-sub">🔄 回転</button>
+      <button id="placeBtn" class="btn-main" disabled>📥 配置する</button>
+    </div>
     <div class="next-panel">
       <div class="next-label">つぎのおかず</div>
       <div id="nextName" class="next-name"></div>
       <div id="nextPreview" class="next-preview"></div>
-      <div class="controls">
-        <button id="rotateBtn" class="btn-sub">🔄 回転</button>
-        <button id="placeBtn" class="btn-main" disabled>📥 配置する</button>
-      </div>
-      <button id="skipBoxBtn" class="btn-skip">📦 入らないのでお弁当箱をかえる</button>
     </div>
-  </div>
-
-  <!-- 結果画面 -->
-  <div id="resultScreen" class="screen" hidden>
-    <h2 class="center">タイムアップ！</h2>
-    <p class="result-count">今日は <span id="finalCount">0</span> 個<br>お弁当に詰めました！</p>
-    <p id="resultComment" class="result-comment"></p>
+    <button id="skipBoxBtn" class="btn-skip">📦 入らないのでお弁当箱をかえる</button>
+    <div id="speechBubble" class="speech-bubble"></div>
     <button id="shareBtn" class="btn-x">🏆 スコアを自慢する</button>
     <button id="retryBtn" class="btn-main">もう一度遊ぶ</button>
   </div>
@@ -457,7 +458,6 @@
   const $ = (id) => document.getElementById(id);
   const startScreen = $("startScreen");
   const gameScreen = $("gameScreen");
-  const resultScreen = $("resultScreen");
   const boxGridEl = $("boxGrid");
   const timeLeftEl = $("timeLeft");
   const packedCountEl = $("packedCount");
@@ -466,8 +466,7 @@
   const nextPreviewEl = $("nextPreview");
   const rotateBtn = $("rotateBtn");
   const placeBtn = $("placeBtn");
-  const finalCountEl = $("finalCount");
-  const resultCommentEl = $("resultComment");
+  const skipBoxBtn = $("skipBoxBtn");
   const unlockBadgeStart = $("unlockBadgeStart");
   const passwordInput = $("passwordInput");
   const unlockBtn = $("unlockBtn");
@@ -645,7 +644,7 @@
   }
 
   function showScreen(id){
-    [startScreen, gameScreen, resultScreen].forEach(s=> s.hidden = (s.id !== id));
+    [startScreen, gameScreen].forEach(s=> s.hidden = (s.id !== id));
   }
 
   // ===== ゲームロジック =====
@@ -770,6 +769,10 @@
     gameActive = true;
     busy = false;
     pendingEnd = false;
+    rotateBtn.disabled = false;
+    skipBoxBtn.disabled = false;
+    clearTimeout(bubbleTimer);
+    speechBubbleEl.classList.remove("visible");
     initBoxState();
     for(const k in boxFillMeta) delete boxFillMeta[k];
     drawNextShape();
@@ -792,13 +795,6 @@
     updateHUD();
   }
 
-  function resultComment(count){
-    if(count >= 15) return "詰めすぎ達人！お弁当箱が悲鳴を上げています。";
-    if(count >= 8) return "なかなかの手際！お弁当箱、パンパンです。";
-    if(count >= 3) return "ぼちぼち詰まりました。次はもっといけるはず！";
-    return "まだまだこれから！次はもっと数を狙ってみましょう。";
-  }
-
   function endingLine(count){
     if(count >= 15) return "ごちそうさまでした。おなかパンッ！パンッ！プロですね！";
     if(count >= 10) return "ごちそうさまでした。おなか一杯、しあわせいっぱい。";
@@ -809,15 +805,13 @@
   function endGame(){
     gameActive = false;
     clearInterval(timerHandle);
+    rotateBtn.disabled = true;
+    placeBtn.disabled = true;
+    skipBoxBtn.disabled = true;
     const line1 = "今日は" + packedCount + "個詰めました！";
     const line2 = endingLine(packedCount);
     speak(line1 + line2);
-    showBubble(line1 + " " + line2, 2600);
-    setTimeout(()=>{
-      finalCountEl.textContent = packedCount;
-      resultCommentEl.textContent = resultComment(packedCount);
-      showScreen("resultScreen");
-    }, 2600);
+    showBubble(line1 + " " + line2, 60000);
   }
 
   function shareOnX(){
