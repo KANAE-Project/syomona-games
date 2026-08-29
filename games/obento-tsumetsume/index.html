@@ -550,6 +550,15 @@
       boxState.push(row);
     }
   }
+  function firstEmptyCell(){
+    const p = pattern();
+    for(let r=0;r<p.rows;r++){
+      for(let c=0;c<p.cols;c++){
+        if(isPatternCell(r,c) && !boxState[r][c]) return {r,c};
+      }
+    }
+    return null;
+  }
   function checkBoxFull(){
     const p = pattern();
     for(let r=0;r<p.rows;r++){
@@ -603,6 +612,12 @@
       if(!el) return;
       el.classList.add(valid ? "preview-ok" : "preview-bad");
     });
+    // 起点セル（タップした/デフォルトの左上）を枠で分かりやすく
+    if(anchorCell.r>=0 && anchorCell.r<p.rows && anchorCell.c>=0 && anchorCell.c<p.cols){
+      const anchorIdx = anchorCell.r*p.cols + anchorCell.c;
+      const anchorEl = kids[anchorIdx];
+      if(anchorEl) anchorEl.classList.add("anchor");
+    }
   }
 
   function renderNextPreview(){
@@ -623,7 +638,7 @@
     const pool = (unlocked && Math.random() < 0.28) ? PREMIUM_FOODS : NORMAL_FOODS;
     const base = pick(pool);
     currentShape = { id:base.id, name:base.name, emoji:base.emoji, color:base.color, premium:!!base.premium, cells: base.cells.map(c=>c.slice()) };
-    anchorCell = null;
+    anchorCell = firstEmptyCell();
     placeBtn.disabled = true;
     renderNextPreview();
   }
