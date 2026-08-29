@@ -169,6 +169,10 @@
 
   .speech-bubble{
     position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:72px;
     max-width:90%;
     margin:12px auto 0;
     background:#fff;
@@ -179,7 +183,10 @@
     font-weight:bold;
     font-size:15px;
     color:var(--accent-dark);
+    opacity:0;
+    transition:opacity .15s;
   }
+  .speech-bubble.visible{ opacity:1; }
 
   .next-panel{
     margin-top:16px;
@@ -339,7 +346,7 @@
     </div>
     <div id="boxGrid" class="box-grid"></div>
     <div class="timer-bar">⏱ <span id="timeLeft">30</span>秒</div>
-    <div id="speechBubble" class="speech-bubble" hidden></div>
+    <div id="speechBubble" class="speech-bubble"></div>
     <div class="next-panel">
       <div class="next-label">つぎのおかず</div>
       <div id="nextName" class="next-name"></div>
@@ -522,9 +529,9 @@
   let bubbleTimer = null;
   function showBubble(text, duration){
     speechBubbleEl.textContent = text;
-    speechBubbleEl.hidden = false;
+    speechBubbleEl.classList.add("visible");
     clearTimeout(bubbleTimer);
-    bubbleTimer = setTimeout(()=>{ speechBubbleEl.hidden = true; }, duration || 1600);
+    bubbleTimer = setTimeout(()=>{ speechBubbleEl.classList.remove("visible"); }, duration || 1600);
   }
 
   // ===== グリッド／形状ユーティリティ =====
