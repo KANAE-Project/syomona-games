@@ -566,6 +566,20 @@
     "{yesterday}…ふーん、そうかそうか。今日は…"
   ];
 
+  // 答える直後、しばらく「考え中」を挟んでから決めるための演出用セリフ
+  const thinkingLines = [
+    "うーん・・・せやなあ・・・",
+    "うーん、ちょっと考えさせてな・・・",
+    "せやなあ・・・どうしよかな・・・"
+  ];
+
+  const decisionLines = [
+    "せや！これにしよ！",
+    "よし、決めた！",
+    "せや、これでいこか！",
+    "よっしゃ、これや！"
+  ];
+
   const gentleLines = [
     "これ食べて元気出しぃ！",
     "ちゃんと食べや、心配せんでええから。",
@@ -582,6 +596,7 @@
   let lastResult = null;
 
   const askForm = document.getElementById("askForm");
+  const askBtn = askForm.querySelector("button[type=submit]");
   const bubbleAsk = document.getElementById("bubble-ask");
   const resultZone = document.getElementById("resultZone");
   const bubbleReact = document.getElementById("bubble-react");
@@ -612,6 +627,7 @@
 
     resetBubbles();
     resultZone.classList.remove("hidden");
+    askBtn.disabled = true; // 考え中は連打で演出が崩れないようにボタンを止めておく
 
     // 今日のメニュー決定: だいたいランダム、たまに同じもの返し
     const isEcho = Math.random() < 0.28;
@@ -636,10 +652,22 @@
       ? "<img class='menu-img' src='" + todayImg + "' alt='" + todayFood + "' onerror=\"this.remove()\">"
       : "";
 
-    showBubble(bubbleReact, fmt(pick(reactLines), yesterday), 150, false);
-    showBubble(bubbleMenu, menuVisual + "<div class='menu-line'>今日は…" + todayEmoji + " " + todayFood + " や！</div>", 750, true);
-    showBubble(kcalZone, "<div class='kcal'>推定 " + kcal + " kcal<small>(嘘。もちろん嘘やで)</small></div>", 1350, true);
-    showBubble(bubbleGentle, "<span class='gentle'>" + pick(gentleLines) + "</span>", 1900, false);
+    // すぐに答えを出さず、「考え中」→「反応」→「せや！これにしよ！」の3段階を挟んでから発表する
+    const THINK_SHOW = 150;
+    const REACT_SHOW = THINK_SHOW + 1400;
+    const DECIDE_SHOW = REACT_SHOW + 700;
+    const MENU_SHOW = DECIDE_SHOW + 500;
+    const KCAL_SHOW = MENU_SHOW + 600;
+    const GENTLE_SHOW = KCAL_SHOW + 550;
+
+    showBubble(bubbleReact, pick(thinkingLines), THINK_SHOW, false);
+    showBubble(bubbleReact, fmt(pick(reactLines), yesterday), REACT_SHOW, false);
+    showBubble(bubbleReact, pick(decisionLines), DECIDE_SHOW, true);
+    showBubble(bubbleMenu, menuVisual + "<div class='menu-line'>今日は…" + todayEmoji + " " + todayFood + " や！</div>", MENU_SHOW, true);
+    showBubble(kcalZone, "<div class='kcal'>推定 " + kcal + " kcal<small>(嘘。もちろん嘘やで)</small></div>", KCAL_SHOW, true);
+    showBubble(bubbleGentle, "<span class='gentle'>" + pick(gentleLines) + "</span>", GENTLE_SHOW, false);
+
+    setTimeout(function(){ askBtn.disabled = false; }, GENTLE_SHOW + 100);
 
     document.getElementById("yesterdayInput").value = "";
   });
@@ -647,6 +675,7 @@
   retryBtn.addEventListener("click", function(){
     resultZone.classList.add("hidden");
     resetBubbles();
+    askBtn.disabled = false; // 演出の途中でももう一回押せるようにしておく
     document.getElementById("yesterdayInput").focus();
   });
 
