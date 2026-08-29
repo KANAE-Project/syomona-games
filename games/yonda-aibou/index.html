@@ -105,6 +105,11 @@
   }
   button:focus-visible{ outline:3px solid var(--accent2); outline-offset:2px; }
   button:active{ transform:scale(.95); }
+  .sound-notice{
+    display:block; text-align:center; font-size:1rem; font-weight:900; color:#fff;
+    background:var(--accent); padding:8px 20px; border-radius:999px; margin:0 auto 14px;
+    max-width:280px;
+  }
   .start-row{ text-align:center; margin:10px 0 4px; }
   .start-row button{ font-size:1.1rem; padding:14px 28px; }
   .mode-select-label{ font-size:.85rem; opacity:.7; margin-bottom:10px; }
@@ -367,6 +372,7 @@
     </div>
 
     <div class="start-row" id="startRow">
+      <div class="sound-notice">🔊 このゲームは音が出ます</div>
       <div class="mode-select-label" id="modeLabel"></div>
       <div class="mode-buttons">
         <button type="button" id="startNormalBtn">ノーマルで挑戦</button>
