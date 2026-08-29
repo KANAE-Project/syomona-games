@@ -67,6 +67,10 @@
   }
 
   .start-panel{ text-align:center; padding:10px 0 4px; }
+  .sound-notice{
+    display:inline-block; font-size:1.05rem; font-weight:900; color:#211705;
+    background:var(--accent); padding:8px 20px; border-radius:999px; margin-bottom:16px;
+  }
   .start-desc{ font-size:.9rem; color:var(--ink-dim); margin-bottom:20px; line-height:1.9; }
   #startBtn{ width:100%; font-size:1.2rem; font-weight:900; padding:24px 14px; box-shadow:0 5px 0 var(--accent2); }
 
@@ -191,6 +195,11 @@
   }
   .time-unit{ font-size:.85rem; color:var(--ink-dim); margin-bottom:8px; }
   .time-praise{ font-size:1rem; font-weight:bold; color:var(--ink); min-height:1.4em; }
+  #chestNextBtn{
+    width:100%; font-size:1.25rem; font-weight:900; padding:20px 14px;
+    box-shadow:0 5px 0 var(--accent2);
+  }
+  #chestNextBtn:active{ transform:translateY(3px) scale(.98); box-shadow:0 2px 0 var(--accent2); }
 
   .stage.impact-zoom{ animation:impactZoom .4s ease; }
   @keyframes impactZoom{
@@ -278,15 +287,12 @@
 
   <div class="stage">
     <div id="startPanel" class="start-panel">
+      <div class="sound-notice">🔊 このゲームは音が出ます</div>
       <div class="start-desc">連打して板を叩き割れ。<br>「まずは1枚」→「次は2枚だ」…とどんどん増えていく。<br>制限時間は30秒、何枚抜けるか挑戦しよう！</div>
       <button type="button" id="startBtn">▶ 30秒スタート！</button>
     </div>
 
     <div id="gameArea" class="hidden">
-      <div class="live-timer" id="liveTimer">30.0秒</div>
-      <div class="stage-label" id="roundLabel">ラウンド 1</div>
-      <div class="stage-name" id="roundAnnounce">まずは1枚</div>
-
       <div class="seal-stage-wrap" id="sealWrap">
         <svg class="arch-bg" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 285 L20 95 Q20 20 120 20 Q220 20 220 95 L220 285 Z" fill="#3a3040" stroke="#191420" stroke-width="6"/>
@@ -300,6 +306,10 @@
         </svg>
         <svg class="overlay-svg" id="overlaySvg" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
+
+      <div class="live-timer" id="liveTimer">30.0秒</div>
+      <div class="stage-label" id="roundLabel">ラウンド 1</div>
+      <div class="stage-name" id="roundAnnounce">まずは1枚</div>
 
       <div class="gauge-wrap"><div class="gauge-fill" id="gaugeFill"></div></div>
       <div class="tap-row"><button type="button" id="tapBtn">連打して叩き割れ！</button></div>
@@ -464,6 +474,12 @@
   function sfxCreak(){ // 溜め中の「ミシッ」という軋み
     noiseBurst(0.3, 'bandpass', 300 + Math.random()*200, 4, 0.09, 0);
     sweep(140, 90, 0.25, 0, 'sawtooth', 0.05);
+  }
+  function sfxChestOpen(){ // 宝箱を開けた瞬間の「ぴろりーん！」
+    beep(784, 0.14, 0, 'sine', 0.16);
+    beep(1046, 0.14, 0.08, 'sine', 0.16);
+    beep(1318, 0.22, 0.16, 'sine', 0.18);
+    beep(1568, 0.32, 0.24, 'triangle', 0.15);
   }
   // tier: 0=無料の連打, 1=課金中の連打, 2=爆弾ボタン（約5倍の威力）
   function sfxBoardBreak(tier){
@@ -834,6 +850,7 @@
     chestEmoji.textContent = '🎁';
     // 開封演出をリトリガーするため、アニメーションをリセットしてから表示する
     chestPanel.classList.remove('hidden');
+    sfxChestOpen();
     const burstBg = chestPanel.querySelector('.burst-bg');
     burstBg.style.animation = 'none';
     chestEmoji.style.animation = 'none';
