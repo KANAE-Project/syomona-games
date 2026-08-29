@@ -210,16 +210,17 @@
     display:block;
     width:100%;
     margin-top:10px;
-    padding:10px;
-    font-size:13px;
+    padding:13px;
+    font-size:15px;
     font-weight:bold;
-    color:var(--sub2);
-    background:transparent;
-    border:2px dashed var(--line);
+    color:#fff;
+    background:var(--gold);
+    border:none;
     border-radius:12px;
+    box-shadow:0 3px 0 #c98a2b;
     cursor:pointer;
   }
-  .btn-skip:active{ transform:translateY(1px); }
+  .btn-skip:active{ transform:translateY(2px); box-shadow:0 1px 0 #c98a2b; }
 
   .result-count{ text-align:center; font-size:20px; font-weight:bold; margin:6px 0; }
   #finalCount{ font-size:34px; color:var(--accent-dark); }
@@ -347,7 +348,7 @@
         <button id="rotateBtn" class="btn-sub">🔄 回転</button>
         <button id="placeBtn" class="btn-main" disabled>📥 配置する</button>
       </div>
-      <button id="skipBoxBtn" class="btn-skip">📦 この箱をあきらめて次へ</button>
+      <button id="skipBoxBtn" class="btn-skip">📦 入らないのでお弁当箱をかえる</button>
     </div>
   </div>
 
