@@ -519,11 +519,11 @@
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
   let bubbleTimer = null;
-  function showBubble(text){
+  function showBubble(text, duration){
     speechBubbleEl.textContent = text;
     speechBubbleEl.hidden = false;
     clearTimeout(bubbleTimer);
-    bubbleTimer = setTimeout(()=>{ speechBubbleEl.hidden = true; }, 1600);
+    bubbleTimer = setTimeout(()=>{ speechBubbleEl.hidden = true; }, duration || 1600);
   }
 
   // ===== グリッド／形状ユーティリティ =====
@@ -788,17 +788,25 @@
     return "まだまだこれから！次はもっと数を狙ってみましょう。";
   }
 
+  function endingLine(count){
+    if(count >= 15) return "ごちそうさまでした。おなかパンッ！パンッ！プロですね！";
+    if(count >= 10) return "ごちそうさまでした。おなか一杯、しあわせいっぱい。";
+    if(count <= 5) return pick(["ごちそうさまでした。お弁当寄ってた。わら","ごちそうさまでした。汁でベショベショ。わら"]);
+    return "ごちそうさまでした！美味しかったです";
+  }
+
   function endGame(){
     gameActive = false;
     clearInterval(timerHandle);
-    const line = "今日は" + packedCount + "個詰めました！";
-    speak(line);
-    showBubble(line);
+    const line1 = "今日は" + packedCount + "個詰めました！";
+    const line2 = endingLine(packedCount);
+    speak(line1 + line2);
+    showBubble(line1 + " " + line2, 2600);
     setTimeout(()=>{
       finalCountEl.textContent = packedCount;
       resultCommentEl.textContent = resultComment(packedCount);
       showScreen("resultScreen");
-    }, 1800);
+    }, 2600);
   }
 
   function shareOnX(){
