@@ -158,6 +158,55 @@
     padding:4px 12px; border-radius:999px; margin-top:8px;
   }
 
+  .chest-panel{ text-align:center; padding:6px 0 4px; }
+  .burst-wrap{
+    position:relative; width:190px; height:190px; margin:0 auto 8px;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; border-radius:50%;
+  }
+  .burst-bg{
+    position:absolute; inset:-60px;
+    background:repeating-conic-gradient(from 0deg, rgba(255,255,255,.85) 0deg 4deg, transparent 4deg 13deg);
+    opacity:0;
+    animation:burstIn .5s ease forwards, burstSpin 7s linear infinite;
+  }
+  @keyframes burstIn{ 0%{ opacity:0; transform:scale(.3); } 60%{ opacity:.85; } 100%{ opacity:.5; transform:scale(1); } }
+  @keyframes burstSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .burst-bg{ animation:burstIn .3s ease forwards; } }
+  .chest-emoji{ position:relative; font-size:4.4rem; z-index:2; animation:chestPop .5s ease .1s both; }
+  @keyframes chestPop{
+    0%{ transform:scale(.4) rotate(-10deg); opacity:0; }
+    60%{ transform:scale(1.15) rotate(5deg); opacity:1; }
+    100%{ transform:scale(1) rotate(0); }
+  }
+  .tier-badge{
+    display:inline-block; font-weight:900; font-size:1.1rem; padding:6px 18px;
+    border-radius:999px; margin-bottom:6px; color:#181008;
+  }
+  .tier-badge.tier-rainbow{
+    background:linear-gradient(90deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#b56bff,#ff6bcb);
+    background-size:300% 100%; animation:rainbow-shift 1.2s linear infinite; color:#1a1a1a;
+  }
+  @keyframes rainbow-shift{ 0%{ background-position:0% 50%; } 100%{ background-position:100% 50%; } }
+  @media (prefers-reduced-motion: reduce){ .tier-badge.tier-rainbow{ animation:none; } }
+  .tier-item{ font-size:.9rem; color:var(--ink-dim); margin-bottom:16px; }
+
+  .collection-zone{ margin-top:22px; padding-top:16px; border-top:1px dashed rgba(255,255,255,.16); text-align:center; }
+  .collection-title{ font-size:.9rem; font-weight:bold; color:var(--accent); margin-bottom:10px; }
+  .collection-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+  .collection-slot{
+    aspect-ratio:1; border-radius:12px; background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.15); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; font-size:1.4rem; padding:4px;
+  }
+  .collection-slot.owned{ border-color:var(--accent); background:rgba(224,167,46,.1); }
+  .collection-slot .slot-name{ font-size:.5rem; margin-top:2px; line-height:1.25; color:var(--ink-dim); }
+  .collection-complete{
+    margin-top:12px; font-weight:900; color:var(--accent); font-size:.95rem;
+    animation:pop-float-badge .6s ease;
+  }
+  @keyframes pop-float-badge{ 0%{ transform:scale(.6); opacity:0; } 60%{ transform:scale(1.1); opacity:1; } 100%{ transform:scale(1); opacity:1; } }
+
   .usage-notice{
     margin-top:18px; font-size:.72rem; line-height:1.8; color:var(--ink-dim);
     text-align:left; background:rgba(255,255,255,.05); border-radius:10px;
@@ -199,6 +248,18 @@
       <div class="tap-row"><button type="button" id="tapBtn">連打して鎖を引きちぎれ！</button></div>
     </div>
 
+    <div id="chestPanel" class="chest-panel hidden">
+      <div class="burst-wrap">
+        <div class="burst-bg"></div>
+        <div class="chest-emoji" id="chestEmoji">🎁</div>
+      </div>
+      <div class="tier-badge" id="tierBadge"></div>
+      <div class="tier-item" id="tierItemText"></div>
+      <div class="start-row">
+        <button type="button" id="chestNextBtn">つぎへ</button>
+      </div>
+    </div>
+
     <div id="resultPanel" class="result-panel hidden">
       <div class="result-title">🎉 解放完了</div>
       <div class="result-stat" id="resultStat"></div>
@@ -210,12 +271,18 @@
       </div>
     </div>
 
+    <div class="collection-zone">
+      <div class="collection-title">📖 収集帳 <span id="collectionCount">0/8</span></div>
+      <div class="collection-grid" id="collectionGrid"></div>
+      <div id="collectionComplete" class="collection-complete hidden">🎉 全部集めました！伝説のコンプリート達成！</div>
+    </div>
+
     <div class="grade-zone">
       <div class="grade-cta" id="gradeForm">
-        <div class="grade-headline">もっと気持ちよくなりたい方はこちら💁</div>
+        <div class="grade-headline">損しかない課金はこちら💁</div>
         <!-- note記事公開後、正しいURLに差し替える -->
         <a href="#" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
-        <div class="grade-teaser">課金すると、破壊の瞬間だけスローモーション・破片が大増量・重低音つきに。ここだけは「損しかない」わけじゃありません。</div>
+        <div class="grade-teaser">課金しても、宝箱から出るレア度の確率は1ミリも変わりません。変わるのは破壊演出が派手になるだけ。それでも課金しますか？</div>
         <div class="grade-form">
           <input type="text" id="passwordInput" placeholder="合言葉">
           <button type="button" id="unlockBtn">解放する</button>
@@ -223,7 +290,7 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">🔥 フル演出 解放済み</span>
+        <span class="unlocked-badge">🔥 フル演出 解放済み（確率は変わりません）</span>
       </div>
     </div>
 
@@ -241,8 +308,10 @@
 <script>
 (function(){
   // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
-  const PASSWORD = "カイホウ500";
+  // ※シリーズの「〇〇500」固定パターンはやめて、ゲームごとに自由な言葉にする方針（2026年8月29日〜）
+  const PASSWORD = "とびら爆破";
   const STORAGE_KEY = "kaihou_no_gi_unlocked";
+  const COLLECTION_KEY = "kaihou_no_gi_collection";
   const GAME_URL = "https://kanae-project.github.io/syomona-games/games/kaihou-no-gi/";
 
   function safeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
@@ -259,7 +328,11 @@
         if(!AC) return null;
         audioCtx = new AC();
       }
-      if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+      // suspended状態のまま音を鳴らそうとすると無音になる端末があるため、
+      // resume()の完了を待たずに使う場合でも、必ず呼び出しだけはしておく
+      if(audioCtx.state === 'suspended'){
+        audioCtx.resume().catch(function(){});
+      }
       return audioCtx;
     } catch(e){ return null; }
   }
@@ -393,6 +466,53 @@
     return s;
   }
 
+  // ==== 宝箱ガチャ：ランクは課金しても確率が変わらない（＝損しかしない）仕様 ====
+  const RARITY_TIERS = [
+    { key:'normal',    name:'ノーマル',                              weight:48,   color:'#9aa0a6', emoji:'🪨', item:'ただの石ころ' },
+    { key:'rare',      name:'レア',                                  weight:25,   color:'#4d96ff', emoji:'🔑', item:'ちょっといい鍵' },
+    { key:'sr',        name:'スーパーレア',                          weight:14,   color:'#b56bff', emoji:'💎', item:'怪しく光る石' },
+    { key:'ur',        name:'ウルトラレア',                          weight:7,    color:'#ffb300', emoji:'👑', item:'誰かの冠（サイズ不明）' },
+    { key:'usr',       name:'ウルトラスーパーレア',                  weight:3,    color:'#ff5b1f', emoji:'🐉', item:'小さいドラゴンのぬいぐるみ' },
+    { key:'legend',    name:'レジェンダリーレア',                    weight:1.7,  color:'#2ee6a6', emoji:'🌟', item:'伝説の…なにか' },
+    { key:'galactica', name:'ギャラクティカレア',                    weight:0.25, color:'#6bcb77', emoji:'🌌', item:'銀河の欠片（たぶん）' },
+    { key:'ultimate',  name:'オーバーギャラクティック・プレミアム・レジェンドレア', weight:0.05, color:'rainbow', emoji:'✨', item:'解放マスターの称号（実用性ゼロ）' }
+  ];
+  function rollRarity(){
+    const total = RARITY_TIERS.reduce(function(sum, t){ return sum + t.weight; }, 0);
+    let r = Math.random() * total;
+    for(let i=0;i<RARITY_TIERS.length;i++){
+      if(r < RARITY_TIERS[i].weight) return RARITY_TIERS[i];
+      r -= RARITY_TIERS[i].weight;
+    }
+    return RARITY_TIERS[0];
+  }
+  function loadCollection(){
+    try {
+      const raw = safeGet(COLLECTION_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e){ return []; }
+  }
+  function saveCollection(list){ safeSet(COLLECTION_KEY, JSON.stringify(list)); }
+  let collection = loadCollection();
+
+  const collectionGrid = document.getElementById('collectionGrid');
+  const collectionCount = document.getElementById('collectionCount');
+  const collectionComplete = document.getElementById('collectionComplete');
+  function renderCollection(){
+    collectionGrid.innerHTML = '';
+    RARITY_TIERS.forEach(function(t){
+      const owned = collection.indexOf(t.key) !== -1;
+      const slot = document.createElement('div');
+      slot.className = 'collection-slot' + (owned ? ' owned' : '');
+      slot.innerHTML = owned
+        ? t.emoji + '<span class="slot-name">' + t.name + '</span>'
+        : '？<span class="slot-name">未入手</span>';
+      collectionGrid.appendChild(slot);
+    });
+    collectionCount.textContent = collection.length + '/' + RARITY_TIERS.length;
+    collectionComplete.classList.toggle('hidden', collection.length < RARITY_TIERS.length);
+  }
+
   const overlaySvg = document.getElementById('overlaySvg');
   const sealWrap = document.getElementById('sealWrap');
   const doorGlow = document.getElementById('doorGlow');
@@ -402,6 +522,10 @@
   const stageName = document.getElementById('stageName');
   const stageDots = document.getElementById('stageDots').children;
   const gameArea = document.getElementById('gameArea');
+  const chestPanel = document.getElementById('chestPanel');
+  const chestEmoji = document.getElementById('chestEmoji');
+  const tierBadge = document.getElementById('tierBadge');
+  const tierItemText = document.getElementById('tierItemText');
   const resultPanel = document.getElementById('resultPanel');
   const resultStat = document.getElementById('resultStat');
   const flashOverlay = document.getElementById('flashOverlay');
@@ -412,6 +536,7 @@
   let unlocked = safeGet(STORAGE_KEY) === '1';
   let totalTaps = 0;
   let startTime = Date.now();
+  let lastTier = null;
 
   function refreshDots(){
     for(let i=0;i<stageDots.length;i++){
@@ -536,7 +661,7 @@
     const holdTime = isFinal ? (unlocked ? 1900 : 1200) : (unlocked ? 1000 : 700);
     setTimeout(function(){
       if(isFinal){
-        showResult();
+        revealChest();
       } else {
         stageIndex++;
         renderStage();
@@ -546,8 +671,38 @@
 
   tapBtn.addEventListener('click', handleTap);
 
-  function showResult(){
+  // ==== 宝箱の開封演出：レア度の抽選確率は課金の有無に関わらず一切変わらない ====
+  function revealChest(){
     gameArea.classList.add('hidden');
+    const tier = rollRarity();
+    lastTier = tier;
+    if(collection.indexOf(tier.key) === -1){
+      collection.push(tier.key);
+      saveCollection(collection);
+    }
+    tierBadge.textContent = tier.name;
+    tierBadge.style.background = tier.color === 'rainbow' ? '' : tier.color;
+    tierBadge.classList.toggle('tier-rainbow', tier.color === 'rainbow');
+    tierItemText.textContent = tier.emoji + ' ' + tier.item + ' を手に入れた！';
+    chestEmoji.textContent = '🎁';
+    // 開封演出をリトリガーするため、アニメーションをリセットしてから表示する
+    chestPanel.classList.remove('hidden');
+    const burstBg = chestPanel.querySelector('.burst-bg');
+    burstBg.style.animation = 'none';
+    chestEmoji.style.animation = 'none';
+    void chestPanel.offsetWidth;
+    burstBg.style.animation = '';
+    chestEmoji.style.animation = '';
+    renderCollection();
+    vibrate([20,40,20]);
+  }
+
+  document.getElementById('chestNextBtn').addEventListener('click', function(){
+    chestPanel.classList.add('hidden');
+    showResult();
+  });
+
+  function showResult(){
     const seconds = Math.max(1, Math.round((Date.now() - startTime) / 1000));
     resultStat.textContent = '合計 ' + totalTaps + '回の連打、' + seconds + '秒で全ての封を解いた。';
     resultPanel.classList.remove('hidden');
@@ -565,7 +720,9 @@
   });
 
   document.getElementById('bragBtn').addEventListener('click', function(){
-    let text = '「解放の儀」を' + totalTaps + '回の連打で完遂した！\n#しょーもなゲームズ';
+    let text = '「解放の儀」を' + totalTaps + '回の連打で完遂した！';
+    if(lastTier){ text += '\n出た景品：【' + lastTier.name + '】' + lastTier.item; }
+    text += '\n#しょーもなゲームズ';
     if(GAME_URL){ text += '\n' + GAME_URL; }
     const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
     window.open(url, '_blank');
@@ -596,6 +753,7 @@
   });
 
   renderStage();
+  renderCollection();
 })();
 </script>
 </body>
