@@ -42,14 +42,6 @@
     margin:8px 0;
   }
   .back-link:hover{ text-decoration:underline; }
-  h1{
-    text-align:center;
-    font-size:24px;
-    line-height:1.4;
-    margin:8px 0 4px;
-    color:var(--accent-dark);
-  }
-  h1 span{ font-size:20px; display:block; }
   .lead{ text-align:center; color:var(--sub2); font-size:15px; margin:8px 0 18px; }
 
   .screen{ }
@@ -109,33 +101,44 @@
   .btn-sub:active{ transform:translateY(2px); }
   .btn-sub:disabled{ opacity:.5; cursor:not-allowed; }
 
-  .hud{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:var(--panel);
-    border:2px solid var(--line);
-    border-radius:12px;
-    padding:10px 16px;
+  .top-row{
+    display:grid;
+    grid-template-columns:2fr 1fr 1fr;
+    gap:8px;
+    align-items:stretch;
     margin-bottom:10px;
-    font-weight:bold;
-    font-size:15px;
   }
-  .timer-bar{
+  .stat-col{
     display:flex;
+    flex-direction:column;
     justify-content:center;
     align-items:center;
-    gap:6px;
+    gap:4px;
     background:var(--panel);
     border:2px solid var(--line);
-    border-radius:12px;
-    padding:8px 16px;
-    margin-top:10px;
+    border-radius:14px;
+    padding:8px 6px;
     font-weight:bold;
-    font-size:15px;
-    color:var(--accent-dark);
+    text-align:center;
   }
-  #timeLeft{ font-size:20px; }
+  .stat-count{ font-size:11px; color:var(--text); line-height:1.3; }
+  .stat-count span{ font-size:18px; color:var(--accent-dark); }
+  .stat-timer{ font-size:14px; color:var(--accent-dark); }
+
+  .next-col{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:4px;
+    background:var(--panel);
+    border:2px solid var(--line);
+    border-radius:14px;
+    padding:8px 4px;
+    text-align:center;
+  }
+  .next-label-mini{ font-size:11px; color:var(--sub2); font-weight:bold; }
+  .next-name-mini{ font-size:11px; font-weight:bold; line-height:1.25; word-break:break-all; }
 
   .box-grid{
     display:grid;
@@ -173,62 +176,39 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    min-height:72px;
-    max-width:90%;
-    margin:12px auto 0;
+    min-height:80px;
     background:#fff;
     border:2px solid var(--accent);
     border-radius:14px;
-    padding:10px 14px;
+    padding:8px 10px;
     text-align:center;
     font-weight:bold;
-    font-size:15px;
+    font-size:13px;
+    line-height:1.3;
     color:var(--accent-dark);
     opacity:0;
     transition:opacity .15s;
   }
   .speech-bubble.visible{ opacity:1; }
 
-  .next-panel{
-    margin-top:16px;
-    background:var(--panel);
-    border:2px solid var(--line);
-    border-radius:14px;
-    padding:12px;
-    text-align:center;
-  }
-  .next-label{ font-size:13px; color:var(--sub2); font-weight:bold; margin-bottom:6px; }
-  .next-name{ font-weight:bold; margin-bottom:8px; font-size:15px; }
-  .next-preview{
-    display:grid;
-    grid-template-columns:repeat(4,32px);
-    grid-template-rows:repeat(4,32px);
-    gap:3px;
-    justify-content:center;
-    margin:0 auto 10px;
-  }
-  .mini-cell{ border-radius:6px; background:#f2e9dc; }
-  .mini-cell.on{ border:2px solid rgba(0,0,0,.15); }
   .controls{
     display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
     margin-top:10px;
   }
-  .controls .btn-sub, .controls .btn-main{
+  .controls .btn-sub, .controls .btn-main, .controls .btn-skip{
     height:56px;
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:0 10px;
+    padding:0 4px;
     margin:0;
+    font-size:13px;
+    line-height:1.2;
+    text-align:center;
   }
   .btn-skip{
-    display:block;
-    width:100%;
-    margin-top:10px;
-    padding:13px;
-    font-size:15px;
     font-weight:bold;
     color:#fff;
     background:var(--gold);
@@ -332,7 +312,6 @@
 <div class="wrap">
 
   <a class="back-link" href="../../">← ゲーム一覧に戻る</a>
-  <h1>おべんとパズル<span>つめつめチャレンジ</span></h1>
 
   <!-- スタート画面 -->
   <div id="startScreen" class="screen">
@@ -349,22 +328,23 @@
 
   <!-- ゲーム画面（終了後も同じ画面のまま） -->
   <div id="gameScreen" class="screen" hidden>
-    <div class="hud">
-      <div class="count">詰めた数: <span id="packedCount">0</span>個</div>
+    <div class="top-row">
+      <div id="speechBubble" class="speech-bubble"></div>
+      <div class="stat-col">
+        <div class="stat-count">詰めた数<br><span id="packedCount">0</span>個</div>
+        <div class="stat-timer">⏱<span id="timeLeft">30</span>秒</div>
+      </div>
+      <div class="next-col">
+        <div class="next-label-mini">つぎ</div>
+        <div id="nextName" class="next-name-mini"></div>
+      </div>
     </div>
     <div id="boxGrid" class="box-grid"></div>
-    <div class="timer-bar">⏱ <span id="timeLeft">30</span>秒</div>
     <div class="controls">
       <button id="rotateBtn" class="btn-sub">🔄 回転</button>
-      <button id="placeBtn" class="btn-main" disabled>📥 配置する</button>
+      <button id="skipBoxBtn" class="btn-skip">🍱 チェンジ！</button>
+      <button id="placeBtn" class="btn-main" disabled>📥 詰める</button>
     </div>
-    <div class="next-panel">
-      <div class="next-label">つぎのおかず</div>
-      <div id="nextName" class="next-name"></div>
-      <div id="nextPreview" class="next-preview"></div>
-    </div>
-    <button id="skipBoxBtn" class="btn-skip">📦 入らないのでお弁当箱をかえる</button>
-    <div id="speechBubble" class="speech-bubble"></div>
     <button id="shareBtn" class="btn-x">🏆 スコアを自慢する</button>
     <button id="retryBtn" class="btn-main">もう一度遊ぶ</button>
   </div>
@@ -427,6 +407,7 @@
     { id:"broccoli", name:"ブロッコリー", emoji:"🥦", color:"#4f9e4f", cells:[[0,0],[1,0],[1,1]] },
     { id:"karaage",  name:"から揚げ",     emoji:"🍗", color:"#a9752f", cells:[[0,0],[0,1],[0,2],[1,1]] },
     { id:"onigiri",  name:"俵おにぎり",   emoji:"🍙", color:"#f4ead2", cells:[[0,0],[0,1]] },
+    { id:"nikudango", name:"自家製激辛ラー油まみれ肉団子", emoji:"🌶️", color:"#b23a2e", cells:[[0,0],[0,1]] },
   ];
 
   const PREMIUM_FOODS = [
@@ -434,6 +415,7 @@
     { id:"uni",   name:"うに(殻ごと)",   emoji:"🌰", color:"#c98a2b", cells:[[0,1],[1,0],[1,1],[1,2],[2,1]], premium:true },
     { id:"unagi", name:"うなぎ",         emoji:"🍢", color:"#6b3d1f", cells:[[0,0],[0,1],[0,2],[0,3]], premium:true },
     { id:"suika", name:"スイカ丸ごと",   emoji:"🍉", color:"#3f9e4d", cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]], premium:true },
+    { id:"deluxe", name:"全部乗せ特盛りデラックス弁当", emoji:"👑", color:"#caa43d", cells:[[0,1],[0,2],[1,0],[1,1]], premium:true },
   ];
 
   const POSITIVE_LIGHT = ["おいしそう！","いいにおい！","上手上手！","ナイス配置！","その調子！","いいねー","それ、かわいい","すんごくかわいい","ぴったりだね","ばっちりだよ"];
@@ -463,7 +445,6 @@
   const packedCountEl = $("packedCount");
   const speechBubbleEl = $("speechBubble");
   const nextNameEl = $("nextName");
-  const nextPreviewEl = $("nextPreview");
   const rotateBtn = $("rotateBtn");
   const placeBtn = $("placeBtn");
   const skipBoxBtn = $("skipBoxBtn");
@@ -626,16 +607,6 @@
 
   function renderNextPreview(){
     nextNameEl.textContent = currentShape.emoji + " " + currentShape.name + (currentShape.premium ? "（豪華）" : "");
-    nextPreviewEl.innerHTML = "";
-    for(let r=0;r<4;r++){
-      for(let c=0;c<4;c++){
-        const on = currentShape.cells.some(([dr,dc])=>dr===r&&dc===c);
-        const div = document.createElement("div");
-        div.className = "mini-cell" + (on ? " on" : "");
-        if(on) div.style.background = currentShape.color;
-        nextPreviewEl.appendChild(div);
-      }
-    }
   }
 
   function updateHUD(){
