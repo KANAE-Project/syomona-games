@@ -687,9 +687,12 @@
     anchorCell = null;
 
     if(full){
-      const line = pick(POSITIVE_COMPLETE);
-      speak(line);
-      showBubble(line);
+      packedCount += 10; // ぴったり収まったボーナス
+      updateHUD();
+      const line1 = pick(POSITIVE_COMPLETE);
+      const line2 = "わー！ぴったり！ボーナス10ポイントです";
+      speak(line1 + line2);
+      showBubble(line1 + " " + line2, 2200);
       playCompleteFanfare();
       busy = true;
       renderBox();
@@ -699,7 +702,7 @@
         renderBox();
         busy = false;
         if(pendingEnd) endGame();
-      }, 900);
+      }, 1400);
     } else {
       const line = pick(POSITIVE_LIGHT);
       speak(line);
