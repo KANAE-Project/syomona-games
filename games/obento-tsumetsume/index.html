@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>おべんとパズル つめつめチャレンジ｜しょーもなゲームズ</title>
+<meta name="description" content="30秒でお弁当箱におかずを何個詰められるか！テトリス風パズルの暇つぶしゲーム。">
+<style>
+  :root{
+    --accent:#e2704a;
+    --accent-dark:#c05a37;
+    --bg:#fff8ef;
+    --panel:#ffffff;
+    --line:#e8d9c5;
+    --text:#4a3a2c;
+    --sub:#8a7a70;
+    --sub2:#9a8570;
+    --good:#4caf7d;
+    --bad:#e5484d;
+    --gold:#e8a33d;
+  }
+  *{box-sizing:border-box;}
+  [hidden]{ display:none !important; }
+  body{
+    margin:0;
+    font-family:"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{
+    max-width:480px;
+    margin:0 auto;
+    padding:16px 16px 40px;
+  }
+  .back-link{
+    display:inline-block;
+    color:var(--accent-dark);
+    text-decoration:none;
+    font-size:14px;
+    font-weight:bold;
+    margin:8px 0;
+  }
+  .back-link:hover{ text-decoration:underline; }
+  h1{
+    text-align:center;
+    font-size:24px;
+    line-height:1.4;
+    margin:8px 0 4px;
+    color:var(--accent-dark);
+  }
+  h1 span{ font-size:20px; display:block; }
+  .lead{ text-align:center; color:var(--sub2); font-size:15px; margin:8px 0 18px; }
+
+  .screen{ }
+
+  .sound-badge{
+    display:inline-block;
+    background:#fff3e0;
+    border:2px solid var(--gold);
+    color:#8a5a12;
+    font-weight:bold;
+    font-size:14px;
+    padding:8px 14px;
+    border-radius:999px;
+    margin:8px auto 18px;
+    text-align:center;
+  }
+  .center{ text-align:center; }
+  .unlock-badge{
+    display:inline-block;
+    background:#eafaf1;
+    border:2px solid var(--good);
+    color:#1f7a4d;
+    font-weight:bold;
+    font-size:13px;
+    padding:6px 12px;
+    border-radius:999px;
+    margin:10px 0;
+  }
+
+  .btn-main{
+    display:block;
+    width:100%;
+    padding:16px;
+    font-size:18px;
+    font-weight:bold;
+    color:#fff;
+    background:var(--accent);
+    border:none;
+    border-radius:14px;
+    box-shadow:0 4px 0 var(--accent-dark);
+    cursor:pointer;
+    margin:10px 0;
+  }
+  .btn-main:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+  .btn-main:disabled{ background:#cbbfae; box-shadow:0 4px 0 #a89a86; cursor:not-allowed; }
+
+  .btn-sub{
+    padding:14px 10px;
+    font-size:16px;
+    font-weight:bold;
+    color:var(--accent-dark);
+    background:#fff;
+    border:2px solid var(--accent);
+    border-radius:14px;
+    cursor:pointer;
+  }
+  .btn-sub:active{ transform:translateY(2px); }
+
+  .hud{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--panel);
+    border:2px solid var(--line);
+    border-radius:12px;
+    padding:10px 16px;
+    margin-bottom:10px;
+    font-weight:bold;
+    font-size:15px;
+  }
+  .hud .timer{ color:var(--accent-dark); }
+  #timeLeft{ font-size:20px; }
+
+  .box-grid{
+    display:grid;
+    gap:5px;
+    background:#f1c98a;
+    border:6px solid #d9a75c;
+    border-radius:16px;
+    padding:8px;
+    position:relative;
+  }
+  .cell{
+    aspect-ratio:1/1;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    transition:background-color .1s;
+  }
+  .cell.outside{ background:transparent; visibility:hidden; }
+  .cell.valid{ background:#fffaf2; border:2px solid #e9d3b0; cursor:pointer; }
+  .cell.filled{ border:2px solid transparent; }
+  .cell.anchor{ outline:3px solid var(--accent-dark); }
+  .cell.preview-ok{ background:#c9f0d8 !important; }
+  .cell.preview-bad{ background:#f7c9cb !important; }
+  .box-grid.shake{ animation:shake .35s; }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    25%{ transform:translateX(-6px); }
+    75%{ transform:translateX(6px); }
+  }
+
+  .speech-bubble{
+    position:relative;
+    max-width:90%;
+    margin:12px auto 0;
+    background:#fff;
+    border:2px solid var(--accent);
+    border-radius:14px;
+    padding:10px 14px;
+    text-align:center;
+    font-weight:bold;
+    font-size:15px;
+    color:var(--accent-dark);
+  }
+
+  .next-panel{
+    margin-top:16px;
+    background:var(--panel);
+    border:2px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    text-align:center;
+  }
+  .next-label{ font-size:13px; color:var(--sub2); font-weight:bold; margin-bottom:6px; }
+  .next-name{ font-weight:bold; margin-bottom:8px; font-size:15px; }
+  .next-preview{
+    display:grid;
+    grid-template-columns:repeat(4,32px);
+    grid-template-rows:repeat(4,32px);
+    gap:3px;
+    justify-content:center;
+    margin:0 auto 10px;
+  }
+  .mini-cell{ border-radius:6px; background:#f2e9dc; }
+  .mini-cell.on{ border:2px solid rgba(0,0,0,.15); }
+  .controls{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  .result-count{ text-align:center; font-size:20px; font-weight:bold; margin:6px 0; }
+  #finalCount{ font-size:34px; color:var(--accent-dark); }
+  .result-comment{ text-align:center; color:var(--sub2); margin-bottom:18px; }
+  .btn-x{
+    display:block;
+    width:100%;
+    padding:14px;
+    font-size:16px;
+    font-weight:bold;
+    color:#fff;
+    background:#111;
+    border:none;
+    border-radius:14px;
+    cursor:pointer;
+    margin:10px 0;
+  }
+
+  .paid-banner{
+    margin-top:26px;
+    background:#fff3ea;
+    border:2px solid var(--accent);
+    border-radius:16px;
+    padding:16px;
+  }
+  .paid-banner h3{ margin:0 0 6px; color:var(--accent-dark); font-size:17px; }
+  .coin-badge{
+    display:inline-block;
+    background:var(--gold);
+    color:#fff;
+    font-weight:bold;
+    font-size:13px;
+    padding:4px 10px;
+    border-radius:999px;
+    margin-bottom:10px;
+  }
+  .paid-note{ font-size:13px; color:#8a5a3a; margin:6px 0 12px; line-height:1.6; }
+  .paid-form{ display:flex; gap:8px; }
+  .paid-form input{
+    flex:1;
+    padding:10px 12px;
+    font-size:15px;
+    border:2px solid var(--line);
+    border-radius:10px;
+  }
+  .paid-form button{
+    padding:10px 16px;
+    font-weight:bold;
+    color:#fff;
+    background:var(--accent-dark);
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  .unlock-msg{ margin-top:10px; font-weight:bold; font-size:14px; }
+  .note-link-btn{
+    display:block;
+    text-align:center;
+    margin-top:14px;
+    padding:12px;
+    background:#3dae5e;
+    color:#fff !important;
+    font-weight:bold;
+    text-decoration:none;
+    border-radius:12px;
+  }
+
+  .share-banner{
+    margin-top:18px;
+    background:var(--panel);
+    border:2px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+    text-align:center;
+  }
+  .share-banner h3{ margin:0 0 10px; font-size:16px; }
+
+  .stream-banner{
+    margin-top:18px;
+    background:#f5f0e6;
+    border:2px dashed #c9b696;
+    border-radius:16px;
+    padding:16px;
+    font-size:13px;
+    line-height:1.7;
+    color:#6b5b45;
+  }
+  .stream-banner h3{ margin:0 0 8px; font-size:15px; color:var(--text); }
+
+  .mode-note{ text-align:center; font-size:12px; color:var(--sub2); margin-top:4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back-link" href="../../">← ゲーム一覧に戻る</a>
+  <h1>おべんとパズル<span>つめつめチャレンジ</span></h1>
+
+  <!-- スタート画面 -->
+  <div id="startScreen" class="screen">
+    <p class="lead">30秒で、お弁当箱におかずを何個詰められるか！<br>タップして選んで、回転させて、詰めよう。</p>
+    <div class="center">
+      <div class="sound-badge">🔊 このゲームは音が出ます</div>
+    </div>
+    <div class="center">
+      <div id="unlockBadgeStart" class="unlock-badge" hidden>🔓 豪華おかず解放中</div>
+    </div>
+    <button id="startBtn" class="btn-main">スタート！</button>
+    <p class="mode-note">お弁当箱の形はどんどん変わります。ぜんぶ綺麗に埋まると嬉しいことが起きるかも？</p>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div id="gameScreen" class="screen" hidden>
+    <div class="hud">
+      <div class="timer">⏱ <span id="timeLeft">30</span>秒</div>
+      <div class="count">詰めた数: <span id="packedCount">0</span>個</div>
+    </div>
+    <div id="boxGrid" class="box-grid"></div>
+    <div id="speechBubble" class="speech-bubble" hidden></div>
+    <div class="next-panel">
+      <div class="next-label">つぎのおかず</div>
+      <div id="nextName" class="next-name"></div>
+      <div id="nextPreview" class="next-preview"></div>
+      <div class="controls">
+        <button id="rotateBtn" class="btn-sub">🔄 回転</button>
+        <button id="placeBtn" class="btn-main" disabled>📥 配置する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="resultScreen" class="screen" hidden>
+    <h2 class="center">タイムアップ！</h2>
+    <p class="result-count">今日は <span id="finalCount">0</span> 個<br>お弁当に詰めました！</p>
+    <p id="resultComment" class="result-comment"></p>
+    <button id="shareBtn" class="btn-x">🏆 スコアを自慢する</button>
+    <button id="retryBtn" class="btn-main">もう一度遊ぶ</button>
+  </div>
+
+  <!-- 課金バナー -->
+  <div class="paid-banner">
+    <h3>損しかない課金はこちら💁</h3>
+    <div class="coin-badge">🪙 ワンコイン500円</div>
+    <p class="paid-note">本当にお金をドブに捨てる気ですか？合言葉を入れると、ステーキ・うに(殻ごと)・うなぎ・スイカ丸ごとなど、ありえないほど豪華で、ありえないほど詰めにくいおかずが登場するようになります。</p>
+    <div class="paid-form">
+      <input id="passwordInput" type="text" placeholder="合言葉を入力">
+      <button id="unlockBtn">解放する</button>
+    </div>
+    <p id="unlockMsg" class="unlock-msg" hidden></p>
+    <a class="note-link-btn" id="noteLinkBtn" href="#" target="_blank" rel="noopener">📝 noteで合言葉をゲットする</a>
+  </div>
+
+  <!-- Xシェア -->
+  <div class="share-banner">
+    <h3>このゲームを拡散！</h3>
+    <button id="xShareBtn" class="btn-x">𝕏 でシェアする</button>
+  </div>
+
+  <!-- 実況・動画使用OK -->
+  <div class="stream-banner">
+    <h3>🎥 実況・動画での使用について</h3>
+    <p>「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+    ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
+    それ以外は自由に、しょーもなく広めていただけると嬉しいです。</p>
+  </div>
+
+  <a class="back-link" href="../../">← ゲーム一覧に戻る</a>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ===== 設定 =====
+  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/obento-tsumetsume/"; // 公開後に確認・必要なら差し替え
+  const PASSWORD = "ふたが閉まらない";
+  const STORAGE_KEY = "obento_tsumetsume_unlocked";
+  const COLS = 6, ROWS = 5;
+  const GAME_SECONDS = 30;
+
+  // お弁当箱の形（ラウンドが進むごとに切り替わる）1=有効マス 0=枠外
+  const BOX_PATTERNS = [
+    ["111111","111111","111111","111111","000000"],
+    ["111111","111111","111111","111100","111100"],
+    ["011110","111111","111111","111111","011110"],
+    ["111100","111100","011110","001111","001111"],
+  ];
+
+  const NORMAL_FOODS = [
+    { id:"tomato",   name:"ミニトマト",   emoji:"🍅", color:"#e14b3c", cells:[[0,0]] },
+    { id:"wiener",   name:"ウインナー",   emoji:"🌭", color:"#c2694a", cells:[[0,0],[0,1],[0,2]] },
+    { id:"tamago",   name:"卵焼き",       emoji:"🍳", color:"#f2b705", cells:[[0,0],[0,1],[1,0],[1,1]] },
+    { id:"broccoli", name:"ブロッコリー", emoji:"🥦", color:"#4f9e4f", cells:[[0,0],[1,0],[1,1]] },
+    { id:"karaage",  name:"から揚げ",     emoji:"🍗", color:"#a9752f", cells:[[0,0],[0,1],[0,2],[1,1]] },
+    { id:"onigiri",  name:"俵おにぎり",   emoji:"🍙", color:"#f4ead2", cells:[[0,0],[0,1]] },
+  ];
+
+  const PREMIUM_FOODS = [
+    { id:"steak", name:"ステーキ",       emoji:"🥩", color:"#8a2e2e", cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]], premium:true },
+    { id:"uni",   name:"うに(殻ごと)",   emoji:"🌰", color:"#c98a2b", cells:[[0,1],[1,0],[1,1],[1,2],[2,1]], premium:true },
+    { id:"unagi", name:"うなぎ",         emoji:"🍢", color:"#6b3d1f", cells:[[0,0],[0,1],[0,2],[0,3]], premium:true },
+    { id:"suika", name:"スイカ丸ごと",   emoji:"🍉", color:"#3f9e4d", cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]], premium:true },
+  ];
+
+  const POSITIVE_LIGHT = ["おいしそう！","いいにおい！","上手上手！","ナイス配置！","その調子！"];
+  const POSITIVE_COMPLETE = ["おいしかったよ！","ごちそうさまっ！","全部ぺろりだよ！"];
+  const NEGATIVE_LINES = ["おかずが寄っちゃったよー","汁でベショベショだよー","あれ、入らないよー","ぎゅうぎゅうで無理みたい…"];
+
+  // ===== 状態 =====
+  let boxState = [];
+  let patternIndex = 0;
+  let packedCount = 0;
+  let timeLeft = GAME_SECONDS;
+  let timerHandle = null;
+  let gameActive = false;
+  let busy = false;
+  let pendingEnd = false;
+  let unlocked = false;
+
+  let currentShape = null;
+  let anchorCell = null;
+
+  // ===== DOM =====
+  const $ = (id) => document.getElementById(id);
+  const startScreen = $("startScreen");
+  const gameScreen = $("gameScreen");
+  const resultScreen = $("resultScreen");
+  const boxGridEl = $("boxGrid");
+  const timeLeftEl = $("timeLeft");
+  const packedCountEl = $("packedCount");
+  const speechBubbleEl = $("speechBubble");
+  const nextNameEl = $("nextName");
+  const nextPreviewEl = $("nextPreview");
+  const rotateBtn = $("rotateBtn");
+  const placeBtn = $("placeBtn");
+  const finalCountEl = $("finalCount");
+  const resultCommentEl = $("resultComment");
+  const unlockBadgeStart = $("unlockBadgeStart");
+  const passwordInput = $("passwordInput");
+  const unlockBtn = $("unlockBtn");
+  const unlockMsg = $("unlockMsg");
+  const noteLinkBtn = $("noteLinkBtn");
+
+  // 公開後、note記事のURLが決まったら↓を差し替えてください
+  noteLinkBtn.href = "#";
+
+  // ===== 初期化：解放状態の復元 =====
+  if(localStorage.getItem(STORAGE_KEY) === "true"){
+    unlocked = true;
+    unlockBadgeStart.hidden = false;
+  }
+
+  // ===== 音声・効果音 =====
+  let audioCtx = null;
+  function getCtx(){
+    if(!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  function beep(freq, duration, type, vol, delay){
+    try{
+      const ctx = getCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t = ctx.currentTime + (delay || 0);
+      gain.gain.setValueAtTime(vol || 0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      osc.start(t);
+      osc.stop(t + duration + 0.03);
+    }catch(e){ /* 音声非対応環境は無視 */ }
+  }
+  function playSuccessSound(){ beep(880,0.12,"sine",0.2,0); beep(1180,0.12,"sine",0.15,0.08); }
+  function playFailSound(){ beep(220,0.18,"sawtooth",0.15,0); beep(160,0.22,"sawtooth",0.15,0.1); }
+  function playCompleteFanfare(){ [660,880,1100,1320].forEach((f,i)=>beep(f,0.18,"triangle",0.2,i*0.09)); }
+
+  function speak(text){
+    try{
+      if(!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ja-JP";
+      u.rate = 1.05;
+      u.pitch = 1.15;
+      window.speechSynthesis.speak(u);
+    }catch(e){ /* 非対応環境は無視 */ }
+  }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  let bubbleTimer = null;
+  function showBubble(text){
+    speechBubbleEl.textContent = text;
+    speechBubbleEl.hidden = false;
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(()=>{ speechBubbleEl.hidden = true; }, 1600);
+  }
+
+  // ===== グリッド／形状ユーティリティ =====
+  function rotateCells(cells){
+    const maxR = Math.max.apply(null, cells.map(c=>c[0]));
+    const rotated = cells.map(([r,c])=>[c, maxR - r]);
+    return normalize(rotated);
+  }
+  function normalize(cells){
+    const minR = Math.min.apply(null, cells.map(c=>c[0]));
+    const minC = Math.min.apply(null, cells.map(c=>c[1]));
+    return cells.map(([r,c])=>[r-minR, c-minC]);
+  }
+  function absoluteCells(cells, anchor){
+    return cells.map(([dr,dc])=>[anchor.r+dr, anchor.c+dc]);
+  }
+  function pattern(){ return BOX_PATTERNS[patternIndex]; }
+  function isPatternCell(r,c){
+    if(r<0||r>=ROWS||c<0||c>=COLS) return false;
+    return pattern()[r][c] === "1";
+  }
+  function isValidPlacement(cells){
+    for(const [r,c] of cells){
+      if(!isPatternCell(r,c)) return false;
+      if(boxState[r][c]) return false;
+    }
+    return true;
+  }
+  function initBoxState(){
+    boxState = [];
+    for(let r=0;r<ROWS;r++){
+      const row = [];
+      for(let c=0;c<COLS;c++) row.push(false);
+      boxState.push(row);
+    }
+  }
+  function checkBoxFull(){
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(isPatternCell(r,c) && !boxState[r][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  // ===== 描画 =====
+  const boxFillMeta = {}; // "r,c" -> {emoji,color}
+
+  function renderBox(){
+    boxGridEl.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+    boxGridEl.innerHTML = "";
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        if(!isPatternCell(r,c)){
+          cell.classList.add("outside");
+        } else {
+          cell.classList.add("valid");
+          const key = r+","+c;
+          if(boxState[r][c] && boxFillMeta[key]){
+            cell.classList.add("filled");
+            cell.style.background = boxFillMeta[key].color;
+            cell.textContent = boxFillMeta[key].emoji;
+          }
+          cell.addEventListener("click", ()=> onCellTap(r,c));
+        }
+        boxGridEl.appendChild(cell);
+      }
+    }
+    applyPreview();
+  }
+
+  function applyPreview(){
+    if(!anchorCell || !currentShape) return;
+    const cells = absoluteCells(currentShape.cells, anchorCell);
+    const valid = isValidPlacement(cells);
+    placeBtn.disabled = !valid;
+    const kids = boxGridEl.children;
+    cells.forEach(([r,c])=>{
+      if(r<0||r>=ROWS||c<0||c>=COLS) return;
+      const idx = r*COLS+c;
+      const el = kids[idx];
+      if(!el) return;
+      el.classList.add(valid ? "preview-ok" : "preview-bad");
+    });
+  }
+
+  function renderNextPreview(){
+    nextNameEl.textContent = currentShape.emoji + " " + currentShape.name + (currentShape.premium ? "（豪華）" : "");
+    nextPreviewEl.innerHTML = "";
+    for(let r=0;r<4;r++){
+      for(let c=0;c<4;c++){
+        const on = currentShape.cells.some(([dr,dc])=>dr===r&&dc===c);
+        const div = document.createElement("div");
+        div.className = "mini-cell" + (on ? " on" : "");
+        if(on) div.style.background = currentShape.color;
+        nextPreviewEl.appendChild(div);
+      }
+    }
+  }
+
+  function updateHUD(){
+    timeLeftEl.textContent = Math.ceil(timeLeft);
+    packedCountEl.textContent = packedCount;
+  }
+
+  function showScreen(id){
+    [startScreen, gameScreen, resultScreen].forEach(s=> s.hidden = (s.id !== id));
+  }
+
+  // ===== ゲームロジック =====
+  function drawNextShape(){
+    const pool = (unlocked && Math.random() < 0.28) ? PREMIUM_FOODS : NORMAL_FOODS;
+    const base = pick(pool);
+    currentShape = { id:base.id, name:base.name, emoji:base.emoji, color:base.color, premium:!!base.premium, cells: base.cells.map(c=>c.slice()) };
+    anchorCell = null;
+    placeBtn.disabled = true;
+    renderNextPreview();
+  }
+
+  function onCellTap(r,c){
+    if(!gameActive || busy) return;
+    anchorCell = {r,c};
+    renderBox();
+  }
+
+  function onRotate(){
+    if(!gameActive || busy || !currentShape) return;
+    currentShape.cells = rotateCells(currentShape.cells);
+    renderNextPreview();
+    renderBox();
+  }
+
+  function onPlace(){
+    if(!gameActive || busy || !anchorCell || !currentShape) return;
+    const cells = absoluteCells(currentShape.cells, anchorCell);
+    if(!isValidPlacement(cells)){
+      failEffect();
+      return;
+    }
+    commitPlacement(cells);
+  }
+
+  function commitPlacement(cells){
+    cells.forEach(([r,c])=>{
+      boxState[r][c] = true;
+      boxFillMeta[r+","+c] = { emoji: currentShape.emoji, color: currentShape.color };
+    });
+    packedCount++;
+    updateHUD();
+    playSuccessSound();
+
+    const full = checkBoxFull();
+    anchorCell = null;
+
+    if(full){
+      const line = pick(POSITIVE_COMPLETE);
+      speak(line);
+      showBubble(line);
+      playCompleteFanfare();
+      busy = true;
+      renderBox();
+      setTimeout(()=>{
+        advanceBoxPattern();
+        drawNextShape();
+        renderBox();
+        busy = false;
+        if(pendingEnd) endGame();
+      }, 900);
+    } else {
+      const line = pick(POSITIVE_LIGHT);
+      speak(line);
+      showBubble(line);
+      drawNextShape();
+      renderBox();
+      busy = true;
+      setTimeout(()=>{
+        busy = false;
+        if(pendingEnd) endGame();
+      }, 450);
+    }
+  }
+
+  function failEffect(){
+    playFailSound();
+    const line = pick(NEGATIVE_LINES);
+    speak(line);
+    showBubble(line);
+    boxGridEl.classList.add("shake");
+    busy = true;
+    setTimeout(()=>{
+      boxGridEl.classList.remove("shake");
+      busy = false;
+      if(pendingEnd) endGame();
+    }, 400);
+  }
+
+  function advanceBoxPattern(){
+    patternIndex = (patternIndex + 1) % BOX_PATTERNS.length;
+    initBoxState();
+    for(const k in boxFillMeta) delete boxFillMeta[k];
+  }
+
+  function startGame(){
+    getCtx(); // ユーザー操作内でAudioContextを起こしておく
+    packedCount = 0;
+    timeLeft = GAME_SECONDS;
+    patternIndex = 0;
+    gameActive = true;
+    busy = false;
+    pendingEnd = false;
+    initBoxState();
+    for(const k in boxFillMeta) delete boxFillMeta[k];
+    drawNextShape();
+    renderBox();
+    updateHUD();
+    showScreen("gameScreen");
+    clearInterval(timerHandle);
+    timerHandle = setInterval(tick, 100);
+  }
+
+  function tick(){
+    timeLeft -= 0.1;
+    if(timeLeft <= 0){
+      timeLeft = 0;
+      updateHUD();
+      clearInterval(timerHandle);
+      if(busy){ pendingEnd = true; } else { endGame(); }
+      return;
+    }
+    updateHUD();
+  }
+
+  function resultComment(count){
+    if(count >= 15) return "詰めすぎ達人！お弁当箱が悲鳴を上げています。";
+    if(count >= 8) return "なかなかの手際！お弁当箱、パンパンです。";
+    if(count >= 3) return "ぼちぼち詰まりました。次はもっといけるはず！";
+    return "まだまだこれから！次はもっと数を狙ってみましょう。";
+  }
+
+  function endGame(){
+    gameActive = false;
+    clearInterval(timerHandle);
+    finalCountEl.textContent = packedCount;
+    resultCommentEl.textContent = resultComment(packedCount);
+    showScreen("resultScreen");
+  }
+
+  function shareOnX(){
+    let text = "おべんとパズル つめつめチャレンジで" + packedCount + "個、お弁当に詰めました！🍱\n";
+    if(unlocked) text += "豪華おかず解放済み🔓\n";
+    const shareUrl = "https://x.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(GAME_URL);
+    window.open(shareUrl, "_blank", "noopener");
+  }
+
+  function onUnlock(){
+    const val = (passwordInput.value || "").trim();
+    unlockMsg.hidden = false;
+    if(val === PASSWORD){
+      const already = localStorage.getItem(STORAGE_KEY) === "true";
+      localStorage.setItem(STORAGE_KEY, "true");
+      unlocked = true;
+      unlockBadgeStart.hidden = false;
+      unlockMsg.style.color = "var(--good)";
+      unlockMsg.textContent = "🔓 豪華おかず解放！これで詰めにくさも爆上がりです…";
+      if(!already){
+        speak("ほんとに課金するんですか…？金ドブですよ");
+      }
+    } else {
+      unlockMsg.style.color = "var(--bad)";
+      unlockMsg.textContent = "合言葉が違うみたいです…";
+    }
+  }
+
+  // ===== イベント登録 =====
+  $("startBtn").addEventListener("click", startGame);
+  $("retryBtn").addEventListener("click", startGame);
+  rotateBtn.addEventListener("click", onRotate);
+  placeBtn.addEventListener("click", onPlace);
+  $("shareBtn").addEventListener("click", shareOnX);
+  $("xShareBtn").addEventListener("click", shareOnX);
+  unlockBtn.addEventListener("click", onUnlock);
+
+})();
+</script>
+</body>
+</html>
