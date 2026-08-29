@@ -479,6 +479,12 @@
   /* ---- upgrade / lock ---- */
   .upgrade-card { display: flex; flex-direction: column; gap: 10px; }
   .upgrade-card p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+  .grade-price {
+    display: inline-block; align-self: flex-start;
+    background: var(--surface-2); color: var(--ink);
+    font-size: 12.5px; font-weight: 700; padding: 4px 14px; border-radius: 999px;
+    border: 1px solid var(--felt-soft);
+  }
   .note-link-btn {
     display: block;
     background: #41c9b4;
@@ -612,6 +618,7 @@
     </div>
     <div class="card upgrade-card" id="upgradeCardLocked">
       <p>対局結果の記録・メンバー別成績集計・ポイント推移グラフは、グレードアップキーワードを入力すると使えるようになります。</p>
+      <div class="grade-price">🪙 ワンコイン500円</div>
       <a href="https://note.com/kanae_project/n/n40cb06092ece" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
       <div class="upgrade-input-row">
         <input type="text" id="upgradeKeyword" placeholder="キーワードを入力">
@@ -690,7 +697,7 @@
     <div class="usage-notice">
       <span class="usage-title">🎥 実況・動画での使用について</span>
       「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
-      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください（他の方が正規の手順を踏まずに解放できてしまうため）。<br>
+      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
       それ以外は自由に、しょーもなく広めていただけると嬉しいです。
     </div>
 

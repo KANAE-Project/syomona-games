@@ -64,6 +64,11 @@
   .dot.done{ background:var(--ink-dim); }
   .stage-label{ text-align:center; font-weight:bold; color:var(--accent); font-size:.95rem; margin-bottom:4px; }
   .stage-name{ text-align:center; font-size:1.1rem; font-weight:900; margin-bottom:14px; }
+  .live-timer{
+    text-align:center; font-size:1.7rem; font-weight:900; color:var(--accent);
+    font-variant-numeric:tabular-nums; margin-bottom:12px; letter-spacing:.02em;
+    text-shadow:0 0 14px rgba(224,167,46,.4);
+  }
 
   .seal-stage-wrap{ position:relative; width:100%; max-width:260px; margin:0 auto 14px; }
   .seal-stage-wrap svg{ width:100%; display:block; }
@@ -137,6 +142,11 @@
     border-radius:18px; padding:18px 14px;
   }
   .grade-headline{ font-size:1.1rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
+  .grade-price{
+    display:inline-block; background:rgba(255,255,255,.1); color:var(--ink);
+    font-size:.85rem; font-weight:bold; padding:4px 14px; border-radius:999px;
+    margin-bottom:12px; border:1px solid rgba(255,255,255,.22);
+  }
   .note-link-btn{
     display:block; background:#41c9b4; color:#fff; font-size:1.15rem; font-weight:900;
     text-decoration:none; text-align:center; padding:16px 14px; border-radius:14px;
@@ -259,6 +269,7 @@
     <div class="stage-name" id="stageName">鎖</div>
 
     <div id="gameArea">
+      <div class="live-timer" id="liveTimer">0.0秒</div>
       <div class="seal-stage-wrap" id="sealWrap">
         <svg class="arch-bg" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 285 L20 95 Q20 20 120 20 Q220 20 220 95 L220 285 Z" fill="#3a3040" stroke="#191420" stroke-width="6"/>
@@ -314,6 +325,7 @@
     <div class="grade-zone">
       <div class="grade-cta" id="gradeForm">
         <div class="grade-headline">損しかない課金はこちら💁</div>
+        <div class="grade-price">🪙 ワンコイン500円</div>
         <!-- note記事公開後、正しいURLに差し替える -->
         <a href="#" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
         <div class="grade-teaser">課金しても、宝箱から出るレア度の確率は1ミリも変わりません。変わるのは破壊演出が派手になるだけ。それでも課金しますか？</div>
@@ -573,6 +585,7 @@
   const tierItemText = document.getElementById('tierItemText');
   const timeNumber = document.getElementById('timeNumber');
   const timePraise = document.getElementById('timePraise');
+  const liveTimer = document.getElementById('liveTimer');
   const resultPanel = document.getElementById('resultPanel');
   const resultStat = document.getElementById('resultStat');
   const flashOverlay = document.getElementById('flashOverlay');
@@ -584,6 +597,16 @@
   let totalTaps = 0;
   let startTime = Date.now();
   let lastTier = null;
+  let liveTimerHandle = null;
+
+  // ==== スタートした瞬間からはっきり見える、プレイ中のライブタイマー ====
+  function startLiveTimer(){
+    clearInterval(liveTimerHandle);
+    liveTimer.textContent = '0.0秒';
+    liveTimerHandle = setInterval(function(){
+      liveTimer.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + '秒';
+    }, 100);
+  }
 
   function refreshDots(){
     for(let i=0;i<stageDots.length;i++){
@@ -768,6 +791,7 @@
 
   // ==== 宝箱の開封演出：レア度の抽選確率は課金の有無に関わらず一切変わらない ====
   function revealChest(){
+    clearInterval(liveTimerHandle);
     gameArea.classList.add('hidden');
     const elapsedSec = (Date.now() - startTime) / 1000;
     timeNumber.textContent = '0.0';
@@ -816,6 +840,7 @@
     resultPanel.classList.add('hidden');
     gameArea.classList.remove('hidden');
     renderStage();
+    startLiveTimer();
   });
 
   document.getElementById('bragBtn').addEventListener('click', function(){
@@ -853,6 +878,7 @@
 
   renderStage();
   renderCollection();
+  startLiveTimer();
 })();
 </script>
 </body>
