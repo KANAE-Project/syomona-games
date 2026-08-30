@@ -42,21 +42,31 @@
     margin:8px 0;
   }
   .back-link:hover{ text-decoration:underline; }
+  .top-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+    margin:8px 0 4px;
+  }
+  .top-bar .back-link{ margin:0; }
   .lead{ text-align:center; color:var(--sub2); font-size:15px; margin:8px 0 18px; }
 
   .screen{ }
 
   .sound-badge{
-    display:inline-block;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
     background:#fff3e0;
     border:2px solid var(--gold);
     color:#8a5a12;
     font-weight:bold;
-    font-size:14px;
-    padding:8px 14px;
+    font-size:12px;
+    padding:5px 10px;
     border-radius:999px;
-    margin:8px auto 18px;
-    text-align:center;
+    white-space:nowrap;
   }
   .center{ text-align:center; }
   .unlock-badge{
@@ -311,14 +321,14 @@
 <body>
 <div class="wrap">
 
-  <a class="back-link" href="../../">← ゲーム一覧に戻る</a>
+  <div class="top-bar">
+    <a class="back-link" href="../../">← ゲーム一覧に戻る</a>
+    <div class="sound-badge">🔊 このゲームは音が出ます</div>
+  </div>
 
   <!-- スタート画面 -->
   <div id="startScreen" class="screen">
     <p class="lead">30秒で、お弁当箱におかずを何個詰められるか！<br>タップして選んで、回転させて、詰めよう。</p>
-    <div class="center">
-      <div class="sound-badge">🔊 このゲームは音が出ます</div>
-    </div>
     <div class="center">
       <div id="unlockBadgeStart" class="unlock-badge" hidden>🔓 豪華おかず解放中</div>
     </div>
@@ -722,8 +732,17 @@
     }, 400);
   }
 
+  function randomPatternIndex(excludeIndex){
+    if(BOX_PATTERNS.length <= 1) return 0;
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * BOX_PATTERNS.length);
+    } while(idx === excludeIndex);
+    return idx;
+  }
+
   function advanceBoxPattern(){
-    patternIndex = (patternIndex + 1) % BOX_PATTERNS.length;
+    patternIndex = randomPatternIndex(patternIndex); // 次の箱はランダム(直前と同じ箱は避ける)
     initBoxState();
     for(const k in boxFillMeta) delete boxFillMeta[k];
   }
@@ -750,7 +769,7 @@
     getCtx(); // ユーザー操作内でAudioContextを起こしておく
     packedCount = 0;
     timeLeft = GAME_SECONDS;
-    patternIndex = 0;
+    patternIndex = Math.floor(Math.random() * BOX_PATTERNS.length);
     gameActive = true;
     busy = false;
     pendingEnd = false;
