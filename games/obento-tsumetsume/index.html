@@ -418,9 +418,9 @@
     { id:"deluxe", name:"全部乗せ特盛りデラックス弁当", emoji:"👑", color:"#caa43d", cells:[[0,1],[0,2],[1,0],[1,1]], premium:true },
   ];
 
-  const POSITIVE_LIGHT = ["おいしそう！","いいにおい！","上手上手！","ナイス配置！","その調子！","いいねー","それ、かわいい","すんごくかわいい","ぴったりだね","ばっちりだよ"];
-  const POSITIVE_COMPLETE = ["おいしかったよ！","ごちそうさまっ！","全部ぺろりだよ！"];
-  const NEGATIVE_LINES = ["おかずが寄っちゃったよー","汁でベショベショだよー","あれ、入らないよー","ぎゅうぎゅうで無理みたい…"];
+  const POSITIVE_LIGHT = ["おいしそう！","いいにおい！","上手上手！","ナイス配置！","その調子！","いいねー","それ、かわいい","すんごくかわいい","ぴったりだね","ばっちりだよ","いいよいいよ！","そこしかないよね！"];
+  const NEGATIVE_LINES = ["おかずが寄っちゃうよ","汁でベショベショだよー","あれ、入らないよー","ぎゅうぎゅうで無理みたい…","そこはキッチキチ"];
+  const CHANGE_LINES = ["入らないから箱を変えましょうね","この箱はもういっぱいですね","違う箱にも詰めてあげて"];
 
   // ===== 状態 =====
   let boxState = [];
@@ -681,10 +681,9 @@
     if(full){
       packedCount += 10; // ぴったり収まったボーナス
       updateHUD();
-      const line1 = pick(POSITIVE_COMPLETE);
-      const line2 = "わー！ぴったり！ボーナス10ポイントです";
-      speak(line1 + line2);
-      showBubble(line1 + " " + line2, 2200);
+      const line = "わー！ぴったり！ボーナス10ポイントです";
+      speak(line);
+      showBubble(line, 2200);
       playCompleteFanfare();
       busy = true;
       renderBox();
@@ -731,7 +730,7 @@
 
   function onSkipBox(){
     if(!gameActive || busy) return;
-    const line = "気分を変えて、次のお弁当箱にしてみるね";
+    const line = pick(CHANGE_LINES);
     speak(line);
     showBubble(line);
     beep(520,0.12,"sine",0.15,0);
@@ -782,10 +781,21 @@
   }
 
   function endingLine(count){
-    if(count >= 15) return "ごちそうさまでした。おなかパンッ！パンッ！プロですね！";
-    if(count >= 10) return "ごちそうさまでした。おなか一杯、しあわせいっぱい。";
+    if(count >= 20) return "スペシャル！！満腹フルコースでした！！";
+    if(count >= 10) return pick([
+      "ごちそうさまでした。おなか一杯、しあわせいっぱい。",
+      "ごちそうさまでした。お弁当の天才！",
+      "ごちそうさまでした。栄養バランスばっちり！",
+      "食べ過ぎて、眠くなってきちゃった・・",
+      "ごちそうさまでした。午後もがんばれます！"
+    ]);
     if(count <= 5) return pick(["ごちそうさまでした。お弁当寄ってた。わら","ごちそうさまでした。汁でベショベショ。わら"]);
-    return "ごちそうさまでした！美味しかったです";
+    return pick([
+      "ごちそうさまでした！美味しかったです",
+      "ごちそうさまでした。全部食べたよ！",
+      "ごちそうさまでした。元気でたよ！",
+      "ごちそうさまでした。残さずペロリ！"
+    ]);
   }
 
   function endGame(){
