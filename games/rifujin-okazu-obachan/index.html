@@ -70,6 +70,18 @@
     margin-bottom:14px;
     font-size:.95rem;
   }
+  .sound-notice{
+    display:block;
+    text-align:center;
+    font-size:1rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent);
+    padding:8px 20px;
+    border-radius:999px;
+    margin:0 auto 14px;
+    max-width:280px;
+  }
   .bubble{
     position:relative;
     background:var(--bubble);
@@ -457,6 +469,7 @@
       <circle cx="146" cy="92" r="4" fill="#e8b923" stroke="#3a2a1a" stroke-width="1.5"/>
     </svg>
     <div class="name-tag">献立おばちゃん</div>
+    <div class="sound-notice">🔊 このゲームは音が出ます</div>
 
     <div id="bubble-ask" class="bubble show">
       昨日のおかず、何やったんや？正直に言いや。
@@ -541,7 +554,7 @@
 (function(){
   // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
   const PASSWORD = "オバチャン500";
-  // ==== 全ゲーム共通「ブルジョワ全解放パス」の合言葉（全ゲーム共通、変更時は6本すべてに反映すること） ====
+  // ==== 全ゲーム共通「ブルジョワ全開放」の合言葉（全ゲーム共通、変更時は6本すべてに反映すること） ====
   const MASTER_PASSWORD = "沼へようこそ";
   const STORAGE_KEY = "rifujin_okazu_unlocked";
 
@@ -597,6 +610,24 @@
 
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
+  // ==== おばちゃんの声（Web Speech API、ブラウザ標準のTTSを利用） ====
+  // セリフが0.5〜0.7秒間隔でテンポよく切り替わる演出のため、
+  // ここでは cancel() せずに speak() だけ呼ぶ（ブラウザ側のキューで自然に一言ずつ再生される）。
+  // 新しいラウンドが始まる時（もう一回聞かれる／再送信）だけ、別途キューをクリアする。
+  function speak(text){
+    try{
+      if(!("speechSynthesis" in window)) return;
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ja-JP";
+      u.rate = 1.0;
+      u.pitch = 0.7;
+      window.speechSynthesis.speak(u);
+    }catch(e){ /* 非対応環境は無視 */ }
+  }
+  function stopSpeaking(){
+    try{ if("speechSynthesis" in window){ window.speechSynthesis.cancel(); } }catch(e){}
+  }
+
   function fmt(tpl, yesterday){
     return tpl.replace("{yesterday}", yesterday);
   }
@@ -613,11 +644,12 @@
   const bubbleGentle = document.getElementById("bubble-gentle");
   const retryBtn = document.getElementById("retryBtn");
 
-  function showBubble(el, html, delay, shake){
+  function showBubble(el, html, delay, shake, speakText){
     setTimeout(function(){
       el.innerHTML = html;
       el.classList.add("show");
       if(shake){ el.classList.add("shake"); }
+      if(speakText){ speak(speakText); }
     }, delay);
   }
 
@@ -633,6 +665,7 @@
     const yesterday = document.getElementById("yesterdayInput").value.trim();
     if(!yesterday) return;
 
+    stopSpeaking(); // 前回分の声が残っていたら止めてから新しいラウンドを始める
     resetBubbles();
     resultZone.classList.remove("hidden");
     askBtn.disabled = true; // 考え中は連打で演出が崩れないようにボタンを止めておく
@@ -661,19 +694,26 @@
       : "";
 
     // すぐに答えを出さず、「考え中」→「反応」→「せや！これにしよ！」の3段階を挟んでから発表する
-    const THINK_SHOW = 150;
-    const REACT_SHOW = THINK_SHOW + 3000;
-    const DECIDE_SHOW = REACT_SHOW + 700;
-    const MENU_SHOW = DECIDE_SHOW + 500;
-    const KCAL_SHOW = MENU_SHOW + 600;
-    const GENTLE_SHOW = KCAL_SHOW + 550;
+    const THINK_SHOW = 300;
+    const REACT_SHOW = THINK_SHOW + 3200;
+    const DECIDE_SHOW = REACT_SHOW + 2200;
+    const MENU_SHOW = DECIDE_SHOW + 2000;
+    const KCAL_SHOW = MENU_SHOW + 2800;
+    const GENTLE_SHOW = KCAL_SHOW + 2600;
 
-    showBubble(bubbleReact, pick(thinkingLines), THINK_SHOW, false);
-    showBubble(bubbleReact, fmt(pick(reactLines), yesterday), REACT_SHOW, false);
-    showBubble(bubbleReact, pick(decisionLines), DECIDE_SHOW, true);
-    showBubble(bubbleMenu, menuVisual + "<div class='menu-line'>今日は…" + todayEmoji + " " + todayFood + " や！</div>", MENU_SHOW, true);
-    showBubble(kcalZone, "<div class='kcal'>推定 " + kcal + " kcal<small>(嘘。もちろん嘘やで)</small></div>", KCAL_SHOW, true);
-    showBubble(bubbleGentle, "<span class='gentle'>" + pick(gentleLines) + "</span>", GENTLE_SHOW, false);
+    const thinkingLine = pick(thinkingLines);
+    const reactLine = fmt(pick(reactLines), yesterday);
+    const decisionLine = pick(decisionLines);
+    const menuLine = "今日は…" + todayEmoji + " " + todayFood + " や！";
+    const kcalSpeakLine = "推定 " + kcal + " キロカロリー。もちろん嘘やで";
+    const gentleLine = pick(gentleLines);
+
+    showBubble(bubbleReact, thinkingLine, THINK_SHOW, false, thinkingLine);
+    showBubble(bubbleReact, reactLine, REACT_SHOW, false, reactLine);
+    showBubble(bubbleReact, decisionLine, DECIDE_SHOW, true, decisionLine);
+    showBubble(bubbleMenu, menuVisual + "<div class='menu-line'>" + menuLine + "</div>", MENU_SHOW, true, menuLine);
+    showBubble(kcalZone, "<div class='kcal'>推定 " + kcal + " kcal<small>(嘘。もちろん嘘やで)</small></div>", KCAL_SHOW, true, kcalSpeakLine);
+    showBubble(bubbleGentle, "<span class='gentle'>" + gentleLine + "</span>", GENTLE_SHOW, false, gentleLine);
 
     setTimeout(function(){ askBtn.disabled = false; }, GENTLE_SHOW + 100);
 
@@ -681,6 +721,7 @@
   });
 
   retryBtn.addEventListener("click", function(){
+    stopSpeaking();
     resultZone.classList.add("hidden");
     resetBubbles();
     askBtn.disabled = false; // 演出の途中でももう一回押せるようにしておく
