@@ -123,6 +123,21 @@
     box-shadow:inset 0 0 40px rgba(0,229,255,.08);
   }
   #gameCanvas{ display:block; width:100%; height:100%; touch-action:none; }
+  .flash-overlay{
+    position:absolute; inset:0; background:#fff; opacity:0;
+    pointer-events:none; z-index:5;
+  }
+  .canvas-wrap.shake-burst{ animation:bombShake .4s ease; }
+  @keyframes bombShake{
+    0%,100%{ transform:translate(0,0); }
+    15%{ transform:translate(-10px,6px); }
+    30%{ transform:translate(9px,-7px); }
+    45%{ transform:translate(-8px,5px); }
+    60%{ transform:translate(7px,-5px); }
+    75%{ transform:translate(-4px,3px); }
+    90%{ transform:translate(3px,-2px); }
+  }
+  @media (prefers-reduced-motion: reduce){ .canvas-wrap.shake-burst{ animation:none; } }
 
   .overlay-panel{
     position:absolute; inset:0; display:flex; flex-direction:column;
@@ -210,8 +225,9 @@
         <span class="pixel" id="hudLoop">LOOP 1</span>
       </div>
       <div class="boss-hp-wrap"><div class="boss-hp-fill" id="bossHpFill"></div></div>
-      <div class="canvas-wrap">
+      <div class="canvas-wrap" id="canvasWrap">
         <canvas id="gameCanvas"></canvas>
+        <div class="flash-overlay" id="flashOverlay"></div>
         <div id="clearPanel" class="overlay-panel hidden">
           <div class="pixel-big pixel" id="clearTitle">STAGE CLEAR!</div>
           <div class="overlay-sub" id="clearSub"></div>
@@ -404,6 +420,8 @@
   const bombRow = document.getElementById('bombRow');
   const bombBtn = document.getElementById('bombBtn');
   const bombCountEl = document.getElementById('bombCount');
+  const canvasWrapEl = document.getElementById('canvasWrap');
+  const flashOverlay = document.getElementById('flashOverlay');
 
   // ==== キャンバスの論理サイズ（CSSピクセル基準、devicePixelRatioで実解像度に変換） ====
   let W = 380, H = 580;
@@ -522,7 +540,10 @@
   }
 
   // ==== パーティクル（爆発演出） ====
+  // 被弾時（BURST_COLORS）と区別するため、ボムは赤系を使わないゴールド/白系の配色にする
   const BURST_COLORS = ['#ffd93d','#ff6b6b','#4d96ff','#00e5ff','#ff2e6d','#ffffff'];
+  const BOMB_COLORS = ['#ffce3d','#ff8a3d','#fff6c8','#ffffff'];
+  let bombShockwave = null; // { x, y, startAt, duration, maxR }
   function spawnBurst(cx, cy, count, colors, power){
     for(let i=0;i<count;i++){
       const a = Math.random()*Math.PI*2;
@@ -534,6 +555,24 @@
         color: colors[Math.floor(Math.random()*colors.length)]
       });
     }
+  }
+
+  // ==== ボムの大演出（画面フラッシュ・シェイク・衝撃波リング） ====
+  function flash(intensity, holdMs, fadeMs){
+    flashOverlay.style.transition = 'opacity .05s ease';
+    flashOverlay.style.opacity = intensity;
+    setTimeout(function(){
+      flashOverlay.style.transition = 'opacity ' + (fadeMs/1000) + 's ease';
+      flashOverlay.style.opacity = '0';
+    }, holdMs);
+  }
+  function triggerCanvasShake(){
+    canvasWrapEl.classList.remove('shake-burst');
+    void canvasWrapEl.offsetWidth;
+    canvasWrapEl.classList.add('shake-burst');
+  }
+  function triggerBombShockwave(x, y){
+    bombShockwave = { x:x, y:y, startAt:performance.now(), duration:550, maxR:Math.max(W,H)*0.95 };
   }
 
   // ==== 入力：ドラッグ操作 ====
@@ -716,18 +755,34 @@
   }
 
   // ==== ボム：画面の弾を全部消し飛ばし、ボスにもまとまったダメージを与える ====
+  // 自機の真上に爆発を重ねると「被弾して自爆した」ように見えてしまうため、
+  // 爆発は自機からのショックウェア(リング)＋画面全体に散らばる複数の爆発、という見せ方にする
   function useBomb(){
     if(phase !== 'playing' || !unlocked || bombCount <= 0) return;
     bombCount -= 1;
     bossBullets = [];
-    spawnBurst(player.x, player.y, 90, ['#ff8a3d','#ffce3d','#ffffff'], 320);
     invincibleUntil = performance.now() + 1200;
     sfxBomb();
     vibrate([40,30,90,20,90]);
+    flash(0.85, 160, 550);
+    triggerCanvasShake();
+    triggerBombShockwave(player.x, player.y);
+
+    // 画面全体に散らばる大爆発（自機の真上には固めない）
+    const spots = [
+      { x:W*0.18, y:H*0.32 }, { x:W*0.82, y:H*0.28 },
+      { x:W*0.30, y:H*0.55 }, { x:W*0.70, y:H*0.58 },
+      { x:W*0.50, y:H*0.18 }, { x:W*0.15, y:H*0.68 },
+      { x:W*0.85, y:H*0.66 }
+    ];
+    spots.forEach(function(p){
+      spawnBurst(p.x, p.y, 34, BOMB_COLORS, 280);
+    });
+
     if(boss.alive){
       boss.hp -= 6;
       score += 60;
-      spawnBurst(boss.x+boss.w/2, boss.y+boss.h/2, 40, ['#ff8a3d','#ffffff'], 200);
+      spawnBurst(boss.x+boss.w/2, boss.y+boss.h/2, 60, BOMB_COLORS, 260);
       if(boss.hp <= 0){
         onBossDefeated();
       }
@@ -862,6 +917,27 @@
       ctx.fillRect(p.x-p.size/2, p.y-p.size/2, p.size, p.size);
     });
     ctx.globalAlpha = 1;
+
+    // ボムの衝撃波リング（自機から画面全体へ広がる）
+    if(bombShockwave){
+      const t = (performance.now() - bombShockwave.startAt) / bombShockwave.duration;
+      if(t >= 1){
+        bombShockwave = null;
+      } else {
+        const eased = 1 - Math.pow(1 - t, 2);
+        const r = bombShockwave.maxR * eased;
+        ctx.strokeStyle = 'rgba(255,206,61,' + (0.85 * (1 - t)) + ')';
+        ctx.lineWidth = 7 * (1 - t * 0.6);
+        ctx.beginPath();
+        ctx.arc(bombShockwave.x, bombShockwave.y, r, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.5 * (1 - t)) + ')';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(bombShockwave.x, bombShockwave.y, r * 0.9, 0, Math.PI*2);
+        ctx.stroke();
+      }
+    }
   }
   function roundRect(x,y,w,h,r){
     ctx.beginPath();
