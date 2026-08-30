@@ -609,11 +609,14 @@
   }
 
   function applyPreview(){
-    if(!anchorCell || !currentShape) return;
+    if(!anchorCell || !currentShape){
+      placeBtn.disabled = true;
+      return;
+    }
     const p = pattern();
     const cells = absoluteCells(currentShape.cells, anchorCell);
     const valid = isValidPlacement(cells);
-    placeBtn.disabled = !valid;
+    placeBtn.disabled = false; // 赤(置けない)状態でも押せるようにし、押したら失敗セリフを鳴らす
     const kids = boxGridEl.children;
     cells.forEach(([r,c])=>{
       if(r<0||r>=p.rows||c<0||c>=p.cols) return;
