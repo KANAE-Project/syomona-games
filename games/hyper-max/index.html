@@ -91,7 +91,25 @@
   }
   .hud .pixel{ font-size:.7rem; color:var(--accent); }
   .hud-lives{ font-size:.85rem; letter-spacing:2px; }
-  .hud-shield{ font-size:.85rem; }
+  .hud-shield{
+    font-size:.68rem; font-weight:900; letter-spacing:.02em;
+    border:1px solid rgba(255,255,255,.25); border-radius:999px;
+    padding:4px 10px; background:rgba(255,255,255,.06); color:var(--ink-dim);
+  }
+  .hud-shield.shield-ready{ background:var(--accent); color:#00232a; border-color:var(--accent); }
+  .hud-shield.shield-off{ opacity:.45; }
+  .bomb-row{ margin-top:8px; }
+  #bombBtn{
+    width:100%; font-size:1rem; font-weight:900; padding:14px 14px;
+    background:linear-gradient(160deg,#ff5b1f,#c0392b); color:#fff;
+    box-shadow:0 4px 0 #7a231a;
+  }
+  #bombBtn:active{ transform:translateY(2px) scale(.98); box-shadow:0 2px 0 #7a231a; }
+  #bombBtn:disabled{ opacity:.35; cursor:not-allowed; }
+  .sound-notice{
+    display:inline-block; font-size:.85rem; font-weight:900; color:#00232a;
+    background:var(--accent); padding:6px 16px; border-radius:999px; margin-bottom:12px;
+  }
   .boss-hp-wrap{
     background:rgba(0,0,0,.4); border-radius:999px; height:10px; overflow:hidden;
     margin-bottom:8px; border:1px solid rgba(255,255,255,.15);
@@ -172,12 +190,14 @@
   <div class="stage">
 
     <div id="startPanel" class="start-panel">
+      <div class="sound-notice">🔊 このゲームは音が出ます</div>
       <div class="start-desc">
         ・指でドラッグ（PCは矢印キー）で自機を操作<br>
         ・弾はほったらかしで自動発射、あなたは避けるだけ<br>
         ・当たっても即ゲームオーバーじゃない、ほとんど死なない設計<br>
         ・でっかいボスを倒すとステージクリア！<br>
-        ・全部倒すと次の周へ、どこまでも強くなって挑み続けよう
+        ・全部倒すと次の周へ、どこまでも強くなって挑み続けよう<br>
+        ・課金するとバリヤー（ON/OFF切替可）とボム10発が使えるように
       </div>
       <button type="button" id="startBtn">▶ スタート</button>
     </div>
@@ -185,7 +205,7 @@
     <div id="gameWrap" class="hidden">
       <div class="hud">
         <span class="pixel" id="hudScore">SCORE 0</span>
-        <span class="hud-shield" id="hudShield"></span>
+        <button type="button" class="hud-shield hidden" id="hudShield"></button>
         <span class="hud-lives" id="hudLives">❤❤❤</span>
         <span class="pixel" id="hudLoop">LOOP 1</span>
       </div>
@@ -197,6 +217,9 @@
           <div class="overlay-sub" id="clearSub"></div>
           <div class="overlay-hint">タップで次の周へ</div>
         </div>
+      </div>
+      <div id="bombRow" class="bomb-row hidden">
+        <button type="button" id="bombBtn">💣 ボム <span id="bombCount">×10</span></button>
       </div>
     </div>
 
@@ -214,7 +237,7 @@
         <div class="grade-headline">損しかない課金はこちら💁</div>
         <div class="grade-price">🪙 ワンコイン500円</div>
         <a href="#" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
-        <div class="grade-teaser">課金すると、被弾を1回だけ帳消しにしてくれる超強力なバリヤーが使えるように（一定時間で再チャージ）。でも弾の数もボスの強さも1ミリも変わりません。</div>
+        <div class="grade-teaser">課金すると、被弾を1回だけ帳消しにしてくれる超強力なバリヤー（ON/OFF切替可・一定時間で再チャージ）と、画面の弾を全部吹き飛ばせるボムが10発使えるように。でも弾の数もボスの強さも1ミリも変わりません。</div>
         <div class="grade-warn">本当にお金をドブに捨てる気ですか？</div>
         <div class="grade-form">
           <input type="text" id="passwordInput" placeholder="合言葉">
@@ -223,7 +246,7 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">🛡️ バリヤー解放済み</span>
+        <span class="unlocked-badge">🛡️💣 バリヤー＆ボム 解放済み</span>
       </div>
     </div>
 
@@ -249,6 +272,117 @@
   function safeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
   function vibrate(pattern){ try { if(navigator.vibrate) navigator.vibrate(pattern); } catch(e){} }
 
+  // ==== 効果音（外部ファイル不要、Web Audio APIでその場合成） ====
+  let audioCtx = null;
+  let noiseBufferCache = null;
+  function getAudioCtx(){
+    try {
+      if(!audioCtx){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return null;
+        audioCtx = new AC();
+      }
+      if(audioCtx.state === 'suspended'){
+        audioCtx.resume().catch(function(){});
+      }
+      return audioCtx;
+    } catch(e){ return null; }
+  }
+  function getNoiseBuffer(ctx){
+    if(!noiseBufferCache){
+      const size = ctx.sampleRate * 1.5;
+      const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for(let i=0;i<size;i++){ data[i] = Math.random()*2-1; }
+      noiseBufferCache = buffer;
+    }
+    return noiseBufferCache;
+  }
+  function beep(freq, duration, delay, type, vol){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'square';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + (delay || 0);
+      gain.gain.setValueAtTime(vol != null ? vol : 0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + duration + 0.02);
+    } catch(e){}
+  }
+  function sweep(startFreq, endFreq, duration, delay, type, vol){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      const t = ctx.currentTime + (delay || 0);
+      osc.frequency.setValueAtTime(startFreq, t);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(endFreq,1), t + duration);
+      gain.gain.setValueAtTime(vol != null ? vol : 0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + duration + 0.02);
+    } catch(e){}
+  }
+  function noiseBurstSfx(duration, filterType, freq, q, vol, delay){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = getNoiseBuffer(ctx);
+      const filter = ctx.createBiquadFilter();
+      filter.type = filterType || 'lowpass';
+      filter.frequency.value = freq || 1000;
+      filter.Q.value = q != null ? q : 1;
+      const gain = ctx.createGain();
+      const t = ctx.currentTime + (delay || 0);
+      gain.gain.setValueAtTime(vol != null ? vol : 0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+      src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+      src.start(t); src.stop(t + duration + 0.05);
+    } catch(e){}
+  }
+
+  function sfxShot(){ beep(620, 0.05, 0, 'square', 0.035); } // 自動発射のごく小さい発射音
+  function sfxBossHit(){ beep(900, 0.03, 0, 'square', 0.03); } // ボスへの着弾
+  function sfxPlayerHit(){ // 被弾（ライフ減少）の爆発音
+    noiseBurstSfx(0.35, 'lowpass', 700, 1, 0.3, 0);
+    sweep(220, 50, 0.32, 0, 'sawtooth', 0.22);
+  }
+  function sfxShieldBlock(){ // バリヤーで防いだ時の涼しい音
+    beep(1046, 0.1, 0, 'sine', 0.16);
+    beep(1568, 0.14, 0.05, 'sine', 0.14);
+  }
+  function sfxBomb(){ // ボム使用時の大爆発音
+    noiseBurstSfx(0.4, 'lowpass', 500, 1, 0.4, 0);
+    sweep(160, 35, 0.4, 0, 'sine', 0.35);
+    beep(150, 0.2, 0, 'sawtooth', 0.2);
+  }
+  function sfxBossDefeat(){ // ボス撃破のファンファーレ
+    beep(523, 0.12, 0, 'square', 0.14);
+    beep(659, 0.12, 0.1, 'square', 0.14);
+    beep(784, 0.12, 0.2, 'square', 0.14);
+    beep(1046, 0.3, 0.32, 'square', 0.16);
+  }
+  function sfxCongrats(){ // 周回クリア発表のファンファーレ
+    beep(659, 0.14, 0, 'triangle', 0.16);
+    beep(784, 0.14, 0.12, 'triangle', 0.16);
+    beep(988, 0.14, 0.24, 'triangle', 0.16);
+    beep(1318, 0.4, 0.38, 'triangle', 0.18);
+  }
+  function sfxGameOver(){ // ゲームオーバーの下降音
+    sweep(400, 90, 0.7, 0, 'sawtooth', 0.2);
+  }
+  function sfxUnlock(){ // 合言葉解放の成功音
+    beep(784, 0.1, 0, 'sine', 0.15);
+    beep(1046, 0.16, 0.1, 'sine', 0.16);
+  }
+
   let unlocked = safeGet(STORAGE_KEY) === '1';
 
   // ==== DOM参照 ====
@@ -267,6 +401,9 @@
   const clearSub = document.getElementById('clearSub');
   const resultPanel = document.getElementById('resultPanel');
   const resultStat = document.getElementById('resultStat');
+  const bombRow = document.getElementById('bombRow');
+  const bombBtn = document.getElementById('bombBtn');
+  const bombCountEl = document.getElementById('bombCount');
 
   // ==== キャンバスの論理サイズ（CSSピクセル基準、devicePixelRatioで実解像度に変換） ====
   let W = 380, H = 580;
@@ -296,7 +433,10 @@
   let invincibleUntil = 0;
   let shieldCharge = 0;
   let shieldReadyAt = 0;
+  let shieldEnabled = true;
   const SHIELD_COOLDOWN = 9000;
+  let bombCount = 0;
+  const BOMB_MAX = 10;
 
   let lastFireAt = 0;
   const FIRE_INTERVAL = 220;
@@ -478,6 +618,7 @@
       if(now - lastFireAt > FIRE_INTERVAL){
         lastFireAt = now;
         playerBullets.push({ x:player.x, y:player.y-14, vy:-560 });
+        sfxShot();
       }
 
       // ボス弾幕パターン
@@ -498,6 +639,7 @@
         boss.hp -= 1;
         score += 10;
         spawnBurst(b.x, b.y, 5, ['#ffffff','#00e5ff'], 60);
+        sfxBossHit();
         if(boss.hp <= 0 && boss.alive){
           onBossDefeated();
         }
@@ -542,17 +684,19 @@
   }
 
   function onPlayerHit(){
-    if(unlocked && shieldCharge > 0){
+    if(unlocked && shieldEnabled && shieldCharge > 0){
       shieldCharge = 0;
       shieldReadyAt = performance.now() + SHIELD_COOLDOWN;
       invincibleUntil = performance.now() + 900;
       spawnBurst(player.x, player.y, 40, ['#00e5ff','#ffffff'], 160);
+      sfxShieldBlock();
       vibrate([15,20,15]);
       return;
     }
     lives -= 1;
     invincibleUntil = performance.now() + 1400;
     spawnBurst(player.x, player.y, 70, BURST_COLORS, 220);
+    sfxPlayerHit();
     vibrate([30,20,60,20,60]);
     if(lives <= 0){
       lives = 0;
@@ -566,9 +710,31 @@
     score += 1000;
     spawnBurst(boss.x+boss.w/2, boss.y+boss.h/2, 170, BURST_COLORS, 260);
     bossBullets = [];
+    sfxBossDefeat();
     vibrate([20,40,20,40,60]);
     triggerStageClear();
   }
+
+  // ==== ボム：画面の弾を全部消し飛ばし、ボスにもまとまったダメージを与える ====
+  function useBomb(){
+    if(phase !== 'playing' || !unlocked || bombCount <= 0) return;
+    bombCount -= 1;
+    bossBullets = [];
+    spawnBurst(player.x, player.y, 90, ['#ff8a3d','#ffce3d','#ffffff'], 320);
+    invincibleUntil = performance.now() + 1200;
+    sfxBomb();
+    vibrate([40,30,90,20,90]);
+    if(boss.alive){
+      boss.hp -= 6;
+      score += 60;
+      spawnBurst(boss.x+boss.w/2, boss.y+boss.h/2, 40, ['#ff8a3d','#ffffff'], 200);
+      if(boss.hp <= 0){
+        onBossDefeated();
+      }
+    }
+    updateHud();
+  }
+  bombBtn.addEventListener('click', useBomb);
 
   function triggerStageClear(){
     phase = 'clearing';
@@ -578,6 +744,7 @@
     setTimeout(function(){
       clearTitle.textContent = 'Congratulations!!';
       clearSub.textContent = loop + '周クリアおめでとう！' + (loop+1) + '周目へGO!';
+      sfxCongrats();
     }, 1000);
     clearPanel.onclick = nextLoop;
     clearPanel._timer = setTimeout(nextLoop, 3200);
@@ -598,6 +765,7 @@
 
   function triggerGameOver(){
     phase = 'gameover';
+    sfxGameOver();
     setTimeout(function(){
       gameWrap.classList.add('hidden');
       resultStat.textContent = 'スコア ' + score + ' ／ ' + loop + '周目で力尽きた';
@@ -677,7 +845,7 @@
         ctx.fillRect(-4, 10, 3, flick);
         ctx.fillRect(1, 10, 3, flick);
         ctx.restore();
-        if(unlocked && shieldCharge > 0){
+        if(unlocked && shieldEnabled && shieldCharge > 0){
           ctx.strokeStyle = 'rgba(0,229,255,.7)';
           ctx.lineWidth = 2;
           ctx.beginPath();
@@ -710,15 +878,27 @@
     hudScore.textContent = 'SCORE ' + score;
     hudLoop.textContent = 'LOOP ' + loop;
     hudLives.textContent = '❤'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3-lives));
+    hudShield.classList.toggle('hidden', !unlocked);
     if(unlocked){
-      hudShield.textContent = shieldCharge > 0 ? '🛡️READY' : '🛡️...';
-    } else {
-      hudShield.textContent = '';
+      hudShield.textContent = !shieldEnabled ? '🛡️OFF' : (shieldCharge > 0 ? '🛡️ON' : '🛡️…');
+      hudShield.classList.toggle('shield-ready', shieldEnabled && shieldCharge > 0);
+      hudShield.classList.toggle('shield-off', !shieldEnabled);
+    }
+    bombRow.classList.toggle('hidden', !unlocked);
+    if(unlocked){
+      bombCountEl.textContent = '×' + bombCount;
+      bombBtn.disabled = bombCount <= 0 || phase !== 'playing';
     }
     if(boss.alive){
       bossHpFill.style.width = Math.max(0, (boss.hp/boss.maxHp*100)) + '%';
     }
   }
+
+  hudShield.addEventListener('click', function(){
+    if(!unlocked) return;
+    shieldEnabled = !shieldEnabled;
+    updateHud();
+  });
 
   // ==== スタート／リトライ ====
   function startRun(){
@@ -739,6 +919,8 @@
     particles = [];
     shieldCharge = unlocked ? 1 : 0;
     shieldReadyAt = 0;
+    shieldEnabled = true;
+    bombCount = unlocked ? BOMB_MAX : 0;
     invincibleUntil = performance.now() + 600;
     spawnBoss();
     phase = 'playing';
@@ -747,7 +929,10 @@
     requestAnimationFrame(loopFrame);
   }
 
-  startBtn.addEventListener('click', startRun);
+  startBtn.addEventListener('click', function(){
+    getAudioCtx(); // スタートのタップでAudioContextを起動（ブラウザの自動再生制限対策）
+    startRun();
+  });
   document.getElementById('retryBtn').addEventListener('click', startRun);
 
   document.getElementById('bragBtn').addEventListener('click', function(){
@@ -777,6 +962,7 @@
     if(val === PASSWORD){
       safeSet(STORAGE_KEY, '1');
       setUnlocked();
+      sfxUnlock();
     } else {
       gradeMsg.textContent = '違います、もう一度確認してください。';
     }
