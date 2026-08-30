@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ハイパーMAX</title>
 <meta property="og:title" content="ハイパーMAX">
-<meta property="og:description" content="よけるだけの弾幕シューティング。自動発射・自機はほとんど死なない・全5ステージ、当たれば画面いっぱいの派手な爆発！">
+<meta property="og:description" content="よけるだけの弾幕シューティング。自動発射・自機はほとんど死なない・全4ステージ、当たれば画面いっぱいの派手な爆発！">
 <meta property="og:image" content="https://kanae-project.github.io/syomona-games/games/hyper-max/og-image.png">
 <meta property="og:url" content="https://kanae-project.github.io/syomona-games/games/hyper-max/">
 <meta property="og:type" content="website">
@@ -210,8 +210,9 @@
         ・指でドラッグ（PCは矢印キー）で自機を操作<br>
         ・弾はほったらかしで自動発射、あなたは避けるだけ<br>
         ・当たっても即ゲームオーバーじゃない、ほとんど死なない設計<br>
-        ・でっかいボスを倒すとステージクリア！<br>
-        ・全部倒すと次の周へ、どこまでも強くなって挑み続けよう<br>
+        ・ボスを倒すとステージクリア、全4ステージ<br>
+        ・ステージごとに雰囲気もボスのタイプも変化（小さくて当てにくいボスも！）<br>
+        ・全4ステージ制覇すると次の周へ、どこまでも強くなって挑み続けよう<br>
         ・課金するとバリヤー（ON/OFF切替可）とボム10発が使えるように
       </div>
       <button type="button" id="startBtn">▶ スタート</button>
@@ -444,6 +445,15 @@
   let stars = [];
   const boss = { x:0, y:34, w:210, h:66, hp:40, maxHp:40, alive:false, baseX:0 };
 
+  // ==== ステージ構成：全4ステージ、それぞれ雰囲気とボスのタイプが異なる ====
+  const STAGES = [
+    { name:'第1波：漆黒の警戒線', bg1:'#05030f', bg2:'#140a30', star:'255,255,255', bossGrad:['#7a2bd6','#3d1266'], bossType:'normal' },
+    { name:'第2波：紅蓮の突撃',   bg1:'#1a0505', bg2:'#3a0f12', star:'255,214,190', bossGrad:['#ff5b2a','#8a1c10'], bossType:'normal' },
+    { name:'第3波：翠玉の遊撃',   bg1:'#031a12', bg2:'#0b3320', star:'190,255,220', bossGrad:['#22c07a','#0a4a30'], bossType:'small' },
+    { name:'第4波：黄金の最終防壁', bg1:'#160a02', bg2:'#3a2200', star:'255,224,150', bossGrad:['#ffce3d','#7a2bd6'], bossType:'normal', big:true }
+  ];
+  let stage = 1;
+
   let lives = 3;
   let score = 0;
   let loop = 1;
@@ -485,27 +495,58 @@
 
   // ==== ボス ====
   function spawnBoss(){
-    boss.w = Math.min(W-40, 190 + Math.min(8,loop-1)*9);
-    boss.h = 64;
+    const theme = STAGES[stage-1];
+    if(theme.bossType === 'small'){
+      // 3ステージ目：小さくて素早く、当てにくいタイプ
+      boss.w = Math.min(W-60, 74 + Math.min(6,loop-1)*4);
+      boss.h = 48;
+    } else if(theme.big){
+      // 4ステージ目：最終防衛ライン、ひときわ大きい
+      boss.w = Math.min(W-30, 230 + Math.min(8,loop-1)*10);
+      boss.h = 74;
+    } else {
+      boss.w = Math.min(W-40, 190 + Math.min(8,loop-1)*9);
+      boss.h = 64;
+    }
     boss.baseX = (W - boss.w)/2;
     boss.x = boss.baseX;
-    boss.y = 30;
-    boss.maxHp = 36 + (loop-1)*22;
+    boss.baseY = 30;
+    boss.y = boss.baseY;
+    boss.type = theme.bossType;
+    const hpBase = theme.bossType === 'small' ? 22 : (theme.big ? 52 : 36);
+    const hpGrowth = theme.bossType === 'small' ? 12 : (theme.big ? 28 : 22);
+    boss.maxHp = hpBase + (loop-1)*hpGrowth;
     boss.hp = boss.maxHp;
     boss.alive = true;
+    boss.nextDartAt = 0;
+    boss.dartTargetX = boss.baseX;
     const now = performance.now();
     lastRadialAt = now + 500;
     lastAimAt = now + 1100;
     lastWaveAt = now + 1700;
   }
 
+  function updateBossMovement(now, dt){
+    if(boss.type === 'small'){
+      // 素早くあちこちへダッシュする、当てにくい動き
+      if(now > boss.nextDartAt){
+        boss.dartTargetX = 22 + Math.random()*(W-44-boss.w);
+        boss.nextDartAt = now + 550 + Math.random()*450;
+      }
+      boss.x += (boss.dartTargetX - boss.x) * Math.min(1, dt*7);
+      boss.y = boss.baseY + Math.sin(now/420)*14;
+    } else {
+      boss.x = boss.baseX + Math.sin(now/900)*14;
+    }
+  }
+
   function bossIntervals(){
-    // 周回が進むほど少しだけ間隔が縮む（ただし避けやすさは維持する下限あり）
-    const tighten = Math.min(loop-1, 6) * 60;
+    // 周回・ステージが進むほど少しだけ間隔が縮む（ただし避けやすさは維持する下限あり）
+    const tighten = Math.min(loop-1, 6) * 60 + (stage-1) * 90;
     return {
-      radial: Math.max(1150, 1650 - tighten),
-      aim: Math.max(1500, 2100 - tighten),
-      wave: Math.max(1900, 2600 - tighten)
+      radial: Math.max(1000, 1650 - tighten),
+      aim: Math.max(1350, 2100 - tighten),
+      wave: Math.max(1700, 2600 - tighten)
     };
   }
 
@@ -663,7 +704,7 @@
       // ボス弾幕パターン
       const iv = bossIntervals();
       if(boss.alive){
-        boss.x = boss.baseX + Math.sin(now/900)*14;
+        updateBossMovement(now, dt);
         if(now - lastRadialAt > iv.radial){ lastRadialAt = now; spawnRadial(); }
         if(now - lastAimAt > iv.aim){ lastAimAt = now; spawnAim(); }
         if(now - lastWaveAt > iv.wave){ lastWaveAt = now; spawnWave(); }
@@ -751,7 +792,38 @@
     bossBullets = [];
     sfxBossDefeat();
     vibrate([20,40,20,40,60]);
-    triggerStageClear();
+    if(stage < STAGES.length){
+      triggerStageAdvance();
+    } else {
+      triggerStageClear();
+    }
+  }
+
+  // ==== ステージ間の切り替え（1〜3ステージ目クリア時） ====
+  function triggerStageAdvance(){
+    const clearedStage = stage;
+    stage += 1; // 先にインクリメントしておき、途中タップで進んでもズレないようにする
+    phase = 'clearing';
+    clearTitle.textContent = 'STAGE ' + clearedStage + ' CLEAR!';
+    clearSub.textContent = '';
+    clearPanel.classList.remove('hidden');
+    setTimeout(function(){
+      clearSub.textContent = '次: ' + STAGES[stage-1].name;
+    }, 900);
+    clearPanel.onclick = advanceStage;
+    clearPanel._timer = setTimeout(advanceStage, 2400);
+  }
+
+  function advanceStage(){
+    if(phase !== 'clearing') return;
+    clearTimeout(clearPanel._timer);
+    clearPanel.onclick = null;
+    clearPanel.classList.add('hidden');
+    resetPlayer();
+    invincibleUntil = performance.now() + 800;
+    spawnBoss();
+    phase = 'playing';
+    updateHud();
   }
 
   // ==== ボム：画面の弾を全部消し飛ばし、ボスにもまとまったダメージを与える ====
@@ -793,7 +865,7 @@
 
   function triggerStageClear(){
     phase = 'clearing';
-    clearTitle.textContent = 'STAGE CLEAR!';
+    clearTitle.textContent = 'ALL CLEAR!';
     clearSub.textContent = '';
     clearPanel.classList.remove('hidden');
     setTimeout(function(){
@@ -811,6 +883,7 @@
     clearPanel.onclick = null;
     clearPanel.classList.add('hidden');
     loop += 1;
+    stage = 1;
     resetPlayer();
     invincibleUntil = performance.now() + 800;
     spawnBoss();
@@ -829,8 +902,8 @@
   }
 
   // ==== 描画 ====
-  function drawStar(s){
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
+  function drawStar(s, colorRgb){
+    ctx.fillStyle = 'rgba(' + colorRgb + ',.55)';
     ctx.fillRect(s.x, s.y, s.size, s.size);
   }
   function bulletColor(c){
@@ -839,16 +912,20 @@
     return '#00e5ff';
   }
   function render(){
+    const theme = STAGES[stage-1];
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle = '#05030f';
+    const bgGrad = ctx.createLinearGradient(0,0,0,H);
+    bgGrad.addColorStop(0, theme.bg2);
+    bgGrad.addColorStop(1, theme.bg1);
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0,0,W,H);
-    stars.forEach(drawStar);
+    stars.forEach(function(s){ drawStar(s, theme.star); });
 
     // ボス
     if(boss.alive){
       const grad = ctx.createLinearGradient(boss.x, boss.y, boss.x, boss.y+boss.h);
-      grad.addColorStop(0, '#7a2bd6');
-      grad.addColorStop(1, '#3d1266');
+      grad.addColorStop(0, theme.bossGrad[0]);
+      grad.addColorStop(1, theme.bossGrad[1]);
       ctx.fillStyle = grad;
       roundRect(boss.x, boss.y, boss.w, boss.h, 12);
       ctx.fill();
@@ -952,7 +1029,7 @@
   // ==== HUD ====
   function updateHud(){
     hudScore.textContent = 'SCORE ' + score;
-    hudLoop.textContent = 'LOOP ' + loop;
+    hudLoop.textContent = 'L' + loop + ' S' + stage + '/' + STAGES.length;
     hudLives.textContent = '❤'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3-lives));
     hudShield.classList.toggle('hidden', !unlocked);
     if(unlocked){
@@ -990,6 +1067,7 @@
     lives = 3;
     score = 0;
     loop = 1;
+    stage = 1;
     playerBullets = [];
     bossBullets = [];
     particles = [];
