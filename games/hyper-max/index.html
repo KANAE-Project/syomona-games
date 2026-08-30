@@ -98,13 +98,17 @@
   }
   .hud-shield.shield-ready{ background:var(--accent); color:#00232a; border-color:var(--accent); }
   .hud-shield.shield-off{ opacity:.45; }
-  .bomb-row{ margin-top:8px; }
   #bombBtn{
-    width:100%; font-size:1rem; font-weight:900; padding:14px 14px;
+    position:absolute; right:10px; bottom:10px; z-index:6;
+    width:62px; height:62px; border-radius:50%; padding:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:linear-gradient(160deg,#ff5b1f,#c0392b); color:#fff;
-    box-shadow:0 4px 0 #7a231a;
+    border:2px solid rgba(255,255,255,.3);
+    box-shadow:0 4px 0 #7a231a, 0 0 14px rgba(255,91,31,.55);
   }
-  #bombBtn:active{ transform:translateY(2px) scale(.98); box-shadow:0 2px 0 #7a231a; }
+  #bombBtn .bomb-icon{ font-size:1.25rem; line-height:1; }
+  #bombBtn .bomb-count{ font-size:.6rem; font-weight:900; margin-top:2px; }
+  #bombBtn:active{ transform:translateY(2px) scale(.96); box-shadow:0 2px 0 #7a231a; }
   #bombBtn:disabled{ opacity:.35; cursor:not-allowed; }
   .sound-notice{
     display:inline-block; font-size:.85rem; font-weight:900; color:#00232a;
@@ -140,7 +144,7 @@
   @media (prefers-reduced-motion: reduce){ .canvas-wrap.shake-burst{ animation:none; } }
 
   .overlay-panel{
-    position:absolute; inset:0; display:flex; flex-direction:column;
+    position:absolute; inset:0; z-index:10; display:flex; flex-direction:column;
     align-items:center; justify-content:center; text-align:center;
     background:rgba(4,2,14,.82); padding:20px; gap:10px;
   }
@@ -200,7 +204,7 @@
 <div class="wrap">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
   <h1 class="pixel">ハイパーMAX</h1>
-  <div class="sub">よけるだけの弾幕シューティング。自機は自動で弾を撃つので、あなたは避けるだけに専念！当たると画面いっぱいに笑っちゃうくらい派手な爆発が起きます。</div>
+  <div class="sub">よけるだけの弾幕シューティング。自機は自動で弾を撃つので、あなたは避けるだけに専念！</div>
 
   <div class="stage">
 
@@ -229,14 +233,15 @@
       <div class="canvas-wrap" id="canvasWrap">
         <canvas id="gameCanvas"></canvas>
         <div class="flash-overlay" id="flashOverlay"></div>
+        <button type="button" id="bombBtn" class="hidden">
+          <span class="bomb-icon">💣</span>
+          <span class="bomb-count" id="bombCount">×10</span>
+        </button>
         <div id="clearPanel" class="overlay-panel hidden">
           <div class="pixel-big pixel" id="clearTitle">STAGE CLEAR!</div>
           <div class="overlay-sub" id="clearSub"></div>
           <div class="overlay-hint">タップで次の周へ</div>
         </div>
-      </div>
-      <div id="bombRow" class="bomb-row hidden">
-        <button type="button" id="bombBtn">💣 ボム <span id="bombCount">×10</span></button>
       </div>
     </div>
 
@@ -418,7 +423,6 @@
   const clearSub = document.getElementById('clearSub');
   const resultPanel = document.getElementById('resultPanel');
   const resultStat = document.getElementById('resultStat');
-  const bombRow = document.getElementById('bombRow');
   const bombBtn = document.getElementById('bombBtn');
   const bombCountEl = document.getElementById('bombCount');
   const canvasWrapEl = document.getElementById('canvasWrap');
@@ -559,33 +563,47 @@
     };
   }
 
+  // 周回が進むほど弾幕が同心円状に「2重、3重」と重なっていく（上限なし。位置・角度は変えず速度だけ層ごとにずらす）
+  function bulletLayers(){ return loop; }
+
   function spawnRadial(){
     const n = Math.min(13, 8 + Math.floor((loop-1)/2));
     const cx = boss.x + boss.w/2, cy = boss.y + boss.h;
-    const speed = 78 + Math.min(loop-1,6)*4;
+    const baseSpeed = 78 + Math.min(loop-1,6)*4;
     const offset = Math.random()*Math.PI*2;
-    for(let i=0;i<n;i++){
-      const a = offset + (Math.PI*2/n)*i;
-      bossBullets.push({ x:cx, y:cy, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed+speed*0.5, r:5, color:'warn', kind:'radial' });
+    const layers = bulletLayers();
+    for(let layer=0; layer<layers; layer++){
+      const speed = baseSpeed * (1 + layer*0.32);
+      for(let i=0;i<n;i++){
+        const a = offset + (Math.PI*2/n)*i;
+        bossBullets.push({ x:cx, y:cy, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed+speed*0.5, r:5, color:'warn', kind:'radial' });
+      }
     }
   }
   function spawnAim(){
     const cx = boss.x + boss.w/2, cy = boss.y + boss.h;
     const dx = player.x - cx, dy = player.y - cy;
     const base = Math.atan2(dy, dx);
-    const speed = 165 + Math.min(loop-1,6)*6;
+    const baseSpeed = 165 + Math.min(loop-1,6)*6;
     const spreads = [-0.16, 0, 0.16];
-    spreads.forEach(function(off){
-      const a = base + off;
-      bossBullets.push({ x:cx, y:cy, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, r:5, color:'danger', kind:'aim' });
-    });
+    const layers = bulletLayers();
+    for(let layer=0; layer<layers; layer++){
+      const speed = baseSpeed * (1 + layer*0.22);
+      spreads.forEach(function(off){
+        const a = base + off;
+        bossBullets.push({ x:cx, y:cy, vx:Math.cos(a)*speed, vy:Math.sin(a)*speed, r:5, color:'danger', kind:'aim' });
+      });
+    }
   }
   function spawnWave(){
     const n = 5;
     const cy = boss.y + boss.h + 6;
     const gap = W/(n+1);
-    for(let i=1;i<=n;i++){
-      bossBullets.push({ x:gap*i, y:cy, vx:0, vy:58, r:5, color:'accent', kind:'wave', phase:Math.random()*Math.PI*2 });
+    const layers = bulletLayers();
+    for(let layer=0; layer<layers; layer++){
+      for(let i=1;i<=n;i++){
+        bossBullets.push({ x:gap*i, y:cy - layer*16, vx:0, vy:58 + layer*9, r:5, color:'accent', kind:'wave', phase:Math.random()*Math.PI*2 + layer });
+      }
     }
   }
 
@@ -804,8 +822,31 @@
     if(stage < STAGES.length){
       triggerStageAdvance();
     } else {
+      fireworksFinale();
       triggerStageClear();
     }
+  }
+
+  // ==== ラスボス撃破後の花火演出：約5秒間、画面各所で次々に爆発 ====
+  let fireworksTimers = [];
+  function fireworksFinale(){
+    cancelFireworks();
+    const total = 9;
+    for(let i=1;i<=total;i++){
+      const id = setTimeout(function(){
+        const x = 30 + Math.random()*(W-60);
+        const y = 40 + Math.random()*(H*0.55);
+        const colors = i % 3 === 0 ? BOMB_COLORS : BURST_COLORS;
+        spawnBurst(x, y, 55, colors, 200);
+        flash(0.22, 70, 260);
+        sfxBossHit();
+      }, i * 550);
+      fireworksTimers.push(id);
+    }
+  }
+  function cancelFireworks(){
+    fireworksTimers.forEach(clearTimeout);
+    fireworksTimers = [];
   }
 
   // ==== ステージ間の切り替え（1〜3ステージ目クリア時） ====
@@ -883,12 +924,13 @@
       sfxCongrats();
     }, 1000);
     clearPanel.onclick = nextLoop;
-    clearPanel._timer = setTimeout(nextLoop, 3200);
+    clearPanel._timer = setTimeout(nextLoop, 5400); // 花火演出(約5秒)が終わるまで待つ
   }
 
   function nextLoop(){
     if(phase !== 'clearing') return;
     clearTimeout(clearPanel._timer);
+    cancelFireworks();
     clearPanel.onclick = null;
     clearPanel.classList.add('hidden');
     loop += 1;
@@ -1086,7 +1128,7 @@
       hudShield.classList.toggle('shield-ready', shieldEnabled && shieldCharge > 0);
       hudShield.classList.toggle('shield-off', !shieldEnabled);
     }
-    bombRow.classList.toggle('hidden', !unlocked);
+    bombBtn.classList.toggle('hidden', !unlocked);
     if(unlocked){
       bombCountEl.textContent = '×' + bombCount;
       bombBtn.disabled = bombCount <= 0 || phase !== 'playing';
@@ -1104,6 +1146,7 @@
 
   // ==== スタート／リトライ ====
   function startRun(){
+    cancelFireworks();
     startPanel.classList.add('hidden');
     resultPanel.classList.add('hidden');
     clearPanel.classList.add('hidden');
