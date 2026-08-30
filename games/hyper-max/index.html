@@ -448,9 +448,9 @@
   // ==== ステージ構成：全4ステージ、それぞれ雰囲気とボスのタイプが異なる ====
   const STAGES = [
     { name:'第1波：漆黒の警戒線', bg1:'#05030f', bg2:'#140a30', star:'255,255,255', bossGrad:['#7a2bd6','#3d1266'], bossType:'normal' },
-    { name:'第2波：紅蓮の突撃',   bg1:'#1a0505', bg2:'#3a0f12', star:'255,214,190', bossGrad:['#ff5b2a','#8a1c10'], bossType:'normal' },
+    { name:'第2波：紅蓮の突撃',   bg1:'#1a0505', bg2:'#3a0f12', star:'255,214,190', bossGrad:['#ff5b2a','#8a1c10'], bossType:'normal', tall:true, angry:true },
     { name:'第3波：翠玉の遊撃',   bg1:'#031a12', bg2:'#0b3320', star:'190,255,220', bossGrad:['#22c07a','#0a4a30'], bossType:'small' },
-    { name:'第4波：黄金の最終防壁', bg1:'#160a02', bg2:'#3a2200', star:'255,224,150', bossGrad:['#ffce3d','#7a2bd6'], bossType:'normal', big:true }
+    { name:'第4波：黄金の最終防壁', bg1:'#160a02', bg2:'#3a2200', star:'255,224,150', bossGrad:['#ffce3d','#7a2bd6'], bossType:'normal', big:true, lastBoss:true }
   ];
   let stage = 1;
 
@@ -500,6 +500,10 @@
       // 3ステージ目：小さくて素早く、当てにくいタイプ
       boss.w = Math.min(W-60, 74 + Math.min(6,loop-1)*4);
       boss.h = 48;
+    } else if(theme.tall){
+      // 2ステージ目：縦長のタワー型
+      boss.w = Math.min(W-140, 104 + Math.min(6,loop-1)*4);
+      boss.h = Math.min(220, 150 + Math.min(6,loop-1)*8);
     } else if(theme.big){
       // 4ステージ目：最終防衛ライン、ひときわ大きい
       boss.w = Math.min(W-30, 230 + Math.min(8,loop-1)*10);
@@ -512,7 +516,6 @@
     boss.x = boss.baseX;
     boss.baseY = 30;
     boss.y = boss.baseY;
-    boss.type = theme.bossType;
     const hpBase = theme.bossType === 'small' ? 22 : (theme.big ? 52 : 36);
     const hpGrowth = theme.bossType === 'small' ? 12 : (theme.big ? 28 : 22);
     boss.maxHp = hpBase + (loop-1)*hpGrowth;
@@ -527,7 +530,8 @@
   }
 
   function updateBossMovement(now, dt){
-    if(boss.type === 'small'){
+    const theme = STAGES[stage-1];
+    if(theme.bossType === 'small'){
       // 素早くあちこちへダッシュする、当てにくい動き
       if(now > boss.nextDartAt){
         boss.dartTargetX = 22 + Math.random()*(W-44-boss.w);
@@ -535,6 +539,11 @@
       }
       boss.x += (boss.dartTargetX - boss.x) * Math.min(1, dt*7);
       boss.y = boss.baseY + Math.sin(now/420)*14;
+    } else if(theme.lastBoss){
+      // ラスボス：じわじわ迫ってきて、また下がる前後移動
+      boss.x = boss.baseX + Math.sin(now/1300)*8;
+      const forwardT = (Math.sin(now/1100) + 1) / 2; // 0〜1
+      boss.y = boss.baseY + forwardT * 80;
     } else {
       boss.x = boss.baseX + Math.sin(now/900)*14;
     }
@@ -934,14 +943,47 @@
       ctx.stroke();
       // ドット顔
       const eyeY = boss.y + boss.h*0.42;
+      const eyeXL = boss.x+boss.w*0.28, eyeXR = boss.x+boss.w*0.66;
       ctx.fillStyle = '#fff';
-      ctx.fillRect(boss.x+boss.w*0.28, eyeY, 12, 12);
-      ctx.fillRect(boss.x+boss.w*0.66, eyeY, 12, 12);
+      ctx.fillRect(eyeXL, eyeY, 12, 12);
+      ctx.fillRect(eyeXR, eyeY, 12, 12);
       ctx.fillStyle = '#1a0433';
-      ctx.fillRect(boss.x+boss.w*0.28+3, eyeY+3, 6, 6);
-      ctx.fillRect(boss.x+boss.w*0.66+3, eyeY+3, 6, 6);
-      ctx.fillStyle = '#1a0433';
-      ctx.fillRect(boss.x+boss.w*0.42, boss.y+boss.h*0.72, boss.w*0.16, 5);
+      ctx.fillRect(eyeXL+3, eyeY+3, 6, 6);
+      ctx.fillRect(eyeXR+3, eyeY+3, 6, 6);
+
+      if(theme.angry){
+        // 怒り眉：中央に向かって下がる「への字」眉
+        ctx.fillStyle = '#1a0433';
+        drawAngledRect(eyeXL+6, eyeY-8, 18, 5, 0.32);
+        drawAngledRect(eyeXR+6, eyeY-8, 18, 5, -0.32);
+        // ギザギザに歯を食いしばった口
+        const mouthY = boss.y + boss.h*0.72;
+        const mouthX = boss.x+boss.w*0.28, mouthW = boss.w*0.44;
+        ctx.fillStyle = '#1a0433';
+        ctx.fillRect(mouthX, mouthY, mouthW, 8);
+        ctx.fillStyle = '#fff';
+        const teeth = 5;
+        for(let i=0;i<teeth;i++){
+          ctx.fillRect(mouthX + i*(mouthW/teeth) + 1, mouthY, mouthW/teeth - 2, 4);
+        }
+      } else {
+        ctx.fillStyle = '#1a0433';
+        ctx.fillRect(boss.x+boss.w*0.42, boss.y+boss.h*0.72, boss.w*0.16, 5);
+      }
+
+      if(theme.lastBoss){
+        // おでこに「ラスボス」の文字
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 13px "Hiragino Maru Gothic ProN","Yu Gothic",sans-serif';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#1a0433';
+        ctx.strokeText('ラスボス', boss.x+boss.w/2, boss.y+16);
+        ctx.fillStyle = '#ff2e6d';
+        ctx.fillText('ラスボス', boss.x+boss.w/2, boss.y+16);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+      }
     }
 
     // ボス弾
@@ -1015,6 +1057,13 @@
         ctx.stroke();
       }
     }
+  }
+  function drawAngledRect(cx, cy, w, h, angle){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.fillRect(-w/2, -h/2, w, h);
+    ctx.restore();
   }
   function roundRect(x,y,w,h,r){
     ctx.beginPath();
