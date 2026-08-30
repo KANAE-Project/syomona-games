@@ -628,7 +628,7 @@
   // ==== 自慢ボタン: note公開後、GAME_URLに実際のURLを入れると投稿文にリンクが付く ====
   const GAME_URL = "https://kanae-project.github.io/syomona-games/games/yonda-aibou/";
   bragBtn.addEventListener('click', function(){
-    let text = '「呼んだ？相棒！」で' + score + '点とった！\n#しょーもなゲームズ';
+    let text = '「呼んだ？相棒！」で' + score + '点とった！\nCMなしの0秒ブラウザゲーム！\n#しょーもなゲームズ';
     if(GAME_URL){ text += '\n' + GAME_URL; }
     const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
     window.open(url, '_blank');

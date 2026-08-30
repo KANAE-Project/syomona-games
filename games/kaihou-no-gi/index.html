@@ -880,7 +880,7 @@
   document.getElementById('bragBtn').addEventListener('click', function(){
     let text = '「解放の儀」で30秒に' + boardsCleared + '枚ぶち破った！';
     if(lastTier){ text += '\n出た景品：【' + lastTier.name + '】' + lastTier.item; }
-    text += '\n#しょーもなゲームズ';
+    text += '\nCMなしの0秒ブラウザゲーム！\n#しょーもなゲームズ';
     if(GAME_URL){ text += '\n' + GAME_URL; }
     const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
     window.open(url, '_blank');

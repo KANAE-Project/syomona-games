@@ -41,12 +41,29 @@
   .card-title{ font-size:1.2rem; font-weight:bold; color:var(--accent2); margin-bottom:4px; }
   .card-desc{ font-size:.85rem; opacity:.8; }
   .foot{ text-align:center; font-size:.75rem; opacity:.5; margin-top:30px; }
+  .section-divider{
+    display:flex;
+    align-items:center;
+    text-align:center;
+    color:var(--ink);
+    font-size:.8rem;
+    font-weight:bold;
+    margin:28px 0 14px;
+  }
+  .section-divider::before,
+  .section-divider::after{
+    content:"";
+    flex:1;
+    border-bottom:2px solid var(--ink);
+    opacity:.3;
+  }
+  .section-divider span{ padding:0 12px; opacity:.6; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>しょーもなゲームズ</h1>
-  <div class="sub">サクッと遊べる、しょーもないブラウザゲーム集</div>
+  <div class="sub">CMなしの 0秒ブラウザゲーム！</div>
 
   <a class="card" href="games/rifujin-okazu-obachan/">
     <div class="card-title">理不尽献立おばちゃん</div>
@@ -58,11 +75,6 @@
     <div class="card-desc">スパーク200を見つけてタップする、しょーもない反射神経ゲーム</div>
   </a>
 
-  <a class="card" href="games/umaoka-seisan/">
-    <div class="card-title">うまおかさん 雀卓精算帳</div>
-    <div class="card-desc">対局後の素点からウマ・オカ・レートを自動計算する麻雀精算ツール</div>
-  </a>
-
   <a class="card" href="games/kaihou-no-gi/">
     <div class="card-title">解放の儀</div>
     <div class="card-desc">30秒で何枚ぶち破れるかに挑む、連打タイムアタックゲーム</div>
@@ -71,6 +83,13 @@
   <a class="card" href="games/obento-tsumetsume/">
     <div class="card-title">おべんとパズル つめつめチャレンジ</div>
     <div class="card-desc">30秒でお弁当箱におかずを何個詰められるか競うパズルゲーム</div>
+  </a>
+
+  <div class="section-divider"><span>実用</span></div>
+
+  <a class="card" href="games/umaoka-seisan/">
+    <div class="card-title">うまおかさん 雀卓精算帳</div>
+    <div class="card-desc">対局後の素点からウマ・オカ・レートを自動計算する麻雀精算ツール</div>
   </a>
 
   <div class="foot">© しょーもなゲームズ</div>

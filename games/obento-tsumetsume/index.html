@@ -835,6 +835,7 @@
   function shareOnX(){
     let text = "おべんとパズル つめつめチャレンジで" + packedCount + "個、お弁当に詰めました！🍱\n";
     if(unlocked) text += "豪華おかず解放済み🔓\n";
+    text += "CMなしの0秒ブラウザゲーム！\n";
     const shareUrl = "https://x.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(GAME_URL);
     window.open(shareUrl, "_blank", "noopener");
   }
