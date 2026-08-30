@@ -369,7 +369,7 @@
       <button id="unlockBtn">解放する</button>
     </div>
     <p id="unlockMsg" class="unlock-msg" hidden></p>
-    <a class="note-link-btn" id="noteLinkBtn" href="#" target="_blank" rel="noopener">📝 noteで合言葉をゲットする</a>
+    <a class="note-link-btn" id="noteLinkBtn" href="https://note.com/kanae_project/n/n54023f723cb6" target="_blank" rel="noopener">📝 noteで合言葉をゲットする</a>
   </div>
 
   <!-- Xシェア -->
@@ -464,8 +464,7 @@
   const unlockMsg = $("unlockMsg");
   const noteLinkBtn = $("noteLinkBtn");
 
-  // 公開後、note記事のURLが決まったら↓を差し替えてください
-  noteLinkBtn.href = "#";
+  noteLinkBtn.href = "https://note.com/kanae_project/n/n54023f723cb6";
 
   // ===== 初期化：解放状態の復元 =====
   if(localStorage.getItem(STORAGE_KEY) === "true"){
