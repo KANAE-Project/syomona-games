@@ -717,6 +717,8 @@
   // 出力されたハッシュ値でこの定数を置き換えてください:
   // crypto.subtle.digest("SHA-256", new TextEncoder().encode("新しいキーワード")).then(b => console.log(Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, "0")).join("")))
   var UNLOCK_HASH = "7ae0f20250fd0af5136641af82a93039faf8904e23db37e58ef3643409dcd74e";
+  // 全ゲーム共通「ブルジョワ全解放パス」の合言葉「沼へようこそ」のSHA-256ハッシュ（全ゲーム共通、変更時は6本すべてに反映すること）
+  var MASTER_HASH = "3ac1bff3e53f54064054294f84236db904a8ac2902f190e6004251ac49d5b5ef";
   var SUITS = ["p1", "p2", "p3", "p4"];
   var SUIT_LABELS = ["萬子", "索子", "筒子", "字牌"];
   var UMA_PRESETS = {
@@ -1059,7 +1061,7 @@
       return;
     }
     sha256Hex(kw).then(function (hash) {
-      if (hash === UNLOCK_HASH) {
+      if (hash === UNLOCK_HASH || hash === MASTER_HASH) {
         unlocked = true;
         try { window.localStorage.setItem(UNLOCK_STORAGE_KEY, "1"); } catch (e) {}
         applyLockState();

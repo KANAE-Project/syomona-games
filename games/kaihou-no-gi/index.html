@@ -384,6 +384,8 @@
 (function(){
   // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
   const PASSWORD = "とびら爆破";
+  // ==== 全ゲーム共通「ブルジョワ全解放パス」の合言葉（全ゲーム共通、変更時は6本すべてに反映すること） ====
+  const MASTER_PASSWORD = "沼へようこそ";
   const STORAGE_KEY = "kaihou_no_gi_unlocked";
   const COLLECTION_KEY = "kaihou_no_gi_collection";
   const GAME_URL = "https://kanae-project.github.io/syomona-games/games/kaihou-no-gi/";
@@ -903,7 +905,7 @@
 
   unlockBtn.addEventListener('click', function(){
     const val = document.getElementById('passwordInput').value.trim();
-    if(val === PASSWORD){
+    if(val === PASSWORD || val === MASTER_PASSWORD){
       safeSet(STORAGE_KEY, '1');
       setUnlocked();
     } else {
