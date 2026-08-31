@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お前もドットにしてやろうかぁ？</title>
+<style>
+  :root{
+    --bg1:#140a24;
+    --bg2:#2a0f3d;
+    --bubble:#fff3e8;
+    --ink:#241033;
+    --accent:#ff4d6d;
+    --accent2:#7b2ff7;
+    --star:#ffd9a0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 75%);
+    color:#f3ece0;
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.3rem; margin:0 0 4px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:18px; }
+  .stage{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:22px;
+    padding:22px 16px 26px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+
+  /* ==== 悪魔キャラ（ユーザー提供の正式イラスト） ==== */
+  .devil-frame{
+    width:200px; height:200px;
+    margin:0 auto 10px;
+    border-radius:26px;
+    background:linear-gradient(160deg, rgba(123,47,247,.35), rgba(255,77,109,.2));
+    border:4px solid var(--accent2);
+    box-shadow:0 0 24px rgba(255,77,109,.4), 0 6px 16px rgba(0,0,0,.4);
+    overflow:hidden;
+    transition:transform .18s ease;
+  }
+  .devil-frame img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .devil-frame.talking{ animation:devilLaugh .45s ease-in-out infinite; }
+  @keyframes devilLaugh{
+    0%,100%{ transform:scale(1) rotate(0); }
+    50%{ transform:scale(1.06) rotate(-2deg); }
+  }
+  .name-tag{
+    text-align:center;
+    font-weight:bold;
+    color:var(--star);
+    margin-bottom:14px;
+    font-size:.95rem;
+  }
+  .sound-notice{
+    display:block;
+    text-align:center;
+    font-size:1rem;
+    font-weight:900;
+    color:#241033;
+    background:var(--star);
+    padding:8px 20px;
+    border-radius:999px;
+    margin:0 auto 16px;
+    max-width:280px;
+  }
+
+  .bubble{
+    position:relative;
+    background:var(--bubble);
+    color:var(--ink);
+    border:3px solid var(--accent2);
+    border-radius:18px;
+    padding:14px 16px;
+    margin:0 auto 16px;
+    max-width:360px;
+    font-size:1rem;
+    font-weight:bold;
+    line-height:1.6;
+    text-align:center;
+    opacity:0;
+    transform:translateY(8px) scale(.97);
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .bubble::after{
+    content:""; position:absolute; left:30px; top:-14px;
+    border:10px solid transparent; border-bottom-color:var(--accent2);
+  }
+  .bubble::before{
+    content:""; position:absolute; left:33px; top:-9px;
+    border:8px solid transparent; border-bottom-color:var(--bubble); z-index:1;
+  }
+  .bubble.show{ opacity:1; transform:translateY(0) scale(1); }
+
+  .upload-zone{ text-align:center; margin-bottom:14px; }
+  .upload-hint{ font-size:.78rem; opacity:.75; margin-bottom:10px; }
+  .upload-label{
+    display:inline-block;
+    cursor:pointer;
+    background:var(--accent2);
+    color:#fff;
+    font-weight:bold;
+    font-size:.95rem;
+    padding:12px 20px;
+    border-radius:12px;
+    box-shadow:0 4px 0 #501fa8;
+  }
+  .upload-label:active{ transform:translateY(2px); box-shadow:0 2px 0 #501fa8; }
+  #fileInput{ display:none; }
+
+  .photo-frame{
+    position:relative;
+    max-width:100%;
+    min-height:160px;
+    border-radius:16px;
+    margin:0 auto 14px;
+    background:rgba(0,0,0,.2);
+    border:2px dashed rgba(255,255,255,.25);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .photo-frame canvas{ display:block; max-width:100%; height:auto; }
+  .photo-frame canvas.hidden{ display:none; }
+  .placeholder-text{ font-size:.82rem; opacity:.6; padding:40px 16px; text-align:center; }
+  .placeholder-text.hidden{ display:none; }
+  .photo-frame canvas.processing{
+    animation:dotProcessing .6s ease-in-out infinite;
+  }
+  @keyframes dotProcessing{
+    0%,100%{ filter:hue-rotate(0deg) saturate(1.2) blur(0); }
+    50%{ filter:hue-rotate(30deg) saturate(1.7) blur(1.5px); }
+  }
+
+  .actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+    margin-top:6px;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    padding:12px 18px;
+    font-size:1rem;
+    font-weight:bold;
+    background:var(--accent);
+    color:#241033;
+    transition:transform .15s ease;
+    width:100%;
+    max-width:280px;
+  }
+  button:active{ transform:scale(.96); }
+  button:disabled{ opacity:.45; cursor:default; }
+  button.secondary{
+    background:var(--accent2);
+    color:#fff;
+  }
+  .hidden{ display:none !important; }
+
+  .grade-zone{
+    margin-top:26px;
+    padding-top:16px;
+    border-top:1px dashed rgba(255,255,255,.25);
+    text-align:center;
+  }
+  .grade-cta{
+    background:rgba(255,77,109,.08);
+    border:3px dashed var(--accent);
+    border-radius:18px;
+    padding:18px 14px;
+  }
+  .grade-headline{
+    font-size:1.15rem;
+    font-weight:bold;
+    color:var(--accent);
+    margin-bottom:6px;
+  }
+  .grade-price{
+    display:inline-block; background:rgba(255,255,255,.1); color:#fff;
+    font-size:.85rem; font-weight:bold; padding:4px 14px; border-radius:999px;
+    margin-bottom:10px; border:1px solid var(--accent);
+  }
+  .note-link-btn{
+    display:block;
+    background:#41c9b4;
+    color:#fff;
+    font-size:1.15rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:16px 14px;
+    border-radius:14px;
+    margin-bottom:14px;
+    box-shadow:0 4px 0 #2e9c8c;
+  }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{
+    font-size:.85rem;
+    font-weight:bold;
+    color:#f3ece0;
+    margin-bottom:14px;
+  }
+  .grade-form{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-width:320px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .grade-form input[type=text]{
+    padding:10px 12px;
+    border-radius:12px;
+    border:2px solid var(--accent2);
+    font-size:1rem;
+    text-align:center;
+  }
+  .grade-form #unlockBtn{
+    font-size:1.05rem;
+    padding:13px 16px;
+    background:var(--accent2);
+    color:#fff;
+  }
+  .grade-msg{ font-size:.8rem; margin-top:8px; min-height:1.2em; }
+  .unlocked-badge{
+    display:inline-block;
+    background:var(--accent2);
+    color:#fff;
+    font-size:.7rem;
+    padding:3px 10px;
+    border-radius:999px;
+    margin-top:8px;
+    margin-bottom:10px;
+  }
+  .unlocked-desc{
+    font-size:.82rem;
+    opacity:.85;
+    line-height:1.6;
+    max-width:340px;
+    margin:0 auto;
+  }
+
+  .back-link{
+    display:inline-block; font-size:.8rem; font-weight:700;
+    color:#f3ece0; opacity:.65; text-decoration:none; margin-bottom:10px;
+  }
+  .back-link:hover{ opacity:1; }
+  .back-link-btn{
+    display:block; background:var(--accent); color:#241033;
+    font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:14px 16px; border-radius:14px; margin-top:20px;
+    box-shadow:0 4px 0 var(--accent2);
+  }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2); }
+
+  .x-share-zone{
+    margin-top:26px;
+    padding-top:16px;
+    border-top:1px dashed rgba(255,255,255,.25);
+    text-align:center;
+  }
+  .x-link-btn{
+    display:block;
+    background:#000;
+    color:#fff;
+    font-size:1rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:14px 14px;
+    border-radius:14px;
+    box-shadow:0 4px 0 #444;
+    border:none;
+    width:100%;
+    max-width:320px;
+    margin:0 auto;
+    cursor:pointer;
+  }
+  .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
+  .x-share-title{
+    font-size:1rem;
+    font-weight:bold;
+    color:var(--star);
+    margin-bottom:12px;
+  }
+
+  .usage-notice{
+    margin-top:18px;
+    font-size:.72rem;
+    line-height:1.8;
+    opacity:.85;
+    text-align:left;
+    background:rgba(255,255,255,.06);
+    border-radius:10px;
+    padding:12px 14px;
+    border:1px solid rgba(255,255,255,.16);
+  }
+  .usage-notice .usage-title{
+    font-weight:bold;
+    color:var(--star);
+    display:block;
+    margin-bottom:4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <h1>お前もドットにしてやろうかぁ？</h1>
+  <div class="sub">画像を選ぶと、無慈悲にドット画像へと変えられます</div>
+
+  <div class="stage">
+    <div class="devil-frame" id="devilFrame">
+      <img src="images/akuma-dot.png" alt="謎のドット魔人">
+    </div>
+    <div class="name-tag">謎のドット魔人</div>
+    <div class="sound-notice">🔊 このゲームは音が出ます</div>
+
+    <div id="devilBubble" class="bubble"></div>
+
+    <div class="upload-zone">
+      <div class="upload-hint">好きな画像を選べ。逃げられんぞ。</div>
+      <label class="upload-label" for="fileInput">📷 画像を選ぶ</label>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div class="photo-frame">
+      <canvas id="photoCanvas" class="hidden"></canvas>
+      <div id="placeholderText" class="placeholder-text">（まだ画像が選ばれていません）</div>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="convertBtn" disabled>ドット化する！</button>
+      <button type="button" class="secondary hidden" id="downloadBtn">💾 画像を保存する</button>
+      <button type="button" class="secondary hidden" id="chooseAnotherBtn">🔄 別の画像を選ぶ</button>
+    </div>
+
+    <div class="grade-zone">
+      <div class="grade-cta" id="gradeForm">
+        <div class="grade-headline">損しかない課金はこちら💁</div>
+        <div class="grade-price">🪙 ワンコイン500円</div>
+        <a href="https://note.com/kanae_project" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
+        <div class="grade-teaser">課金すると、あなたのドット画像が消えるまでずーっと勝手にチカチカ踊り続けるようになるぞ（それだけ）！</div>
+        <div class="grade-form">
+          <input type="text" id="passwordInput" placeholder="合言葉">
+          <button type="button" id="unlockBtn">解放する</button>
+        </div>
+      </div>
+      <div id="gradeMsg" class="grade-msg"></div>
+      <div id="unlockedZone" class="hidden">
+        <span class="unlocked-badge">グレードアップ解放済み</span>
+        <div class="unlocked-desc">🕺 ドット画像が、常に自動でチカチカ踊るようになりました。別の画像に変えても、ずっと踊ったままです。</div>
+      </div>
+    </div>
+
+    <div class="x-share-zone">
+      <div class="x-share-title">このゲームを拡散！</div>
+      <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xでシェアする</button>
+    </div>
+
+    <div class="usage-notice">
+      <span class="usage-title">🎥 実況・動画での使用について</span>
+      「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
+      それ以外は自由に、しょーもなく広めていただけると嬉しいです。
+    </div>
+  </div>
+
+  <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<script>
+(function(){
+  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/008-omae-mo-dot/";
+
+  // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
+  const PASSWORD = "ドット送りだ";
+  // ==== 全ゲーム共通「ブルジョワ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
+  const MASTER_PASSWORD = "沼へようこそ";
+  const STORAGE_KEY = "omae_mo_dot_unlocked";
+
+  const DEVIL_LINE = "フハハハハ！お前もドットの仲間入りだー";
+
+  // ==== 音声（Web Speech API）。007と同じ speakAndWait() 方式で、
+  // 読み上げの実時間とセリフ表示のズレを防ぐ ====
+  function wait(ms){
+    return new Promise(function(resolve){ setTimeout(resolve, ms); });
+  }
+  function speakAndWait(text){
+    return new Promise(function(resolve){
+      try{
+        if(!("speechSynthesis" in window)){ resolve(); return; }
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "ja-JP";
+        u.rate = 1.05;
+        u.pitch = 0.6; // 悪魔っぽい低い声
+        let done = false;
+        function finish(){ if(!done){ done = true; resolve(); } }
+        u.onend = finish;
+        u.onerror = finish;
+        window.speechSynthesis.speak(u);
+        setTimeout(finish, Math.max(1500, text.length * 220));
+      }catch(e){ resolve(); }
+    });
+  }
+
+  // ==== ドット化：画像をブロック単位で平均色に置き換えるモザイク方式 ====
+  // 2026年8月31日、当初はDelaunay三角形分割によるローポリ変換だったが、
+  // 「粒度を調整するたびに目・口が消えたり細かすぎたりする」チューニングの難しさが続いたため、
+  // ユーザーの要望でモザイク（ドット絵）方式に方向転換した。ブロックの大きさ1つだけで
+  // 見た目の粗さを直感的に調整でき、小さな特徴（目・口）が丸ごと消えるリスクも低い
+  // 2026年8月31日、当初は肌色ヒューリスティックで被写体（人物）の範囲を検出し、
+  // 背景は元の写真のまま・被写体だけドット化する方式にしていたが、検出範囲の楕円の境目で
+  // 「そこだけ元画像がそのまま覗く」不自然な継ぎ目ができてしまい、ユーザーから
+  // 「背景との区別をせず全体をドット化してほしい」との要望を受けて撤廃した。
+  // 今は画像全体を均一にドット化するだけのシンプルな仕様になっている
+  const MAX_DIM = 520;  // 処理・表示用の作業解像度の上限
+  const DOT_SIZE = 14;  // ドット（マス目）1個の一辺の大きさ(px)。大きいほど粗いドット絵になる
+
+  function clamp255(v){ return Math.max(0, Math.min(255, Math.round(v))); }
+  function rgbStr(c){ return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")"; }
+
+  // 平均色そのままだと、写真の中間色っぽい落ち着いた色合いになり「ドット絵」らしいくっきり感が
+  // 出にくい。彩度・コントラストを底上げしてから色数を絞り込む（ポスタリゼーション）ことで、
+  // ゲームのドット絵らしい、はっきりした色使いに近づける
+  const POSTERIZE_LEVELS = 6; // RGB各チャンネルをこの段階数に丸める（少ないほどくっきり・色数が少なくなる）
+  function vividColor(rgb){
+    let r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if(max !== min){
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if(max === r){ h = (g - b) / d + (g < b ? 6 : 0); }
+      else if(max === g){ h = (b - r) / d + 2; }
+      else { h = (r - g) / d + 4; }
+      h /= 6;
+    }
+    // 彩度を底上げ、明度は中間から離す方向にコントラストを強める
+    s = Math.min(1, s * 1.6 + 0.1);
+    const l2 = Math.max(0, Math.min(1, 0.5 + (l - 0.5) * 1.15));
+    function hue2rgb(p, q, t){
+      if(t < 0) t += 1;
+      if(t > 1) t -= 1;
+      if(t < 1 / 6) return p + (q - p) * 6 * t;
+      if(t < 1 / 2) return q;
+      if(t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    }
+    let r2, g2, b2;
+    if(s === 0){ r2 = g2 = b2 = l2; }
+    else{
+      const q = l2 < 0.5 ? l2 * (1 + s) : l2 + s - l2 * s;
+      const p = 2 * l2 - q;
+      r2 = hue2rgb(p, q, h + 1 / 3);
+      g2 = hue2rgb(p, q, h);
+      b2 = hue2rgb(p, q, h - 1 / 3);
+    }
+    const step = 255 / (POSTERIZE_LEVELS - 1);
+    function posterize(v){ return clamp255(Math.round((v * 255) / step) * step); }
+    return [posterize(r2), posterize(g2), posterize(b2)];
+  }
+
+  // 画像全体をDOT_SIZE四方のマス目に区切り、マスごとに元画像の平均色を求める。
+  // Delaunay三角形分割と違って外部ライブラリが不要で、実装も見た目の調整もずっとシンプル
+  function buildMosaic(imageData, w, h){
+    const cols = Math.max(1, Math.round(w / DOT_SIZE));
+    const rows = Math.max(1, Math.round(h / DOT_SIZE));
+    const cellW = w / cols, cellH = h / rows;
+    const d = imageData.data;
+    const colors = new Array(cols * rows);
+    for(let by = 0; by < rows; by++){
+      for(let bx = 0; bx < cols; bx++){
+        const x0 = Math.max(0, Math.floor(bx * cellW));
+        const y0 = Math.max(0, Math.floor(by * cellH));
+        const x1 = Math.min(w, Math.floor((bx + 1) * cellW));
+        const y1 = Math.min(h, Math.floor((by + 1) * cellH));
+        let rs = 0, gs = 0, bs = 0, count = 0;
+        for(let y = y0; y < y1; y++){
+          for(let x = x0; x < x1; x++){
+            const idx = (y * w + x) * 4;
+            rs += d[idx]; gs += d[idx + 1]; bs += d[idx + 2]; count++;
+          }
+        }
+        colors[by * cols + bx] = count > 0
+          ? vividColor([rs / count, gs / count, bs / count])
+          : [200, 200, 200];
+      }
+    }
+    // 課金後の「躍る」演出用パラメータ。マスごとにバラバラの位相・速度を持たせて、
+    // 全部が同じリズムで明滅する不自然さを避ける
+    const phases = colors.map(function(){ return Math.random() * Math.PI * 2; });
+    const speeds = colors.map(function(){ return 0.0018 + Math.random() * 0.003; });
+    return { w: w, h: h, cols: cols, rows: rows, cellW: cellW, cellH: cellH, colors: colors, phases: phases, speeds: speeds };
+  }
+
+  function renderMosaic(ctx, mosaic, animate, t){
+    ctx.clearRect(0, 0, mosaic.w, mosaic.h);
+    for(let by = 0; by < mosaic.rows; by++){
+      for(let bx = 0; bx < mosaic.cols; bx++){
+        const ci = by * mosaic.cols + bx;
+        let col = mosaic.colors[ci];
+        if(animate){
+          // 明るさをサイン波でゆっくり明滅させる。ドットが並んだ電光掲示板やダンスフロアの
+          // ライトのように、常時チカチカ光って見える演出にしている
+          const factor = 1 + Math.sin(t * mosaic.speeds[ci] + mosaic.phases[ci]) * 0.4;
+          col = [clamp255(col[0] * factor), clamp255(col[1] * factor), clamp255(col[2] * factor)];
+        }
+        const x0 = bx * mosaic.cellW, y0 = by * mosaic.cellH;
+        ctx.fillStyle = rgbStr(col);
+        // 継ぎ目がわずかに見える程度にオーバーラップさせ、拡大表示時の隙間を防ぐ
+        ctx.fillRect(x0, y0, mosaic.cellW + 0.6, mosaic.cellH + 0.6);
+      }
+    }
+  }
+
+  // ==== DOM ====
+  const fileInput = document.getElementById("fileInput");
+  const photoCanvas = document.getElementById("photoCanvas");
+  const photoCtx = photoCanvas.getContext("2d");
+  const placeholderText = document.getElementById("placeholderText");
+  const convertBtn = document.getElementById("convertBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const chooseAnotherBtn = document.getElementById("chooseAnotherBtn");
+  const devilFrame = document.getElementById("devilFrame");
+  const devilBubble = document.getElementById("devilBubble");
+
+  let originalImageData = null, workW = 0, workH = 0;
+  let currentMosaic = null, resultRevealed = false, danceRunning = false;
+  let danceUnlocked = false;
+
+  fileInput.addEventListener("change", function(e){
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const img = new Image();
+      img.onload = function(){
+        let w = img.naturalWidth, h = img.naturalHeight;
+        const scale = Math.min(1, MAX_DIM / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+        photoCanvas.width = w; photoCanvas.height = h;
+        photoCtx.drawImage(img, 0, 0, w, h);
+        // アップロードされた画像はここでCanvasに描くだけで、サーバーには一切送信しない
+        originalImageData = photoCtx.getImageData(0, 0, w, h);
+        workW = w; workH = h;
+        photoCanvas.classList.remove("hidden");
+        placeholderText.classList.add("hidden");
+        convertBtn.disabled = false;
+        convertBtn.classList.remove("hidden");
+        resultRevealed = false;
+        currentMosaic = null;
+        danceRunning = false;
+        downloadBtn.classList.add("hidden");
+        chooseAnotherBtn.classList.add("hidden");
+        devilBubble.classList.remove("show");
+      };
+      img.onerror = function(){
+        alert("画像の読み込みに失敗しました。別の画像でお試しください。");
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  convertBtn.addEventListener("click", async function(){
+    if(!originalImageData) return;
+    convertBtn.disabled = true;
+    fileInput.disabled = true;
+    photoCanvas.classList.add("processing");
+    devilBubble.textContent = DEVIL_LINE;
+    devilBubble.classList.add("show");
+    devilFrame.classList.add("talking");
+
+    // 万が一ここで例外が起きても「処理中の点滅アニメーションだけがずっと残って固まる」ことが
+    // ないよう、必ずtry/catchで抜け道を用意しておく
+    try{
+      const mosaic = buildMosaic(originalImageData, workW, workH);
+      // セリフの読み上げが終わる（か、最低でも0.9秒待つ）まで結果を見せずにため、
+      // 「ドット化されている最中」感を出す
+      await Promise.all([ speakAndWait(DEVIL_LINE), wait(900) ]);
+
+      currentMosaic = mosaic;
+      renderMosaic(photoCtx, mosaic, false, 0);
+      resultRevealed = true;
+      convertBtn.classList.add("hidden");
+      downloadBtn.classList.remove("hidden");
+      chooseAnotherBtn.classList.remove("hidden");
+      maybeStartDance();
+    }catch(e){
+      alert("ドット化に失敗しました。お手数ですが別の画像でお試しください。");
+      convertBtn.disabled = false;
+    }finally{
+      photoCanvas.classList.remove("processing");
+      devilFrame.classList.remove("talking");
+      fileInput.disabled = false;
+    }
+  });
+
+  function maybeStartDance(){
+    if(!danceUnlocked || !resultRevealed || !currentMosaic || danceRunning) return;
+    danceRunning = true;
+    function loop(t){
+      if(!danceUnlocked || !resultRevealed){ danceRunning = false; return; }
+      renderMosaic(photoCtx, currentMosaic, true, t);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  chooseAnotherBtn.addEventListener("click", function(){
+    resultRevealed = false; // 次のrAFフレームでダンスループも自然停止する
+    currentMosaic = null;
+    originalImageData = null;
+    fileInput.value = "";
+    photoCanvas.classList.add("hidden");
+    placeholderText.classList.remove("hidden");
+    convertBtn.classList.remove("hidden");
+    convertBtn.disabled = true;
+    downloadBtn.classList.add("hidden");
+    chooseAnotherBtn.classList.add("hidden");
+    devilBubble.classList.remove("show");
+  });
+
+  downloadBtn.addEventListener("click", function(){
+    try{
+      const url = photoCanvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dot-" + Date.now() + ".png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }catch(e){
+      alert("保存に失敗しました。スクリーンショットをお試しください。");
+    }
+  });
+
+  // ==== グレードアップ（合言葉）まわり ====
+  const gradeForm = document.getElementById("gradeForm");
+  const unlockBtn = document.getElementById("unlockBtn");
+  const gradeMsg = document.getElementById("gradeMsg");
+  const unlockedZone = document.getElementById("unlockedZone");
+
+  function safeGet(key){
+    try { return localStorage.getItem(key); } catch(e){ return null; }
+  }
+  function safeSet(key, val){
+    try { localStorage.setItem(key, val); } catch(e){ /* 保存できなくても解放処理自体は続行する */ }
+  }
+
+  function setUnlocked(){
+    gradeForm.classList.add("hidden");
+    gradeMsg.textContent = "";
+    unlockedZone.classList.remove("hidden");
+    danceUnlocked = true;
+    maybeStartDance();
+  }
+
+  if(safeGet(STORAGE_KEY) === "1"){
+    setUnlocked();
+  }
+
+  unlockBtn.addEventListener("click", function(){
+    const val = document.getElementById("passwordInput").value.trim();
+    if(val === PASSWORD || val === MASTER_PASSWORD){
+      safeSet(STORAGE_KEY, "1");
+      setUnlocked();
+    } else {
+      gradeMsg.textContent = "違うようです、もう一度確認してください…";
+    }
+  });
+
+  // ==== X（旧Twitter）投稿ボタン ====
+  // href に直接URLを書かず、押した時にJSでURLを組み立てて開く方式にしている。
+  // 一部ブラウザのコンテンツブロッカーが静的な intent/tweet リンクをSNSシェアボタンとみなして
+  // 非表示にしてしまう不具合が過去にあったための対策。
+  const xShareBtn = document.getElementById("xShareBtn");
+  if(xShareBtn){
+    xShareBtn.addEventListener("click", function(){
+      const text = "画像をドット化されてしまった…\nCMなしの0秒ブラウザゲーム！";
+      const url = "https://x.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(GAME_URL);
+      window.open(url, "_blank", "noopener");
+    });
+  }
+})();
+</script>
+</body>
+</html>
