@@ -36,20 +36,17 @@
     box-shadow:0 10px 30px rgba(0,0,0,.35);
   }
 
-  /* ==== 悪魔キャラ（正式イラストは後日追加予定。それまでは低ポリ三角形だけで組んだSVGを
-     プレースホルダーとして使う。「キャラ自体もポリゴンでできている」という体裁になるので、
-     ネタとしても違和感が出ないようにしてある） ==== */
+  /* ==== 悪魔キャラ（正式イラスト、2026年8月31日にプレースホルダーSVGから差し替え済み） ==== */
   .devil-frame{
     width:200px; height:200px;
     margin:0 auto 10px;
     border-radius:26px;
-    background:linear-gradient(160deg, rgba(123,47,247,.25), rgba(255,77,109,.15));
     border:4px solid var(--accent2);
     box-shadow:0 0 24px rgba(255,77,109,.4), 0 6px 16px rgba(0,0,0,.4);
-    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
     transition:transform .18s ease;
   }
-  .devil-svg{ width:88%; height:88%; }
+  .devil-frame img{ width:100%; height:100%; object-fit:cover; display:block; }
   .devil-frame.talking{ animation:devilLaugh .45s ease-in-out infinite; }
   @keyframes devilLaugh{
     0%,100%{ transform:scale(1) rotate(0); }
@@ -324,31 +321,7 @@
 
   <div class="stage">
     <div class="devil-frame" id="devilFrame">
-      <svg viewBox="0 0 220 220" class="devil-svg" xmlns="http://www.w3.org/2000/svg">
-        <!-- 角 -->
-        <polygon points="45,58 15,8 66,48" fill="#210a1c"/>
-        <polygon points="175,58 205,8 154,48" fill="#210a1c"/>
-        <!-- 顔（中心からの三角形ファンでローポリ感を出す） -->
-        <polygon points="110,118 110,20 172,62" fill="#4a1942"/>
-        <polygon points="110,118 172,62 185,145" fill="#6b2359"/>
-        <polygon points="110,118 185,145 110,205" fill="#3a0f2e"/>
-        <polygon points="110,118 110,205 35,145" fill="#5c1a44"/>
-        <polygon points="110,118 35,145 48,62" fill="#431a4a"/>
-        <polygon points="110,118 48,62 110,20" fill="#63285f"/>
-        <!-- 目 -->
-        <polygon points="70,95 92,88 88,112" fill="#ff5b3d"/>
-        <polygon points="150,95 128,88 132,112" fill="#ff5b3d"/>
-        <polygon points="70,95 88,112 78,118" fill="#ffb347" opacity="0.85"/>
-        <polygon points="150,95 132,112 142,118" fill="#ffb347" opacity="0.85"/>
-        <!-- 口 -->
-        <polygon points="60,150 160,150 145,178 75,178" fill="#1a0614"/>
-        <polygon points="70,150 82,150 76,164" fill="#fff6e8"/>
-        <polygon points="94,150 106,150 100,166" fill="#fff6e8"/>
-        <polygon points="118,150 130,150 124,166" fill="#fff6e8"/>
-        <polygon points="142,150 154,150 148,164" fill="#fff6e8"/>
-        <polygon points="65,150 55,178 78,166" fill="#fff6e8"/>
-        <polygon points="155,150 165,178 142,166" fill="#fff6e8"/>
-      </svg>
+      <img src="images/akuma.jpg" alt="謎のポリゴン魔人">
     </div>
     <div class="name-tag">謎のポリゴン魔人</div>
     <div class="sound-notice">🔊 このゲームは音が出ます</div>
@@ -452,10 +425,10 @@
   // 背景など単色の広い面はあえて粗いままにして「ポリゴン感」を出しつつ、
   // 目・口・輪郭線などコントラストの強い場所にはEXTRA_POINTSで別途点を密集させる方式にしている
   // （全体を均等に細かくすると処理が重くなるうえ、肝心の顔のパーツがかえって潰れて分かりにくくなるため）
-  const GRID_COLS = 10;   // 土台となる粗い格子の分割数
-  const GRID_ROWS = 10;
+  const GRID_COLS = 8;   // 土台となる粗い格子の分割数（ユーザー提供の参考イラストに寄せて10→8にし、面を大きく・少なくした）
+  const GRID_ROWS = 8;
   const JITTER_RATIO = 0.45; // 格子点をどれだけランダムにずらすか（セルサイズに対する割合）
-  const EXTRA_POINTS = 460;  // エッジ（コントラストの強い場所）に優先的に追加する点の数（260→460に増量。目や口をもっとはっきり残すため）
+  const EXTRA_POINTS = 220;  // エッジ（コントラストの強い場所）に優先的に追加する点の数（460→150→220で再調整。150まで削ったら今度は目が消えてしまったため、目・口を拾える最低限まで戻した）
 
   function buildPoints(w, h, cols, rows, jitterRatio){
     const cellW = w / cols, cellH = h / rows;
@@ -561,7 +534,10 @@
       // さらに、肌色が濃い場所（＝顔である可能性が高い場所）は、エッジでなくても採用率を底上げすることで、
       // 顔の輪郭だけでなく頬など平坦な部分も含めて全体的に細かくポリゴン化されるようにしている
       // （肌色が検出できなかった画像＝人物写真以外では、単に0として扱われ、これまで通りの動作になる）
-      const acceptProb = Math.min(1, Math.sqrt(g) * 1.3 + skin * 0.55 + 0.02);
+      // 点の総数を絞った分、目・口のような小さな特徴を優先して確実に拾えるよう、
+      // エッジ側の重みを肌色側より強くしてある（限られた点数を、面全体に薄く塗るより
+      // 特徴のある場所にきちんと使うため）
+      const acceptProb = Math.min(1, Math.sqrt(g) * 1.9 + skin * 0.3 + 0.015);
       if(Math.random() < acceptProb){ points.push([x, y]); }
     }
     return points;
