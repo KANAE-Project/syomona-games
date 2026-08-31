@@ -110,11 +110,18 @@
   }
   .card-btn:active{ transform:scale(.96); }
   .card-btn:disabled{ opacity:.5; }
-  .card-btn.type-turnend{ background:var(--danger); }
-  .card-btn.type-classchange-normal{ background:linear-gradient(135deg, var(--accent2), #d98a1f); color:#2a1414; }
-  .card-btn.type-classchange-dark{ background:linear-gradient(135deg, #3d2560, #1a1030); color:#c4b5fd; border-color:#8b5cf6; }
-  .card-btn.type-classchange-shine{ background:linear-gradient(135deg, #fff3c4, var(--shine)); color:#2a1414; }
   .card-sub{ display:block; font-size:.7rem; font-weight:normal; opacity:.85; margin-top:2px; }
+
+  /* ==== 裏返しカード（めくるまで中身が分からない） ==== */
+  .card-btn.card-facedown{
+    background:linear-gradient(135deg, #4a1f1f, #2a1010);
+    border:2px solid rgba(245,185,66,.45);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    transition:transform .2s ease;
+  }
+  .card-facedown .facedown-icon{ font-size:1.6rem; }
+  .card-facedown .facedown-label{ font-size:.72rem; font-weight:bold; color:#f6ece0; opacity:.8; }
+  .card-btn.card-facedown.flipping{ transform:scaleX(0); }
 
   .hidden{ display:none !important; }
 
@@ -472,38 +479,39 @@
     return shuffle([{ type: "turnend" }].concat(effectCards));
   }
 
+  // カードは全て裏返しで並べ、めくるまで中身（効果／ターンエンド／クラスチェンジ）は分からない。
   function renderNextTurn(){
     clearCardZone();
     cardZone.classList.remove("cols-3");
     const cards = buildTurnCards();
     cards.forEach(function(card){
-      if(card.type === "effect"){
-        renderCardButton(card.text, "", "type-effect", function(){
-          if(inputLocked) return;
-          onSelectEffect(card.text);
-        });
-      } else if(card.type === "turnend"){
-        renderCardButton("⚠️ ターンエンド", "選ぶとここで終了", "type-turnend", function(){
-          if(inputLocked) return;
-          onSelectTurnEnd();
-        });
-      } else if(card.type === "classchange"){
-        let cls = "type-classchange-normal";
-        if(card.title === "ダーク") cls = "type-classchange-dark";
-        if(card.title === "シャイン") cls = "type-classchange-shine";
-        renderCardButton("☆クラスチェンジ", "『" + card.title + "』", cls, function(){
-          if(inputLocked) return;
-          onSelectClassChange(card.title);
-        });
-      }
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "card-btn card-facedown";
+      btn.innerHTML = "<span class='facedown-icon'>🎴</span><span class='facedown-label'>めくる</span>";
+      btn.addEventListener("click", function(){
+        if(inputLocked) return;
+        inputLocked = true;
+        lockCards();
+        btn.classList.add("flipping");
+        setTimeout(function(){
+          if(card.type === "effect"){ onSelectEffect(card.text); }
+          else if(card.type === "turnend"){ onSelectTurnEnd(); }
+          else if(card.type === "classchange"){ onSelectClassChange(card.title); }
+        }, 220);
+      });
+      cardZone.appendChild(btn);
     });
   }
+
+  // めくった効果カードの前振りセリフ（毎回ランダムに変える）
+  const continuePhrases = ["さらに・・", "カードの効果で・・", "追加効果・・"];
 
   async function onSelectEffect(text){
     inputLocked = true;
     lockCards();
     effectsList.push(text);
-    addLog(text + "！");
+    addLog(pick(continuePhrases) + text + "！");
     await wait(450);
     inputLocked = false;
     renderNextTurn();
@@ -536,7 +544,7 @@
     inputLocked = true;
     lockCards();
     gameOver = true;
-    addLog("ターンエンド…決着！", "turnend");
+    addLog("ターンエンド！", "turnend");
     await wait(600);
     showResult();
   }
