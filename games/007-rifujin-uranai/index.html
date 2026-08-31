@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>みんな大好き！理不尽うらない</title>
+<meta property="og:title" content="みんな大好き！理不尽うらない">
+<meta property="og:description" content="名前を入れると、タロットや水晶玉であなたを占ってくれる…けど結果はやたら地味な、しょーもないジョークゲーム">
+<meta property="og:image" content="https://kanae-project.github.io/syomona-games/games/007-rifujin-uranai/og-image.png">
+<meta property="og:url" content="https://kanae-project.github.io/syomona-games/games/007-rifujin-uranai/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://kanae-project.github.io/syomona-games/games/007-rifujin-uranai/og-image.png">
+<style>
+  :root{
+    --bg1:#241a3d;
+    --bg2:#3a2a5c;
+    --bubble:#fff8e6;
+    --ink:#2a1e40;
+    --accent:#c9a227;
+    --accent2:#8e44ad;
+    --star:#f4e4a6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 75%);
+    color:#f3ece0;
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.35rem; margin:0 0 4px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:18px; }
+  .stage{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:22px;
+    padding:22px 16px 26px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+
+  .diviner{
+    display:block;
+    margin:0 auto 6px;
+    width:150px;
+    height:150px;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));
+  }
+  .name-tag{
+    text-align:center;
+    font-weight:bold;
+    color:var(--star);
+    margin-bottom:14px;
+    font-size:.95rem;
+  }
+  .sound-notice{
+    display:block;
+    text-align:center;
+    font-size:1rem;
+    font-weight:900;
+    color:#2a1e40;
+    background:var(--accent);
+    padding:8px 20px;
+    border-radius:999px;
+    margin:0 auto 14px;
+    max-width:280px;
+  }
+  .bubble{
+    position:relative;
+    background:var(--bubble);
+    color:var(--ink);
+    border:3px solid var(--accent2);
+    border-radius:18px;
+    padding:14px 16px;
+    margin:0 auto 16px;
+    max-width:360px;
+    font-size:1rem;
+    line-height:1.6;
+    opacity:0;
+    transform:translateY(8px) scale(.97);
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .bubble::after{
+    content:""; position:absolute; left:30px; bottom:-14px;
+    border:10px solid transparent; border-top-color:var(--accent2);
+  }
+  .bubble::before{
+    content:""; position:absolute; left:33px; bottom:-9px;
+    border:8px solid transparent; border-top-color:var(--bubble); z-index:1;
+  }
+  .bubble.show{ opacity:1; transform:translateY(0) scale(1); }
+  .bubble.shake{ animation:shake .4s ease; }
+  @keyframes shake{
+    0%,100%{transform:translateY(0) scale(1) rotate(0);}
+    25%{transform:translateY(0) scale(1.03) rotate(-1.5deg);}
+    75%{transform:translateY(0) scale(1.03) rotate(1.5deg);}
+  }
+
+  .method-emoji{ font-size:1.6rem; margin-right:6px; }
+  .result-bubble{ text-align:center; }
+  .result-line{
+    font-size:1.2rem;
+    font-weight:bold;
+    color:var(--accent2);
+    text-align:center;
+    margin-bottom:4px;
+  }
+  .prediction-line{
+    text-align:center;
+    color:var(--ink);
+  }
+
+  form.ask{
+    display:flex;
+    gap:8px;
+    max-width:360px;
+    margin:0 auto;
+  }
+  input[type=text]{
+    flex:1;
+    padding:10px 12px;
+    border-radius:12px;
+    border:2px solid var(--accent2);
+    font-size:1rem;
+    min-width:0;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    padding:10px 16px;
+    font-size:.95rem;
+    font-weight:bold;
+    background:var(--accent);
+    color:#2a1e40;
+    transition:transform .15s ease;
+  }
+  button:active{transform:scale(.95);}
+  button.secondary{
+    background:var(--accent2);
+    color:#fff;
+  }
+  .actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+    margin-top:18px;
+  }
+  .hidden{display:none !important;}
+
+  .grade-zone{
+    margin-top:26px;
+    padding-top:16px;
+    border-top:1px dashed rgba(255,255,255,.25);
+    text-align:center;
+  }
+  .grade-cta{
+    background:rgba(201,162,39,.08);
+    border:3px dashed var(--accent);
+    border-radius:18px;
+    padding:18px 14px;
+  }
+  .grade-headline{
+    font-size:1.15rem;
+    font-weight:bold;
+    color:var(--accent);
+    margin-bottom:6px;
+  }
+  .grade-price{
+    display:inline-block; background:rgba(255,255,255,.1); color:#fff;
+    font-size:.85rem; font-weight:bold; padding:4px 14px; border-radius:999px;
+    margin-bottom:10px; border:1px solid var(--accent);
+  }
+  .note-link-btn{
+    display:block;
+    background:#41c9b4;
+    color:#fff;
+    font-size:1.15rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:16px 14px;
+    border-radius:14px;
+    margin-bottom:14px;
+    box-shadow:0 4px 0 #2e9c8c;
+  }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{
+    font-size:.85rem;
+    font-weight:bold;
+    color:#f3ece0;
+    margin-bottom:14px;
+  }
+  .grade-form{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-width:320px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .grade-form input[type=text]{ text-align:center; }
+  .grade-form #unlockBtn{
+    font-size:1.05rem;
+    padding:13px 16px;
+    background:var(--accent2);
+    color:#fff;
+  }
+  .grade-msg{ font-size:.8rem; margin-top:8px; }
+  .unlocked-badge{
+    display:inline-block;
+    background:var(--accent2);
+    color:#fff;
+    font-size:.7rem;
+    padding:3px 10px;
+    border-radius:999px;
+    margin-top:8px;
+    margin-bottom:14px;
+  }
+
+  .gallery{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-width:340px;
+    margin:0 auto;
+  }
+  .gallery-item{
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.2);
+    border-radius:14px;
+    padding:12px 14px;
+    text-align:left;
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .gallery-item .g-emoji{ font-size:1.8rem; line-height:1; }
+  .gallery-name{ font-weight:bold; color:var(--star); margin-bottom:2px; }
+  .gallery-desc{ font-size:.78rem; opacity:.85; line-height:1.6; }
+
+  .back-link{
+    display:inline-block; font-size:.8rem; font-weight:700;
+    color:#f3ece0; opacity:.65; text-decoration:none; margin-bottom:10px;
+  }
+  .back-link:hover{ opacity:1; }
+  .back-link-btn{
+    display:block; background:var(--accent); color:#2a1e40;
+    font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:14px 16px; border-radius:14px; margin-top:20px;
+    box-shadow:0 4px 0 var(--accent2);
+  }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2); }
+
+  .submit-zone{ display:none; } /* このゲームでは募集企画は当面なし */
+
+  .x-share-zone{
+    margin-top:26px;
+    padding-top:16px;
+    border-top:1px dashed rgba(255,255,255,.25);
+    text-align:center;
+  }
+  .x-link-btn{
+    display:block;
+    background:#000;
+    color:#fff;
+    font-size:1rem;
+    font-weight:900;
+    text-decoration:none;
+    text-align:center;
+    padding:14px 14px;
+    border-radius:14px;
+    box-shadow:0 4px 0 #444;
+    border:none;
+    width:100%;
+    max-width:320px;
+    margin:0 auto;
+    cursor:pointer;
+  }
+  .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
+  .x-share-title{
+    font-size:1rem;
+    font-weight:bold;
+    color:var(--star);
+    margin-bottom:12px;
+  }
+
+  .usage-notice{
+    margin-top:18px;
+    font-size:.72rem;
+    line-height:1.8;
+    opacity:.85;
+    text-align:left;
+    background:rgba(255,255,255,.06);
+    border-radius:10px;
+    padding:12px 14px;
+    border:1px solid rgba(255,255,255,.16);
+  }
+  .usage-notice .usage-title{
+    font-weight:bold;
+    color:var(--star);
+    display:block;
+    margin-bottom:4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <h1>みんな大好き！理不尽うらない</h1>
+  <div class="sub">名前を入れると、あなたの運勢を占ってくれます（結果は地味です）</div>
+
+  <div class="stage">
+    <svg class="diviner" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- 星の背景 -->
+      <g fill="#f4e4a6" opacity=".8">
+        <circle cx="30" cy="30" r="2"/>
+        <circle cx="170" cy="25" r="2.5"/>
+        <circle cx="20" cy="90" r="1.8"/>
+        <circle cx="180" cy="100" r="2"/>
+        <circle cx="40" cy="160" r="1.6"/>
+        <circle cx="165" cy="165" r="2.2"/>
+      </g>
+      <!-- ローブ -->
+      <path d="M40 195 Q35 110 100 100 Q165 110 160 195 Z" fill="#4b2e77" stroke="#1c1230" stroke-width="3"/>
+      <path d="M40 195 Q35 110 100 100 Q165 110 160 195 Z" fill="none" stroke="#c9a227" stroke-width="1.5" opacity=".5"/>
+      <!-- フード -->
+      <path d="M55 95 Q60 30 100 24 Q140 30 145 95 Q120 78 100 78 Q80 78 55 95 Z" fill="#3a2260" stroke="#1c1230" stroke-width="3"/>
+      <!-- 顔の影 -->
+      <ellipse cx="100" cy="92" rx="34" ry="30" fill="#241a3d"/>
+      <!-- 光る目 -->
+      <circle cx="88" cy="90" r="4" fill="#f4e4a6"/>
+      <circle cx="112" cy="90" r="4" fill="#f4e4a6"/>
+      <circle cx="88" cy="90" r="4" fill="#f4e4a6" opacity=".6">
+        <animate attributeName="opacity" values="0.6;1;0.6" dur="2.4s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="112" cy="90" r="4" fill="#f4e4a6" opacity=".6">
+        <animate attributeName="opacity" values="0.6;1;0.6" dur="2.4s" repeatCount="indefinite"/>
+      </circle>
+      <!-- 星の杖飾り -->
+      <path d="M100 26 l3 7 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1 z" fill="#f4e4a6" stroke="#8e44ad" stroke-width="1"/>
+    </svg>
+    <div class="name-tag">占い師</div>
+    <div class="sound-notice">🔊 このゲームは音が出ます</div>
+
+    <div id="bubble-ask" class="bubble show">
+      うらないを、ご所望ですね・・？<br>あなたの名前を教えてくださいまし・・
+    </div>
+
+    <form class="ask" id="askForm">
+      <input type="text" id="nameInput" placeholder="例：たろう" maxlength="12" required autocomplete="off">
+      <button type="submit">占ってもらう</button>
+    </form>
+
+    <div id="resultZone" class="hidden">
+      <div id="flowZone"></div>
+
+      <div class="actions">
+        <button type="button" class="secondary" id="retryBtn">もう一回占ってもらう</button>
+      </div>
+    </div>
+
+    <div class="grade-zone">
+      <div class="grade-cta" id="gradeForm">
+        <div class="grade-headline">損しかない課金はこちら💁</div>
+        <div class="grade-price">🪙 ワンコイン500円</div>
+        <a href="#" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
+        <div class="grade-teaser">課金すると、占い師のありがたい贈り物ギャラリーが見られるようになるぞ！</div>
+        <div class="grade-form">
+          <input type="text" id="passwordInput" placeholder="合言葉">
+          <button type="button" id="unlockBtn">解放する</button>
+        </div>
+      </div>
+      <div id="gradeMsg" class="grade-msg"></div>
+      <div id="unlockedZone" class="hidden">
+        <span class="unlocked-badge">グレードアップ解放済み</span>
+        <div class="gallery">
+          <div class="gallery-item">
+            <div class="g-emoji">📿</div>
+            <div>
+              <div class="gallery-name">開運の数珠</div>
+              <div class="gallery-desc">本来50万円のところ、あなたには特別に…見せるだけです（差し上げません）。</div>
+            </div>
+          </div>
+          <div class="gallery-item">
+            <div class="g-emoji">🏺</div>
+            <div>
+              <div class="gallery-name">福を呼ぶ壺</div>
+              <div class="gallery-desc">水を入れると健康になるとかならないとか（なりません）。</div>
+            </div>
+          </div>
+          <div class="gallery-item">
+            <div class="g-emoji">🐬</div>
+            <div>
+              <div class="gallery-name">幸せのイルカの絵</div>
+              <div class="gallery-desc">リビングに飾ると運気が下がることはありません（上がりもしません）。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="x-share-zone">
+      <div class="x-share-title">このゲームを拡散！</div>
+      <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xでシェアする</button>
+    </div>
+
+    <div class="usage-notice">
+      <span class="usage-title">🎥 実況・動画での使用について</span>
+      「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
+      それ以外は自由に、しょーもなく広めていただけると嬉しいです。
+    </div>
+  </div>
+
+  <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<script>
+(function(){
+  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/007-rifujin-uranai/";
+
+  // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
+  const PASSWORD = "運命はガチャである";
+  // ==== 全ゲーム共通「ブルジョワ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
+  const MASTER_PASSWORD = "沼へようこそ";
+  const STORAGE_KEY = "rifujin_uranai_unlocked";
+
+  function greetLine(name){
+    return name + "さんですね・・あなたの運勢、全部見えていますよウフフフフ・・";
+  }
+
+  const divinationMethods = [
+    {emoji:"🃏", line:"カードをめくってみましょう…あら、面白いカードが出ましたね…"},
+    {emoji:"🎋", line:"棒を振ってみましょう…卦が出ました…なるほど、なるほど…"},
+    {emoji:"📜", line:"おみくじを引いてみましょう…引きましたね…"},
+    {emoji:"🔮", line:"水晶玉を覗いてみましょう…何か見えてきましたね…"},
+    {emoji:"✨", line:"星々の並びを見てみましょう…今日は面白い配置ですね…"},
+    {emoji:"🖐️", line:"手のひらを見せてくださいまし…なるほど、これは…"}
+  ];
+
+  // "{name}" を含む項目は、抽選時に入力された名前へ自動で置き換わる
+  const resultCategories = [
+    "{name}末吉",
+    "ファビュラス大吉",
+    "マーベラス小吉",
+    "微凶",
+    "極小凶",
+    "情熱吉",
+    "ウルトラ吉",
+    "ゴージャス小吉",
+    "まあ・・大吉",
+    "フレンドリー吉",
+    "微妙に吉",
+    "超絶小凶",
+    "奇跡の末吉",
+    "凶",
+    "なんとなく凶",
+    "たぶん吉",
+    "激レア！超普通",
+    "ハイパーメディアクリエイト吉",
+    "凶よりの凶",
+    "キャンドル吉",
+    "美魔吉",
+    "老害凶",
+    "筋肉吉",
+    "細めの中吉",
+    "薄々小吉",
+    "ギリギリ末吉",
+    "スタイリッシュ凶",
+    "超弩級大吉",
+    "吉",
+    "全米が泣いた大吉"
+  ];
+
+  const predictions = [
+    "冷蔵庫を開けた瞬間、何を取りに来たか忘れるかも…",
+    "ティッシュを1枚取ったつもりが、2枚ついてくるかも…",
+    "スマホを探しながら、手に持っているスマホを見つけるかも…",
+    "電子レンジの残り1秒を見届けてしまうかも…",
+    "靴を履いたあとに、左右がこれで合ってるか一瞬不安になるかも…",
+    "レジ袋をなかなか開けられないかも…",
+    "つり革がニチャっとするかも…",
+    "信号が変わる直前に横断歩道に着くかも…",
+    "コンビニで「レシートいりますか？」に一瞬迷うかも…",
+    "くしゃみが2回連続で出るかも…",
+    "靴下の片方だけ先に脱げるかも…",
+    "エレベーターの、もう押されてるボタンをまた押しちゃうかも…",
+    "傘立てで似た傘と一瞬迷うかも…",
+    "コップの底に少し飲み物が残ってることに気づくかも…",
+    "自動ドアが検知してくれないかも…",
+    "1回閉じたアプリを1秒後にまた開いちゃうかも…",
+    "ぬるくなったお茶を飲み干すタイミングに迷うかも…",
+    "自動改札で一瞬だけ「ICカード入ってるかな？」と不安になるかも…",
+    "湯船に浸かった瞬間に「あ、スマホ忘れた」って思い出すかも…",
+    "爪切りで最後に切った1本だけ明後日の方向に飛んでいくかも…",
+    "前を歩いている人の傘がぶっ刺さるかも…",
+    "お互いに道を譲ろうとして反復横跳びし続けるかも…",
+    "お手洗いで自動のライトが消えて手をブンブンするかも…",
+    "「鍵かけたっけ？」と不安になるかも…",
+    "「幸せってなんだろう」と考えるかも…",
+    "鏡を見たらいつも以上に盛れてるかも…",
+    "セルフレジに行くか、有人レジに行くか迷うかも…",
+    "「人生ってステキ☆彡」と感激することがあるかも…"
+  ];
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function pickN(arr, n){
+    const copy = arr.slice();
+    const out = [];
+    for(let i=0; i<n && copy.length; i++){
+      const idx = Math.floor(Math.random()*copy.length);
+      out.push(copy.splice(idx,1)[0]);
+    }
+    return out;
+  }
+
+  // ==== 占い師の声（Web Speech API） ====
+  // 占い師らしいゆっくり低めの声にするため、rate/pitchはおばちゃんより下げてある。
+  //
+  // 2026年8月31日変更: 当初は固定の待ち時間でメッセージを1つずつ表示していたが、
+  // セリフの長さによって実際の読み上げ時間がバラバラなため、
+  // 「まだ前のセリフを話している途中なのに次のメッセージが表示される」ズレが発生していた。
+  // → speakAndWait() で「実際に読み上げが終わるまで待ってから次に進む」方式に変更し、
+  //    メッセージの表示と音声が必ず同期するようにした。
+  function wait(ms){
+    return new Promise(function(resolve){ setTimeout(resolve, ms); });
+  }
+  function speakAndWait(text){
+    return new Promise(function(resolve){
+      try{
+        if(!("speechSynthesis" in window)){ resolve(); return; }
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "ja-JP";
+        u.rate = 0.95;
+        u.pitch = 0.75;
+        let done = false;
+        function finish(){ if(!done){ done = true; resolve(); } }
+        u.onend = finish;
+        u.onerror = finish;
+        window.speechSynthesis.speak(u);
+        // onendが発火しない環境向けの保険（文字数から概算した上限時間で必ず先へ進める）
+        setTimeout(finish, Math.max(1500, text.length * 220));
+      }catch(e){ resolve(); }
+    });
+  }
+  function stopSpeaking(){
+    try{ if("speechSynthesis" in window){ window.speechSynthesis.cancel(); } }catch(e){}
+  }
+
+  let lastResult = null;
+  let runToken = 0; // 「もう一回」で古い読み上げ待ちが後から割り込まないようにするための世代番号
+
+  const askForm = document.getElementById("askForm");
+  const askBtn = askForm.querySelector("button[type=submit]");
+  const resultZone = document.getElementById("resultZone");
+  const flowZone = document.getElementById("flowZone");
+  const retryBtn = document.getElementById("retryBtn");
+
+  // セリフを1つずつ「下に積み上げる」形式で表示する。
+  // 過去のセリフは消さずに残すことで、チャットログのように後から読み返せるし、
+  // 何が出るか分からないまま次々と積み上がっていくワクワク感を出す狙い。
+  function addBubble(html, shake, center){
+    const el = document.createElement("div");
+    el.className = "bubble" + (center ? " result-bubble" : "");
+    el.innerHTML = html;
+    flowZone.appendChild(el);
+    // 追加した直後にshowクラスを付けることで、フェードイン用のtransitionを効かせる
+    requestAnimationFrame(function(){
+      el.classList.add("show");
+      if(shake){ el.classList.add("shake"); }
+    });
+    el.scrollIntoView({ behavior:"smooth", block:"nearest" });
+  }
+
+  function resetBubbles(){
+    flowZone.innerHTML = "";
+  }
+
+  askForm.addEventListener("submit", async function(e){
+    e.preventDefault();
+    const name = document.getElementById("nameInput").value.trim();
+    if(!name) return;
+
+    runToken++;
+    const myToken = runToken;
+    function isCurrent(){ return myToken === runToken; }
+
+    stopSpeaking();
+    resetBubbles();
+    resultZone.classList.remove("hidden");
+    askBtn.disabled = true;
+
+    const methods = pickN(divinationMethods, 3);
+    const category = pick(resultCategories).replace("{name}", name);
+    const prediction = pick(predictions);
+    lastResult = { name: name, category: category, prediction: prediction };
+
+    const warningLine = "占いの結果は決して悪用してはなりませんよ・・・";
+    const resultSpeakLine = name + "さんの今日の運勢は……「" + category + "」です。" + prediction + warningLine;
+    const resultHtml =
+      "<div class='result-line'>" + name + "さんの今日の運勢は……</div>" +
+      "<div class='result-line' style='font-size:1.5rem;'>「" + category + "」</div>" +
+      "<div class='prediction-line'>" + prediction + "</div>" +
+      "<div class='prediction-line'>" + warningLine + "</div>";
+
+    document.getElementById("nameInput").value = "";
+
+    await wait(300);
+    if(!isCurrent()) return;
+    const greet = greetLine(name);
+    addBubble(greet, false, false);
+    await speakAndWait(greet);
+    if(!isCurrent()) return;
+    await wait(500);
+
+    for(let i=0; i<methods.length; i++){
+      if(!isCurrent()) return;
+      const m = methods[i];
+      addBubble("<span class='method-emoji'>" + m.emoji + "</span>" + m.line, true, false);
+      await speakAndWait(m.line);
+      if(!isCurrent()) return;
+      await wait(500);
+    }
+
+    if(!isCurrent()) return;
+    addBubble(resultHtml, true, true);
+    await speakAndWait(resultSpeakLine);
+    if(!isCurrent()) return;
+
+    askBtn.disabled = false;
+  });
+
+  retryBtn.addEventListener("click", function(){
+    runToken++; // 実行中の読み上げ待ちがあれば、その後続処理を無効化する
+    stopSpeaking();
+    resultZone.classList.add("hidden");
+    resetBubbles();
+    askBtn.disabled = false;
+    document.getElementById("nameInput").focus();
+  });
+
+  // ==== グレードアップ（合言葉）まわり ====
+  const gradeForm = document.getElementById("gradeForm");
+  const unlockBtn = document.getElementById("unlockBtn");
+  const gradeMsg = document.getElementById("gradeMsg");
+  const unlockedZone = document.getElementById("unlockedZone");
+
+  function safeGet(key){
+    try { return localStorage.getItem(key); } catch(e){ return null; }
+  }
+  function safeSet(key, val){
+    try { localStorage.setItem(key, val); } catch(e){ /* 保存できなくても解放処理自体は続行する */ }
+  }
+
+  function setUnlocked(){
+    gradeForm.classList.add("hidden");
+    gradeMsg.textContent = "";
+    unlockedZone.classList.remove("hidden");
+  }
+
+  if(safeGet(STORAGE_KEY) === "1"){
+    setUnlocked();
+  }
+
+  unlockBtn.addEventListener("click", function(){
+    const val = document.getElementById("passwordInput").value.trim();
+    if(val === PASSWORD || val === MASTER_PASSWORD){
+      safeSet(STORAGE_KEY, "1");
+      setUnlocked();
+    } else {
+      gradeMsg.textContent = "違うようです、もう一度確認してくださいまし…";
+    }
+  });
+
+  // ==== X（旧Twitter）投稿ボタン ====
+  // href に直接URLを書かず、押した時にJSでURLを組み立てて開く方式にしている。
+  // 一部ブラウザのコンテンツブロッカーが静的な intent/tweet リンクをSNSシェアボタンとみなして
+  // 非表示にしてしまう不具合が過去にあったための対策。
+  const xShareBtn = document.getElementById("xShareBtn");
+  if(xShareBtn){
+    xShareBtn.addEventListener("click", function(){
+      const cat = lastResult ? lastResult.category : "ファビュラス大吉";
+      const text = "占ってもらったら「" + cat + "」でした…\nCMなしの0秒ブラウザゲーム！";
+      const url = "https://x.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(GAME_URL);
+      window.open(url, "_blank", "noopener");
+    });
+  }
+})();
+</script>
+</body>
+</html>
