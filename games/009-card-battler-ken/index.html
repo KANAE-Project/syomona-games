@@ -174,7 +174,7 @@
     font-size:.78rem;
     line-height:27px;
   }
-  .result-back .effect-line{ border-bottom:1px dashed rgba(0,0,0,.08); }
+  .effect-sentence{ word-break:break-word; }
   .result-empty{ font-size:.8rem; opacity:.6; text-align:center; padding:8px 0; }
 
   .actions{ display:flex; justify-content:center; margin-top:14px; }
@@ -544,6 +544,18 @@
 
   // めくった効果カードの前振りセリフ（毎回ランダムに変える）
   const continuePhrases = ["さらに・・・", "カードの効果で・・・", "追加効果・・・"];
+  // 裏面の「びっしり長文」用の接続句（前振りセリフから「・・・」を除いたもの）
+  const resultConnectors = ["さらに", "カードの効果で", "追加効果で"];
+
+  // 選んだ効果を全部つなげて、句読点なしでダラダラ続く長文にする（箇条書きより「びっしり感」が出る）
+  function buildResultSentence(list){
+    if(list.length === 0) return "";
+    let sentence = list[0];
+    for(let i = 1; i < list.length; i++){
+      sentence += "、" + pick(resultConnectors) + list[i];
+    }
+    return sentence + "。";
+  }
 
   function classChangeRevealInfo(title){
     if(title === "ダーク") return { emoji: "🌑", text: "闇に堕ちた…！", cls: "reveal-dark" };
@@ -629,12 +641,10 @@
     if(effectsList.length === 0){
       resultBack.innerHTML = "<div class='result-empty'>裏面はまだ真っ白……あっという間の決着でした。</div>";
     } else {
-      effectsList.forEach(function(text){
-        const line = document.createElement("div");
-        line.className = "effect-line";
-        line.textContent = "・" + text;
-        resultBack.appendChild(line);
-      });
+      const p = document.createElement("div");
+      p.className = "effect-sentence";
+      p.textContent = buildResultSentence(effectsList);
+      resultBack.appendChild(p);
     }
     resultZone.classList.remove("hidden");
   }
