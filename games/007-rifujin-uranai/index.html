@@ -230,29 +230,25 @@
   .gallery{
     display:flex;
     flex-direction:column;
-    gap:10px;
-    max-width:340px;
-    margin:0 auto;
+    gap:26px;
+    align-items:center;
   }
-  .gallery-item{
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.2);
-    border-radius:14px;
-    padding:12px 14px;
-    text-align:left;
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
+  .gallery-card{ width:220px; text-align:center; }
+  .gallery-card-visual{
+    width:220px; height:220px;
+    margin:0 auto 10px;
+    border-radius:20px;
+    overflow:hidden;
+    border:4px solid var(--accent);
+    box-shadow:0 0 20px rgba(201,162,39,.4), 0 6px 16px rgba(0,0,0,.4);
+    background:rgba(255,255,255,.06);
+    display:flex; align-items:center; justify-content:center;
   }
-  .gallery-item .g-emoji{ font-size:1.8rem; line-height:1; }
-  .gallery-img{
-    width:72px; height:72px; object-fit:cover; border-radius:10px;
-    border:2px solid rgba(255,255,255,.3); flex-shrink:0;
-  }
-  .gallery-img-pair{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
-  .gallery-img-pair .gallery-img{ width:72px; height:34px; }
-  .gallery-name{ font-weight:bold; color:var(--star); margin-bottom:2px; }
-  .gallery-desc{ font-size:.78rem; opacity:.85; line-height:1.6; }
+  .gallery-card-visual.paper-bg{ background:#fdf8ee; }
+  .gallery-card-visual img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .inkan-stamp-svg{ width:100%; height:100%; }
+  .gallery-name{ font-weight:bold; color:var(--star); margin-bottom:4px; font-size:1.05rem; }
+  .gallery-desc{ font-size:.8rem; opacity:.85; line-height:1.6; }
 
   .back-link{
     display:inline-block; font-size:.8rem; font-weight:700;
@@ -362,36 +358,50 @@
       <div id="unlockedZone" class="hidden">
         <span class="unlocked-badge">グレードアップ解放済み</span>
         <div class="gallery">
-          <div class="gallery-item">
-            <img class="gallery-img" src="images/juzu.png" alt="開運の数珠" loading="lazy">
-            <div>
-              <div class="gallery-name">開運の数珠</div>
-              <div class="gallery-desc">本来50万円のところ、あなたには特別に…見せるだけです（差し上げません）。</div>
+          <div class="gallery-card">
+            <div class="gallery-card-visual paper-bg">
+              <svg viewBox="0 0 220 220" class="inkan-stamp-svg">
+                <defs>
+                  <filter id="inkRough" x="-30%" y="-30%" width="160%" height="160%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" seed="4" result="noise"/>
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="7"/>
+                  </filter>
+                </defs>
+                <g filter="url(#inkRough)" transform="rotate(-4 110 110)">
+                  <circle cx="110" cy="110" r="92" fill="none" stroke="#a8362a" stroke-width="9" opacity="0.82"/>
+                  <circle cx="110" cy="110" r="74" fill="none" stroke="#a8362a" stroke-width="3" opacity="0.6"/>
+                  <text id="customInkanName" x="110" y="122" text-anchor="middle" textLength="130" lengthAdjust="spacingAndGlyphs" font-family="'Yu Gothic','Hiragino Maru Gothic ProN',sans-serif" font-weight="900" font-size="28" fill="#a8362a" opacity="0.85">占ってね</text>
+                </g>
+                <g opacity="0.55" filter="url(#inkRough)">
+                  <ellipse cx="72" cy="58" rx="14" ry="10" fill="#fdf8ee"/>
+                  <ellipse cx="152" cy="167" rx="16" ry="9" fill="#fdf8ee"/>
+                  <ellipse cx="163" cy="72" rx="8" ry="14" fill="#fdf8ee"/>
+                </g>
+              </svg>
             </div>
+            <div class="gallery-name">オリジナル印鑑</div>
+            <div class="gallery-desc">あなたの名前入り。実印としては使えません（そもそも紙にもなりません）。</div>
           </div>
-          <div class="gallery-item">
-            <img class="gallery-img" src="images/tsubo.jpg" alt="福を呼ぶ壺" loading="lazy">
-            <div>
-              <div class="gallery-name">福を呼ぶ壺</div>
-              <div class="gallery-desc">水を入れると健康になるとかならないとか（なりません）。</div>
+          <div class="gallery-card">
+            <div class="gallery-card-visual">
+              <img src="images/juzu.png" alt="開運の数珠" loading="lazy">
             </div>
+            <div class="gallery-name">開運の数珠</div>
+            <div class="gallery-desc">本来50万円のところ、あなたには特別に…見せるだけです（差し上げません）。</div>
           </div>
-          <div class="gallery-item">
-            <div class="gallery-img-pair">
-              <img class="gallery-img" src="images/iruka1.png" alt="幸せのイルカの絵（その1）" loading="lazy">
-              <img class="gallery-img" src="images/iruka2.jpg" alt="幸せのイルカの絵（その2）" loading="lazy">
+          <div class="gallery-card">
+            <div class="gallery-card-visual">
+              <img src="images/tsubo.jpg" alt="福を呼ぶ壺" loading="lazy">
             </div>
-            <div>
-              <div class="gallery-name">幸せのイルカの絵</div>
-              <div class="gallery-desc">2枚セットで満足感2倍。リビングに飾ると運気が下がることはありません（上がりもしません）。</div>
-            </div>
+            <div class="gallery-name">福を呼ぶ壺</div>
+            <div class="gallery-desc">水を入れると健康になるとかならないとか（なりません）。</div>
           </div>
-          <div class="gallery-item">
-            <img class="gallery-img" src="images/kaiun-inkan.png" alt="開運印鑑" loading="lazy">
-            <div>
-              <div class="gallery-name">開運印鑑</div>
-              <div class="gallery-desc">鑑定書付き。押すたびに運気が上がるとかどうとか（上がりません）。</div>
+          <div class="gallery-card">
+            <div class="gallery-card-visual">
+              <img id="irukaImg" src="images/iruka1.png" alt="幸せのイルカの絵" loading="lazy">
             </div>
+            <div class="gallery-name">幸せのイルカの絵</div>
+            <div class="gallery-desc">リビングに飾ると運気が下がることはありません（上がりもしません）。</div>
           </div>
         </div>
       </div>
@@ -553,6 +563,18 @@
   const resultZone = document.getElementById("resultZone");
   const flowZone = document.getElementById("flowZone");
   const retryBtn = document.getElementById("retryBtn");
+  const customInkanName = document.getElementById("customInkanName");
+
+  // グレードアップ特典「オリジナル印鑑」に、占ってもらった名前を反映する
+  function updateCustomInkanStamp(name){
+    if(customInkanName){ customInkanName.textContent = name; }
+  }
+
+  // グレードアップ特典「幸せのイルカの絵」は毎回ランダムでどちらか1枚を表示する
+  const irukaImg = document.getElementById("irukaImg");
+  if(irukaImg){
+    irukaImg.src = Math.random() < 0.5 ? "images/iruka1.png" : "images/iruka2.jpg";
+  }
 
   // セリフを1つずつ「下に積み上げる」形式で表示する。
   // 過去のセリフは消さずに残すことで、チャットログのように後から読み返せるし、
@@ -592,8 +614,9 @@
     const category = pick(resultCategories).replace("{name}", name);
     const prediction = pick(predictions);
     lastResult = { name: name, category: category, prediction: prediction };
+    updateCustomInkanStamp(name);
 
-    const warningLine = "占いの結果は決して悪用してはなりませんよ・・・";
+    const warningLine = "ウフフフフ・・・";
     const resultSpeakLine = name + "さんの今日の運勢は……「" + category + "」です。" + prediction + warningLine;
     const resultHtml =
       "<div class='result-line'>" + name + "さんの今日の運勢は……</div>" +
