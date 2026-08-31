@@ -123,6 +123,28 @@
   .card-facedown .facedown-label{ font-size:.72rem; font-weight:bold; color:#f6ece0; opacity:.8; }
   .card-btn.card-facedown.flipping{ transform:scaleX(0); }
 
+  /* ==== めくった中身を大きく見せる演出カード ==== */
+  .reveal-card{
+    background:linear-gradient(160deg, rgba(245,185,66,.18), rgba(224,71,44,.18));
+    border:3px solid var(--accent2);
+    border-radius:18px;
+    padding:28px 16px;
+    text-align:center;
+    margin-bottom:6px;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(0,0,0,.35);
+    transition:transform .15s ease;
+  }
+  .reveal-card:active{ transform:scale(.97); }
+  .reveal-card.reveal-dark{ background:linear-gradient(160deg, rgba(139,92,246,.3), rgba(20,10,30,.9)); border-color:#8b5cf6; }
+  .reveal-card.reveal-shine{ background:linear-gradient(160deg, rgba(255,243,196,.4), rgba(240,208,96,.25)); border-color:var(--shine); }
+  .reveal-card.reveal-turnend-card{ background:linear-gradient(160deg, rgba(192,57,43,.35), rgba(80,20,20,.4)); border-color:var(--danger); }
+  .reveal-emoji{ font-size:2.6rem; margin-bottom:8px; }
+  .reveal-phrase{ font-size:1.25rem; font-weight:900; color:var(--accent2); }
+  .reveal-name{ font-size:1.25rem; font-weight:900; color:#fff; }
+  .reveal-sub{ font-size:.85rem; opacity:.85; margin-top:4px; }
+  .reveal-hint{ font-size:.72rem; opacity:.7; margin-top:12px; }
+
   .hidden{ display:none !important; }
 
   .result-box{
@@ -259,6 +281,7 @@
     <div class="log-zone" id="logZone"></div>
 
     <div id="cardZone" class="card-grid cols-3"></div>
+    <div id="revealCard" class="reveal-card hidden"></div>
 
     <div id="resultZone" class="hidden">
       <div class="result-box">
@@ -326,33 +349,34 @@
 
   const normalTitles = ["スペリオール", "マスター", "エクセルシオール", "ファウンディング"];
 
+  // カード裏面の演出でそのまま「絵文字＋名前」を表示するため、効果は名前と絵文字のペアで持つ
   const effectPool = [
-    "ファイヤーブレスを発動",
-    "アイスニードルシャワーを発動",
-    "サンダーインパクトを発動",
-    "イグザクトリーチェインを発動",
-    "ソウルイーターを発動",
-    "ミラクルジェネシスを発動",
-    "デッドリーテンションを発動",
-    "スパイシーカレーブレスを発動",
-    "ドラゴンネイルアートを発動",
-    "プリティポメラニアンを発動",
-    "のろいのわら人形を発動",
-    "うたた寝タイムを発動",
-    "二度寝コンボを発動",
-    "スーパーやきいもボンバーを発動",
-    "ぎっくり腰を発動",
-    "ネコパンチプラスを発動",
-    "かくれんぼマスタリーを発動",
-    "しょうゆさし補充を発動",
-    "カリスマオーラを発動",
-    "アンラッキーホールを発動",
-    "だいたい合ってる占いを発動",
-    "サイレントいびきを発動",
-    "しっぽフリフリムーブを発動",
-    "マジカルおにぎりを発動",
-    "謎の筋肉痛を発動",
-    "満腹コンボを発動"
+    { name: "ファイヤーブレス", emoji: "🔥" },
+    { name: "アイスニードルシャワー", emoji: "❄️" },
+    { name: "サンダーインパクト", emoji: "⚡" },
+    { name: "イグザクトリーチェイン", emoji: "⛓️" },
+    { name: "ソウルイーター", emoji: "👻" },
+    { name: "ミラクルジェネシス", emoji: "✨" },
+    { name: "デッドリーテンション", emoji: "💀" },
+    { name: "スパイシーカレーブレス", emoji: "🍛" },
+    { name: "ドラゴンネイルアート", emoji: "💅" },
+    { name: "プリティポメラニアン", emoji: "🐶" },
+    { name: "のろいのわら人形", emoji: "🪆" },
+    { name: "うたた寝タイム", emoji: "😴" },
+    { name: "二度寝コンボ", emoji: "💤" },
+    { name: "スーパーやきいもボンバー", emoji: "🍠" },
+    { name: "ぎっくり腰", emoji: "🦴" },
+    { name: "ネコパンチプラス", emoji: "🐱" },
+    { name: "かくれんぼマスタリー", emoji: "🙈" },
+    { name: "しょうゆさし補充", emoji: "🍶" },
+    { name: "カリスマオーラ", emoji: "💫" },
+    { name: "アンラッキーホール", emoji: "🕳️" },
+    { name: "だいたい合ってる占い", emoji: "🔮" },
+    { name: "サイレントいびき", emoji: "😪" },
+    { name: "しっぽフリフリムーブ", emoji: "🐾" },
+    { name: "マジカルおにぎり", emoji: "🍙" },
+    { name: "謎の筋肉痛", emoji: "💪" },
+    { name: "満腹コンボ", emoji: "🍚" }
   ];
 
   function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
@@ -388,6 +412,7 @@
   const creatureNameEl = document.getElementById("creatureName");
   const logZone = document.getElementById("logZone");
   const cardZone = document.getElementById("cardZone");
+  const revealCard = document.getElementById("revealCard");
   const resultZone = document.getElementById("resultZone");
   const resultTitle = document.getElementById("resultTitle");
   const resultBack = document.getElementById("resultBack");
@@ -419,6 +444,23 @@
   function resetLog(){ logZone.innerHTML = ""; }
 
   function clearCardZone(){ cardZone.innerHTML = ""; }
+
+  // ==== めくった中身を大きく表示する演出カード ====
+  function showReveal(html, cls){
+    revealCard.innerHTML = html;
+    revealCard.className = "reveal-card" + (cls ? " " + cls : "");
+    revealCard.classList.remove("hidden");
+  }
+  function hideReveal(){
+    revealCard.classList.add("hidden");
+  }
+  // 演出カードがタップされるまで待つ（「さらに・・」→タップ→効果本体、の2段めくり用）
+  function waitForTap(el){
+    return new Promise(function(resolve){
+      function handler(){ el.removeEventListener("click", handler); resolve(); }
+      el.addEventListener("click", handler);
+    });
+  }
 
   function renderCardButton(label, sub, extraClass, onClick){
     const btn = document.createElement("button");
@@ -466,7 +508,7 @@
     const bases = pickN(effectPool, 3);
     const prefix = mode === "dark" ? "ダーク" : "";
     const effectCards = bases.map(function(b){
-      return { type: "effect", text: prefix + b };
+      return { type: "effect", name: prefix + b.name, emoji: b.emoji };
     });
 
     const classChangeTurn = Math.random() < CLASS_CHANGE_PROB;
@@ -494,25 +536,58 @@
         inputLocked = true;
         lockCards();
         btn.classList.add("flipping");
-        setTimeout(function(){
-          if(card.type === "effect"){ onSelectEffect(card.text); }
-          else if(card.type === "turnend"){ onSelectTurnEnd(); }
-          else if(card.type === "classchange"){ onSelectClassChange(card.title); }
-        }, 220);
+        setTimeout(function(){ revealCardFlow(card); }, 220);
       });
       cardZone.appendChild(btn);
     });
   }
 
   // めくった効果カードの前振りセリフ（毎回ランダムに変える）
-  const continuePhrases = ["さらに・・", "カードの効果で・・", "追加効果・・"];
+  const continuePhrases = ["さらに・・・", "カードの効果で・・・", "追加効果・・・"];
 
-  async function onSelectEffect(text){
+  function classChangeRevealInfo(title){
+    if(title === "ダーク") return { emoji: "🌑", text: "闇に堕ちた…！", cls: "reveal-dark" };
+    if(title === "シャイン") return { emoji: "☀️", text: "光に戻った！", cls: "reveal-shine" };
+    return { emoji: "⭐", text: title + "に覚醒！", cls: "reveal-classchange" };
+  }
+
+  // 裏返しカードをめくった後の演出本体。
+  // 効果カードだけは「さらに・・・」等の前振りカード → タップ → 効果本体カード、の2段めくりにする。
+  async function revealCardFlow(card){
+    clearCardZone();
+    if(card.type === "effect"){
+      showReveal(
+        "<div class='reveal-phrase'>" + pick(continuePhrases) + "</div><div class='reveal-hint'>タップしてめくる</div>",
+        "reveal-phrase-card"
+      );
+      await waitForTap(revealCard);
+      showReveal(
+        "<div class='reveal-emoji'>" + card.emoji + "</div><div class='reveal-name'>" + card.name + "</div><div class='reveal-sub'>発動！</div>",
+        "reveal-effect-card"
+      );
+      await wait(900);
+      hideReveal();
+      onSelectEffect(card);
+    } else if(card.type === "turnend"){
+      showReveal("<div class='reveal-emoji'>⚠️</div><div class='reveal-name'>ターンエンド！</div>", "reveal-turnend-card");
+      await wait(900);
+      hideReveal();
+      onSelectTurnEnd();
+    } else if(card.type === "classchange"){
+      const info = classChangeRevealInfo(card.title);
+      showReveal("<div class='reveal-emoji'>" + info.emoji + "</div><div class='reveal-name'>" + info.text + "</div>", info.cls);
+      await wait(900);
+      hideReveal();
+      onSelectClassChange(card.title);
+    }
+  }
+
+  async function onSelectEffect(card){
     inputLocked = true;
     lockCards();
-    effectsList.push(text);
-    addLog(pick(continuePhrases) + text + "！");
-    await wait(450);
+    const storageText = card.emoji + " " + card.name + "を発動";
+    effectsList.push(storageText);
+    addLog(storageText + "！");
     inputLocked = false;
     renderNextTurn();
   }
@@ -535,7 +610,6 @@
       addLog(title + "に覚醒！", "classchange");
     }
     updateCreatureCard();
-    await wait(550);
     inputLocked = false;
     renderNextTurn();
   }
@@ -545,7 +619,6 @@
     lockCards();
     gameOver = true;
     addLog("ターンエンド！", "turnend");
-    await wait(600);
     showResult();
   }
 
@@ -568,6 +641,7 @@
 
   retryBtn.addEventListener("click", function(){
     resultZone.classList.add("hidden");
+    hideReveal();
     creatureBase = null;
     mode = "normal";
     currentTitle = "";
