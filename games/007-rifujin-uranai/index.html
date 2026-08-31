@@ -45,10 +45,13 @@
 
   .diviner{
     display:block;
-    margin:0 auto 6px;
-    width:150px;
-    height:150px;
-    filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));
+    margin:0 auto 10px;
+    width:220px;
+    height:220px;
+    border-radius:50%;
+    object-fit:cover;
+    border:4px solid var(--accent);
+    box-shadow:0 0 24px rgba(201,162,39,.5), 0 6px 16px rgba(0,0,0,.4);
   }
   .name-tag{
     text-align:center;
@@ -323,35 +326,7 @@
   <div class="sub">名前を入れると、あなたの運勢を占ってくれます（結果は地味です）</div>
 
   <div class="stage">
-    <svg class="diviner" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <!-- 星の背景 -->
-      <g fill="#f4e4a6" opacity=".8">
-        <circle cx="30" cy="30" r="2"/>
-        <circle cx="170" cy="25" r="2.5"/>
-        <circle cx="20" cy="90" r="1.8"/>
-        <circle cx="180" cy="100" r="2"/>
-        <circle cx="40" cy="160" r="1.6"/>
-        <circle cx="165" cy="165" r="2.2"/>
-      </g>
-      <!-- ローブ -->
-      <path d="M40 195 Q35 110 100 100 Q165 110 160 195 Z" fill="#4b2e77" stroke="#1c1230" stroke-width="3"/>
-      <path d="M40 195 Q35 110 100 100 Q165 110 160 195 Z" fill="none" stroke="#c9a227" stroke-width="1.5" opacity=".5"/>
-      <!-- フード -->
-      <path d="M55 95 Q60 30 100 24 Q140 30 145 95 Q120 78 100 78 Q80 78 55 95 Z" fill="#3a2260" stroke="#1c1230" stroke-width="3"/>
-      <!-- 顔の影 -->
-      <ellipse cx="100" cy="92" rx="34" ry="30" fill="#241a3d"/>
-      <!-- 光る目 -->
-      <circle cx="88" cy="90" r="4" fill="#f4e4a6"/>
-      <circle cx="112" cy="90" r="4" fill="#f4e4a6"/>
-      <circle cx="88" cy="90" r="4" fill="#f4e4a6" opacity=".6">
-        <animate attributeName="opacity" values="0.6;1;0.6" dur="2.4s" repeatCount="indefinite"/>
-      </circle>
-      <circle cx="112" cy="90" r="4" fill="#f4e4a6" opacity=".6">
-        <animate attributeName="opacity" values="0.6;1;0.6" dur="2.4s" repeatCount="indefinite"/>
-      </circle>
-      <!-- 星の杖飾り -->
-      <path d="M100 26 l3 7 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1 z" fill="#f4e4a6" stroke="#8e44ad" stroke-width="1"/>
-    </svg>
+    <img class="diviner" src="images/uranaishi.jpg" alt="占い師">
     <div class="name-tag">占い師</div>
     <div class="sound-notice">🔊 このゲームは音が出ます</div>
 
