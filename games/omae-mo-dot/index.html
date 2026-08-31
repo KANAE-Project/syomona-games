@@ -382,7 +382,7 @@
 
 <script>
 (function(){
-  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/008-omae-mo-dot/";
+  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/omae-mo-dot/";
 
   // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます ====
   const PASSWORD = "ドット送りだ";
@@ -426,7 +426,13 @@
   // 「背景との区別をせず全体をドット化してほしい」との要望を受けて撤廃した。
   // 今は画像全体を均一にドット化するだけのシンプルな仕様になっている
   const MAX_DIM = 520;  // 処理・表示用の作業解像度の上限
-  const DOT_SIZE = 14;  // ドット（マス目）1個の一辺の大きさ(px)。大きいほど粗いドット絵になる
+  const DOT_SIZE = 4;  // ドット（マス目）1個の一辺の大きさ(px)。大きいほど粗いドット絵になる
+  // 画像全体を対象にしたことで、証明写真のように顔の余白が広い構図だと、顔が画面全体に占める
+  // 割合が小さくなり、粗いマス目のままだと顔のパーツがほとんど分からなくなってしまう問題が
+  // 発覚した（ユーザー報告「全然見えなくなっちゃう」）。14→8→4まで下げて解像度を上げてある
+  const ANIM_GROUP = 4; // 「躍る」演出で、何マス四方をひとまとめにして同じ位相で明滅させるか。
+  // DOT_SIZEが小さいマス目1つずつに別々の位相を持たせると、単色の広い面（白背景など）が
+  // テレビの砂嵐のようなノイズに見えてしまうため、まとめて明滅させることで軽減している
 
   function clamp255(v){ return Math.max(0, Math.min(255, Math.round(v))); }
   function rgbStr(c){ return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")"; }
@@ -434,7 +440,11 @@
   // 平均色そのままだと、写真の中間色っぽい落ち着いた色合いになり「ドット絵」らしいくっきり感が
   // 出にくい。彩度・コントラストを底上げしてから色数を絞り込む（ポスタリゼーション）ことで、
   // ゲームのドット絵らしい、はっきりした色使いに近づける
-  const POSTERIZE_LEVELS = 6; // RGB各チャンネルをこの段階数に丸める（少ないほどくっきり・色数が少なくなる）
+  // 2026年8月31日、ユーザーから提示された参考画像（自然な写真的なグラデーションを保ったまま
+  // 綺麗にドット化された例）に近づけるため、当初の派手な彩度ブースト・強いポスタリゼーションを
+  // かなり控えめに調整した。「くっきり感」はブロックの輪郭そのもの（DOT_SIZEの粗さ）から
+  // 出すようにし、色そのものは自然な階調を保つ方針に変更
+  const POSTERIZE_LEVELS = 20; // RGB各チャンネルをこの段階数に丸める（少ないほどくっきり・色数が少なくなる）
   function vividColor(rgb){
     let r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -449,8 +459,8 @@
       h /= 6;
     }
     // 彩度を底上げ、明度は中間から離す方向にコントラストを強める
-    s = Math.min(1, s * 1.6 + 0.1);
-    const l2 = Math.max(0, Math.min(1, 0.5 + (l - 0.5) * 1.15));
+    s = Math.min(1, s * 1.15 + 0.03);
+    const l2 = Math.max(0, Math.min(1, 0.5 + (l - 0.5) * 1.06));
     function hue2rgb(p, q, t){
       if(t < 0) t += 1;
       if(t > 1) t -= 1;
@@ -499,11 +509,22 @@
           : [200, 200, 200];
       }
     }
-    // 課金後の「躍る」演出用パラメータ。マスごとにバラバラの位相・速度を持たせて、
-    // 全部が同じリズムで明滅する不自然さを避ける
-    const phases = colors.map(function(){ return Math.random() * Math.PI * 2; });
-    const speeds = colors.map(function(){ return 0.0018 + Math.random() * 0.003; });
-    return { w: w, h: h, cols: cols, rows: rows, cellW: cellW, cellH: cellH, colors: colors, phases: phases, speeds: speeds };
+    // 課金後の「躍る」演出用パラメータ。DOT_SIZEを小さくしたことでマス目1個ずつに
+    // バラバラの位相を持たせると、白背景のような単色エリアがテレビの砂嵐のようなノイズに
+    // 見えてしまう問題が起きたため、ANIM_GROUP四方のマスをひとまとめにして同じ位相・速度で
+    // 明滅させるようにしている（見た目の粒度と、明滅の粒度をあえて分けている）
+    const groupCols = Math.max(1, Math.ceil(cols / ANIM_GROUP));
+    const groupRows = Math.max(1, Math.ceil(rows / ANIM_GROUP));
+    const groupPhases = new Array(groupCols * groupRows);
+    const groupSpeeds = new Array(groupCols * groupRows);
+    for(let i = 0; i < groupPhases.length; i++){
+      groupPhases[i] = Math.random() * Math.PI * 2;
+      groupSpeeds[i] = 0.0018 + Math.random() * 0.003;
+    }
+    return {
+      w: w, h: h, cols: cols, rows: rows, cellW: cellW, cellH: cellH, colors: colors,
+      groupCols: groupCols, groupPhases: groupPhases, groupSpeeds: groupSpeeds
+    };
   }
 
   function renderMosaic(ctx, mosaic, animate, t){
@@ -513,9 +534,10 @@
         const ci = by * mosaic.cols + bx;
         let col = mosaic.colors[ci];
         if(animate){
+          const gi = Math.floor(by / ANIM_GROUP) * mosaic.groupCols + Math.floor(bx / ANIM_GROUP);
           // 明るさをサイン波でゆっくり明滅させる。ドットが並んだ電光掲示板やダンスフロアの
           // ライトのように、常時チカチカ光って見える演出にしている
-          const factor = 1 + Math.sin(t * mosaic.speeds[ci] + mosaic.phases[ci]) * 0.4;
+          const factor = 1 + Math.sin(t * mosaic.groupSpeeds[gi] + mosaic.groupPhases[gi]) * 0.4;
           col = [clamp255(col[0] * factor), clamp255(col[1] * factor), clamp255(col[2] * factor)];
         }
         const x0 = bx * mosaic.cellW, y0 = by * mosaic.cellH;
