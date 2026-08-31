@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カードバトラーケン</title>
+<meta name="description" content="3〜4枚のカードから1枚を選び続けるだけ。ハズレの「ターンエンド」を引くまで、仲間の裏面に効果をびっしり上乗せしていくジョークカードゲーム">
+<style>
+  :root{
+    --bg1:#1a0e0e;
+    --bg2:#3a1414;
+    --bubble:#fff6e8;
+    --ink:#2a1414;
+    --accent:#e0472c;
+    --accent2:#f5b942;
+    --safe:#2f8f7a;
+    --danger:#c0392b;
+    --dark:#2a1a3d;
+    --shine:#f0d060;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 75%);
+    color:#f6ece0;
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.35rem; margin:0 0 4px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:18px; }
+  .stage{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:22px;
+    padding:22px 16px 26px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+
+  /* ==== 仲間カード表示 ==== */
+  .creature-card{
+    width:220px; height:220px;
+    margin:0 auto 12px;
+    border-radius:20px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border:4px solid var(--accent2);
+    background:linear-gradient(160deg, rgba(245,185,66,.18), rgba(224,71,44,.18));
+    box-shadow:0 0 22px rgba(245,185,66,.35), 0 6px 16px rgba(0,0,0,.4);
+    text-align:center;
+    padding:12px;
+    transition:border-color .3s ease, background .3s ease;
+  }
+  .creature-card.dark-mode{
+    border-color:#8b5cf6;
+    background:linear-gradient(160deg, rgba(42,26,61,.9), rgba(20,10,30,.9));
+    box-shadow:0 0 26px rgba(139,92,246,.5), 0 6px 16px rgba(0,0,0,.5);
+  }
+  .creature-emoji{ font-size:3.4rem; margin-bottom:6px; }
+  .creature-name{ font-weight:900; font-size:1.05rem; line-height:1.4; color:var(--accent2); }
+  .creature-card.dark-mode .creature-name{ color:#c4b5fd; }
+  .creature-count{ font-size:.72rem; opacity:.8; margin-top:4px; }
+
+  .log-zone{
+    max-height:200px;
+    overflow-y:auto;
+    display:flex; flex-direction:column; gap:6px;
+    margin-bottom:16px;
+    padding:2px;
+  }
+  .log-line{
+    background:var(--bubble);
+    color:var(--ink);
+    border-radius:12px;
+    padding:8px 12px;
+    font-size:.85rem;
+    line-height:1.5;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .3s ease, transform .3s ease;
+  }
+  .log-line.show{ opacity:1; transform:translateY(0); }
+  .log-line.tag-turnend{ background:var(--danger); color:#fff; font-weight:bold; }
+  .log-line.tag-dark{ background:#2a1a3d; color:#c4b5fd; font-weight:bold; border:1px solid #8b5cf6; }
+  .log-line.tag-shine{ background:var(--shine); color:#2a1414; font-weight:bold; }
+  .log-line.tag-classchange{ background:var(--accent2); color:#2a1414; font-weight:bold; }
+
+  .card-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .card-grid.cols-3{ grid-template-columns:1fr; }
+  .card-btn{
+    font-family:inherit;
+    cursor:pointer;
+    border-radius:14px;
+    padding:14px 10px;
+    font-size:.9rem;
+    font-weight:bold;
+    line-height:1.4;
+    color:#fff;
+    border:2px solid rgba(255,255,255,.25);
+    background:var(--safe);
+    transition:transform .15s ease, filter .15s ease;
+    min-height:64px;
+  }
+  .card-btn:active{ transform:scale(.96); }
+  .card-btn:disabled{ opacity:.5; }
+  .card-btn.type-turnend{ background:var(--danger); }
+  .card-btn.type-classchange-normal{ background:linear-gradient(135deg, var(--accent2), #d98a1f); color:#2a1414; }
+  .card-btn.type-classchange-dark{ background:linear-gradient(135deg, #3d2560, #1a1030); color:#c4b5fd; border-color:#8b5cf6; }
+  .card-btn.type-classchange-shine{ background:linear-gradient(135deg, #fff3c4, var(--shine)); color:#2a1414; }
+  .card-sub{ display:block; font-size:.7rem; font-weight:normal; opacity:.85; margin-top:2px; }
+
+  .hidden{ display:none !important; }
+
+  .result-box{
+    background:#fdf8ee;
+    color:var(--ink);
+    border-radius:16px;
+    padding:16px 14px;
+    margin-bottom:16px;
+    border:3px solid var(--accent2);
+  }
+  .result-title{
+    text-align:center;
+    font-weight:900;
+    font-size:1.15rem;
+    color:var(--accent);
+    margin-bottom:2px;
+  }
+  .result-title .result-name{ display:block; word-break:break-word; }
+  .result-title .result-tagline{ display:block; font-size:.95rem; margin-top:2px; }
+  .result-sub{ text-align:center; font-size:.75rem; opacity:.7; margin-bottom:12px; }
+  .result-back{
+    background:repeating-linear-gradient(0deg, #f4ecd8, #f4ecd8 26px, #ece2c8 26px, #ece2c8 27px);
+    border-radius:10px;
+    padding:10px 12px;
+    max-height:260px;
+    overflow-y:auto;
+    font-size:.78rem;
+    line-height:27px;
+  }
+  .result-back .effect-line{ border-bottom:1px dashed rgba(0,0,0,.08); }
+  .result-empty{ font-size:.8rem; opacity:.6; text-align:center; padding:8px 0; }
+
+  .actions{ display:flex; justify-content:center; margin-top:14px; }
+  button.secondary{
+    font-family:inherit; cursor:pointer; border:none; border-radius:12px;
+    padding:12px 22px; font-size:.95rem; font-weight:bold;
+    background:var(--accent2); color:#2a1414; transition:transform .15s ease;
+  }
+  button.secondary:active{ transform:scale(.95); }
+
+  .back-link{
+    display:inline-block; font-size:.8rem; font-weight:700;
+    color:#f6ece0; opacity:.65; text-decoration:none; margin-bottom:10px;
+  }
+  .back-link:hover{ opacity:1; }
+  .back-link-btn{
+    display:block; background:var(--accent2); color:#2a1414;
+    font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:14px 16px; border-radius:14px; margin-top:20px;
+    box-shadow:0 4px 0 var(--accent);
+  }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent); }
+
+  .grade-zone{
+    margin-top:26px; padding-top:16px;
+    border-top:1px dashed rgba(255,255,255,.25);
+    text-align:center;
+  }
+  .grade-cta{
+    background:rgba(245,185,66,.08);
+    border:3px dashed var(--accent2);
+    border-radius:18px;
+    padding:18px 14px;
+  }
+  .grade-headline{ font-size:1.15rem; font-weight:bold; color:var(--accent2); margin-bottom:6px; }
+  .grade-price{
+    display:inline-block; background:rgba(255,255,255,.1); color:#fff;
+    font-size:.85rem; font-weight:bold; padding:4px 14px; border-radius:999px;
+    margin-bottom:10px; border:1px solid var(--accent2);
+  }
+  .note-link-btn{
+    display:block; background:#41c9b4; color:#fff;
+    font-size:1.15rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:16px 14px; border-radius:14px; margin-bottom:14px;
+    box-shadow:0 4px 0 #2e9c8c;
+  }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{ font-size:.85rem; font-weight:bold; color:#f6ece0; margin-bottom:14px; }
+  .grade-form{
+    display:flex; flex-direction:column; gap:10px;
+    max-width:320px; margin:0 auto;
+  }
+  .grade-form input[type=text]{
+    text-align:center; padding:10px 12px; border-radius:12px;
+    border:2px solid var(--accent2); font-size:1rem;
+  }
+  .grade-form #unlockBtn{
+    font-size:1.05rem; padding:13px 16px; background:var(--accent); color:#fff;
+    font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:bold;
+  }
+  .grade-msg{ font-size:.8rem; margin-top:8px; }
+  .unlocked-badge{
+    display:inline-block; background:var(--accent); color:#fff;
+    font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px;
+  }
+  .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
+
+  .x-share-zone{
+    margin-top:26px; padding-top:16px;
+    border-top:1px dashed rgba(255,255,255,.25);
+    text-align:center;
+  }
+  .x-link-btn{
+    display:block; background:#000; color:#fff;
+    font-size:1rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:14px 14px; border-radius:14px;
+    box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer;
+    font-family:inherit;
+  }
+  .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
+  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent2); margin-bottom:12px; }
+
+  .usage-notice{
+    margin-top:18px; font-size:.72rem; line-height:1.8; opacity:.85; text-align:left;
+    background:rgba(255,255,255,.06); border-radius:10px; padding:12px 14px;
+    border:1px solid rgba(255,255,255,.16);
+  }
+  .usage-notice .usage-title{ font-weight:bold; color:var(--accent2); display:block; margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <h1>カードバトラーケン</h1>
+  <div class="sub">3〜4枚のカードから1枚を選ぶだけ。「ターンエンド」を引いたら終了です</div>
+
+  <div class="stage">
+
+    <div class="creature-card" id="creatureCard">
+      <div class="creature-emoji" id="creatureEmoji">🃏</div>
+      <div class="creature-name" id="creatureName">カードを選んで<br>仲間を呼び出そう</div>
+    </div>
+
+    <div class="log-zone" id="logZone"></div>
+
+    <div id="cardZone" class="card-grid cols-3"></div>
+
+    <div id="resultZone" class="hidden">
+      <div class="result-box">
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-sub">完成した仲間カードの裏面</div>
+        <div class="result-back" id="resultBack"></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="secondary" id="retryBtn">もう一度挑戦する</button>
+      </div>
+    </div>
+
+    <div class="grade-zone">
+      <div class="grade-cta" id="gradeForm">
+        <div class="grade-headline">損しかない課金はこちら💁</div>
+        <div class="grade-price">🪙 ワンコイン500円</div>
+        <a href="https://note.com/kanae_project" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
+        <div class="grade-teaser">課金すると特典が解放される……予定です（内容は近日追加）。本当にお金をドブに捨てる気ですか？</div>
+        <div class="grade-form">
+          <input type="text" id="passwordInput" placeholder="合言葉">
+          <button type="button" id="unlockBtn">解放する</button>
+        </div>
+      </div>
+      <div id="gradeMsg" class="grade-msg"></div>
+      <div id="unlockedZone" class="hidden">
+        <span class="unlocked-badge">グレードアップ解放済み</span>
+        <div class="unlocked-note">特典の中身は近日追加予定です。今しばらくお待ちください。</div>
+      </div>
+    </div>
+
+    <div class="x-share-zone">
+      <div class="x-share-title">このゲームを拡散！</div>
+      <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xでシェアする</button>
+    </div>
+
+    <div class="usage-notice">
+      <span class="usage-title">🎥 実況・動画での使用について</span>
+      「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
+      それ以外は自由に、しょーもなく広めていただけると嬉しいです。
+    </div>
+  </div>
+
+  <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<script>
+(function(){
+  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/009-card-battler-ken/";
+
+  // ==== 合言葉：note有料部分に載せる文字列。ここを変えれば変更できます（暫定） ====
+  const PASSWORD = "めくり放題";
+  // ==== 全ゲーム共通「ブルジョワ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
+  const MASTER_PASSWORD = "沼へようこそ";
+  const STORAGE_KEY = "card_battler_ken_unlocked";
+
+  // クラスチェンジが発生するターンの確率（0〜1）。数値は遊びながら調整してよい。
+  const CLASS_CHANGE_PROB = 0.18;
+
+  const creatures = {
+    "レッドドラゴン": { emoji: "🐉" },
+    "メタルナイト": { emoji: "🛡️" },
+    "ウォータースライム": { emoji: "💧" }
+  };
+
+  const normalTitles = ["スペリオール", "マスター", "エクセルシオール", "ファウンディング"];
+
+  const effectPool = [
+    "ファイヤーブレスを発動",
+    "アイスニードルシャワーを発動",
+    "サンダーインパクトを発動",
+    "イグザクトリーチェインを発動",
+    "ソウルイーターを発動",
+    "ミラクルジェネシスを発動",
+    "デッドリーテンションを発動",
+    "スパイシーカレーブレスを発動",
+    "ドラゴンネイルアートを発動",
+    "プリティポメラニアンを発動",
+    "のろいのわら人形を発動",
+    "うたた寝タイムを発動",
+    "二度寝コンボを発動",
+    "スーパーやきいもボンバーを発動",
+    "ぎっくり腰を発動",
+    "ネコパンチプラスを発動",
+    "かくれんぼマスタリーを発動",
+    "しょうゆさし補充を発動",
+    "カリスマオーラを発動",
+    "アンラッキーホールを発動",
+    "だいたい合ってる占いを発動",
+    "サイレントいびきを発動",
+    "しっぽフリフリムーブを発動",
+    "マジカルおにぎりを発動",
+    "謎の筋肉痛を発動",
+    "満腹コンボを発動"
+  ];
+
+  function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+  function pickN(arr, n){
+    const copy = arr.slice();
+    const out = [];
+    for(let i = 0; i < n && copy.length; i++){
+      const idx = Math.floor(Math.random() * copy.length);
+      out.push(copy.splice(idx, 1)[0]);
+    }
+    return out;
+  }
+  function shuffle(arr){
+    const copy = arr.slice();
+    for(let i = copy.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+  function wait(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
+
+  // ==== ゲーム状態 ====
+  let creatureBase = null;   // 召喚した仲間の素の名前（例：レッドドラゴン）
+  let mode = "normal";       // "normal" | "dark"
+  let currentTitle = "";     // 積み上がった称号プレフィックス
+  let effectsList = [];      // 裏面に並ぶ効果テキストの配列
+  let gameOver = false;
+  let inputLocked = false;   // 演出中の多重クリック防止
+
+  const creatureCard = document.getElementById("creatureCard");
+  const creatureEmoji = document.getElementById("creatureEmoji");
+  const creatureNameEl = document.getElementById("creatureName");
+  const logZone = document.getElementById("logZone");
+  const cardZone = document.getElementById("cardZone");
+  const resultZone = document.getElementById("resultZone");
+  const resultTitle = document.getElementById("resultTitle");
+  const resultBack = document.getElementById("resultBack");
+  const retryBtn = document.getElementById("retryBtn");
+
+  function fullName(){ return currentTitle + creatureBase; }
+
+  function updateCreatureCard(){
+    if(!creatureBase){
+      creatureEmoji.textContent = "🃏";
+      creatureNameEl.innerHTML = "カードを選んで<br>仲間を呼び出そう";
+      creatureCard.classList.remove("dark-mode");
+      return;
+    }
+    creatureEmoji.textContent = creatures[creatureBase].emoji;
+    creatureNameEl.textContent = fullName();
+    creatureCard.classList.toggle("dark-mode", mode === "dark");
+  }
+
+  function addLog(text, tag){
+    const el = document.createElement("div");
+    el.className = "log-line" + (tag ? " tag-" + tag : "");
+    el.textContent = text;
+    logZone.appendChild(el);
+    requestAnimationFrame(function(){ el.classList.add("show"); });
+    logZone.scrollTop = logZone.scrollHeight;
+  }
+
+  function resetLog(){ logZone.innerHTML = ""; }
+
+  function clearCardZone(){ cardZone.innerHTML = ""; }
+
+  function renderCardButton(label, sub, extraClass, onClick){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "card-btn" + (extraClass ? " " + extraClass : "");
+    btn.innerHTML = label + (sub ? "<span class='card-sub'>" + sub + "</span>" : "");
+    btn.addEventListener("click", onClick);
+    cardZone.appendChild(btn);
+    return btn;
+  }
+
+  function lockCards(){
+    cardZone.querySelectorAll(".card-btn").forEach(function(b){ b.disabled = true; });
+  }
+
+  // ==== 開始画面：仲間召喚（3択、ハズレなし） ====
+  function renderSummonChoice(){
+    clearCardZone();
+    cardZone.classList.add("cols-3");
+    Object.keys(creatures).forEach(function(name){
+      renderCardButton(creatures[name].emoji + " " + name, "", "type-summon", function(){
+        if(inputLocked) return;
+        selectCreature(name);
+      });
+    });
+  }
+
+  async function selectCreature(name){
+    inputLocked = true;
+    lockCards();
+    creatureBase = name;
+    mode = "normal";
+    currentTitle = "";
+    effectsList = [];
+    gameOver = false;
+    updateCreatureCard();
+    addLog(name + "を召喚！");
+    await wait(500);
+    inputLocked = false;
+    renderNextTurn();
+  }
+
+  // ==== 2ターン目以降：4択（クラスチェンジ発生ターンはターンエンドなし） ====
+  function buildTurnCards(){
+    const bases = pickN(effectPool, 3);
+    const prefix = mode === "dark" ? "ダーク" : "";
+    const effectCards = bases.map(function(b){
+      return { type: "effect", text: prefix + b };
+    });
+
+    const classChangeTurn = Math.random() < CLASS_CHANGE_PROB;
+    if(classChangeTurn){
+      const pool = mode === "dark" ? normalTitles.concat(["シャイン"]) : normalTitles.concat(["ダーク"]);
+      const title = pick(pool);
+      const ccCard = { type: "classchange", title: title };
+      return shuffle([ccCard].concat(effectCards));
+    }
+    return shuffle([{ type: "turnend" }].concat(effectCards));
+  }
+
+  function renderNextTurn(){
+    clearCardZone();
+    cardZone.classList.remove("cols-3");
+    const cards = buildTurnCards();
+    cards.forEach(function(card){
+      if(card.type === "effect"){
+        renderCardButton(card.text, "", "type-effect", function(){
+          if(inputLocked) return;
+          onSelectEffect(card.text);
+        });
+      } else if(card.type === "turnend"){
+        renderCardButton("⚠️ ターンエンド", "選ぶとここで終了", "type-turnend", function(){
+          if(inputLocked) return;
+          onSelectTurnEnd();
+        });
+      } else if(card.type === "classchange"){
+        let cls = "type-classchange-normal";
+        if(card.title === "ダーク") cls = "type-classchange-dark";
+        if(card.title === "シャイン") cls = "type-classchange-shine";
+        renderCardButton("☆クラスチェンジ", "『" + card.title + "』", cls, function(){
+          if(inputLocked) return;
+          onSelectClassChange(card.title);
+        });
+      }
+    });
+  }
+
+  async function onSelectEffect(text){
+    inputLocked = true;
+    lockCards();
+    effectsList.push(text);
+    addLog(text + "！");
+    await wait(450);
+    inputLocked = false;
+    renderNextTurn();
+  }
+
+  async function onSelectClassChange(title){
+    inputLocked = true;
+    lockCards();
+    if(title === "ダーク"){
+      mode = "dark";
+      currentTitle = "ダーク";
+      effectsList = [];
+      addLog("闇に堕ちた…！", "dark");
+    } else if(title === "シャイン"){
+      mode = "normal";
+      currentTitle = "";
+      effectsList = [];
+      addLog("光に戻った！", "shine");
+    } else {
+      currentTitle += title;
+      addLog(title + "に覚醒！", "classchange");
+    }
+    updateCreatureCard();
+    await wait(550);
+    inputLocked = false;
+    renderNextTurn();
+  }
+
+  async function onSelectTurnEnd(){
+    inputLocked = true;
+    lockCards();
+    gameOver = true;
+    addLog("ターンエンド…決着！", "turnend");
+    await wait(600);
+    showResult();
+  }
+
+  function showResult(){
+    clearCardZone();
+    resultTitle.innerHTML = "<span class='result-name'>" + fullName() + "</span><span class='result-tagline'>が爆誕した！</span>";
+    resultBack.innerHTML = "";
+    if(effectsList.length === 0){
+      resultBack.innerHTML = "<div class='result-empty'>裏面はまだ真っ白……あっという間の決着でした。</div>";
+    } else {
+      effectsList.forEach(function(text){
+        const line = document.createElement("div");
+        line.className = "effect-line";
+        line.textContent = "・" + text;
+        resultBack.appendChild(line);
+      });
+    }
+    resultZone.classList.remove("hidden");
+  }
+
+  retryBtn.addEventListener("click", function(){
+    resultZone.classList.add("hidden");
+    creatureBase = null;
+    mode = "normal";
+    currentTitle = "";
+    effectsList = [];
+    gameOver = false;
+    inputLocked = false;
+    updateCreatureCard();
+    resetLog();
+    renderSummonChoice();
+  });
+
+  // ==== 初期化 ====
+  updateCreatureCard();
+  renderSummonChoice();
+
+  // ==== グレードアップ（合言葉）まわり ====
+  const unlockBtn = document.getElementById("unlockBtn");
+  const gradeForm = document.getElementById("gradeForm");
+  const gradeMsg = document.getElementById("gradeMsg");
+  const unlockedZone = document.getElementById("unlockedZone");
+
+  function safeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
+  function safeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
+
+  function setUnlocked(){
+    gradeForm.classList.add("hidden");
+    gradeMsg.textContent = "";
+    unlockedZone.classList.remove("hidden");
+  }
+
+  if(safeGet(STORAGE_KEY) === "1"){ setUnlocked(); }
+
+  unlockBtn.addEventListener("click", function(){
+    const val = document.getElementById("passwordInput").value.trim();
+    if(val === PASSWORD || val === MASTER_PASSWORD){
+      safeSet(STORAGE_KEY, "1");
+      setUnlocked();
+    } else {
+      gradeMsg.textContent = "違うようです、もう一度確認してください…";
+    }
+  });
+
+  // ==== X（旧Twitter）投稿ボタン ====
+  const xShareBtn = document.getElementById("xShareBtn");
+  if(xShareBtn){
+    xShareBtn.addEventListener("click", function(){
+      const nameForShare = creatureBase ? fullName() : "謎の仲間";
+      const text = "「" + nameForShare + "」を作り出しました……！\nCMなしの0秒ブラウザゲーム！";
+      const url = "https://x.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(GAME_URL);
+      window.open(url, "_blank", "noopener");
+    });
+  }
+})();
+</script>
+</body>
+</html>
