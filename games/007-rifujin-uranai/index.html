@@ -242,6 +242,12 @@
     gap:10px;
   }
   .gallery-item .g-emoji{ font-size:1.8rem; line-height:1; }
+  .gallery-img{
+    width:72px; height:72px; object-fit:cover; border-radius:10px;
+    border:2px solid rgba(255,255,255,.3); flex-shrink:0;
+  }
+  .gallery-img-pair{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+  .gallery-img-pair .gallery-img{ width:72px; height:34px; }
   .gallery-name{ font-weight:bold; color:var(--star); margin-bottom:2px; }
   .gallery-desc{ font-size:.78rem; opacity:.85; line-height:1.6; }
 
@@ -382,24 +388,34 @@
         <span class="unlocked-badge">グレードアップ解放済み</span>
         <div class="gallery">
           <div class="gallery-item">
-            <div class="g-emoji">📿</div>
+            <img class="gallery-img" src="images/juzu.png" alt="開運の数珠" loading="lazy">
             <div>
               <div class="gallery-name">開運の数珠</div>
               <div class="gallery-desc">本来50万円のところ、あなたには特別に…見せるだけです（差し上げません）。</div>
             </div>
           </div>
           <div class="gallery-item">
-            <div class="g-emoji">🏺</div>
+            <img class="gallery-img" src="images/tsubo.jpg" alt="福を呼ぶ壺" loading="lazy">
             <div>
               <div class="gallery-name">福を呼ぶ壺</div>
               <div class="gallery-desc">水を入れると健康になるとかならないとか（なりません）。</div>
             </div>
           </div>
           <div class="gallery-item">
-            <div class="g-emoji">🐬</div>
+            <div class="gallery-img-pair">
+              <img class="gallery-img" src="images/iruka1.png" alt="幸せのイルカの絵（その1）" loading="lazy">
+              <img class="gallery-img" src="images/iruka2.jpg" alt="幸せのイルカの絵（その2）" loading="lazy">
+            </div>
             <div>
               <div class="gallery-name">幸せのイルカの絵</div>
-              <div class="gallery-desc">リビングに飾ると運気が下がることはありません（上がりもしません）。</div>
+              <div class="gallery-desc">2枚セットで満足感2倍。リビングに飾ると運気が下がることはありません（上がりもしません）。</div>
+            </div>
+          </div>
+          <div class="gallery-item">
+            <img class="gallery-img" src="images/kaiun-inkan.png" alt="開運印鑑" loading="lazy">
+            <div>
+              <div class="gallery-name">開運印鑑</div>
+              <div class="gallery-desc">鑑定書付き。押すたびに運気が上がるとかどうとか（上がりません）。</div>
             </div>
           </div>
         </div>
