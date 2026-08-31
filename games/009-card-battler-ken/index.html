@@ -513,12 +513,17 @@
 
     const classChangeTurn = Math.random() < CLASS_CHANGE_PROB;
     if(classChangeTurn){
-      const pool = mode === "dark" ? normalTitles.concat(["シャイン"]) : normalTitles.concat(["ダーク"]);
-      const title = pick(pool);
-      const ccCard = { type: "classchange", title: title };
-      return shuffle([ccCard].concat(effectCards));
+      return shuffle([{ type: "classchange" }].concat(effectCards));
     }
     return shuffle([{ type: "turnend" }].concat(effectCards));
+  }
+
+  // クラスチェンジ確定後、「何のクラスになるか」を4枚からめくって決める第2抽選。
+  // 通常称号からランダムに3つ＋特殊称号（ダーク/シャイン）1つ、の4枚構成。
+  function buildTitleDrawCards(){
+    const specialTitle = mode === "dark" ? "シャイン" : "ダーク";
+    const normalPicks = pickN(normalTitles, 3);
+    return shuffle(normalPicks.concat([specialTitle]));
   }
 
   // カードは全て裏返しで並べ、めくるまで中身（効果／ターンエンド／クラスチェンジ）は分からない。
@@ -542,6 +547,36 @@
     });
   }
 
+  // クラスチェンジ確定後の第2抽選：何の称号になるかを裏返し4枚からめくって決める。
+  function renderTitleDraw(){
+    clearCardZone();
+    cardZone.classList.remove("cols-3");
+    const titles = buildTitleDrawCards();
+    titles.forEach(function(title){
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "card-btn card-facedown";
+      btn.innerHTML = "<span class='facedown-icon'>🎴</span><span class='facedown-label'>めくる</span>";
+      btn.addEventListener("click", function(){
+        if(inputLocked) return;
+        inputLocked = true;
+        lockCards();
+        btn.classList.add("flipping");
+        setTimeout(function(){ revealTitleFlow(title); }, 220);
+      });
+      cardZone.appendChild(btn);
+    });
+  }
+
+  async function revealTitleFlow(title){
+    clearCardZone();
+    const info = classChangeRevealInfo(title);
+    showReveal("<div class='reveal-emoji'>" + info.emoji + "</div><div class='reveal-name'>" + info.text + "</div>", info.cls);
+    await wait(900);
+    hideReveal();
+    onSelectClassChange(title);
+  }
+
   // めくった効果カードの前振りセリフ（毎回ランダムに変える）
   const continuePhrases = ["さらに・・・", "カードの効果で・・・", "追加効果・・・"];
   // 裏面の「びっしり長文」用の接続句（前振りセリフから「・・・」を除いたもの）
@@ -558,13 +593,13 @@
   }
 
   function classChangeRevealInfo(title){
-    if(title === "ダーク") return { emoji: "🌑", text: "闇に堕ちた…！", cls: "reveal-dark" };
-    if(title === "シャイン") return { emoji: "☀️", text: "光に戻った！", cls: "reveal-shine" };
+    if(title === "ダーク") return { emoji: "👿", text: "ダーク　闇堕ち！！", cls: "reveal-dark" };
+    if(title === "シャイン") return { emoji: "☀️", text: "シャイン　光帰還！！", cls: "reveal-shine" };
     return { emoji: "⭐", text: title + "に覚醒！", cls: "reveal-classchange" };
   }
 
   // 裏返しカードをめくった後の演出本体。
-  // 効果カードだけは「さらに・・・」等の前振りカード → タップ → 効果本体カード、の2段めくりにする。
+  // 効果カード／クラスチェンジ確定カードは「さらに・・・」等の前振りカード → タップ → 本体カード、の2段めくりにする。
   async function revealCardFlow(card){
     clearCardZone();
     if(card.type === "effect"){
@@ -586,11 +621,16 @@
       hideReveal();
       onSelectTurnEnd();
     } else if(card.type === "classchange"){
-      const info = classChangeRevealInfo(card.title);
-      showReveal("<div class='reveal-emoji'>" + info.emoji + "</div><div class='reveal-name'>" + info.text + "</div>", info.cls);
+      showReveal(
+        "<div class='reveal-phrase'>" + pick(continuePhrases) + "</div><div class='reveal-hint'>タップしてめくる</div>",
+        "reveal-phrase-card"
+      );
+      await waitForTap(revealCard);
+      showReveal("<div class='reveal-emoji'>☆</div><div class='reveal-name'>クラスチェンジ☆</div>", "reveal-classchange");
       await wait(900);
       hideReveal();
-      onSelectClassChange(card.title);
+      inputLocked = false;
+      renderTitleDraw();
     }
   }
 
@@ -607,20 +647,20 @@
   async function onSelectClassChange(title){
     inputLocked = true;
     lockCards();
+    const info = classChangeRevealInfo(title);
     if(title === "ダーク"){
       mode = "dark";
       currentTitle = "ダーク";
       effectsList = [];
-      addLog("闇に堕ちた…！", "dark");
     } else if(title === "シャイン"){
       mode = "normal";
       currentTitle = "";
       effectsList = [];
-      addLog("光に戻った！", "shine");
     } else {
       currentTitle += title;
-      addLog(title + "に覚醒！", "classchange");
     }
+    const tag = title === "ダーク" ? "dark" : title === "シャイン" ? "shine" : "classchange";
+    addLog(info.text, tag);
     updateCreatureCard();
     inputLocked = false;
     renderNextTurn();
