@@ -430,7 +430,10 @@
   const JITTER_RATIO = 0.45; // 格子点をどれだけランダムにずらすか（セルサイズに対する割合）
   const EXTRA_POINTS = 220;  // エッジ（コントラストの強い場所）に優先的に追加する点の数（460→150→220で再調整。150まで削ったら今度は目が消えてしまったため、目・口を拾える最低限まで戻した）
 
-  function buildPoints(w, h, cols, rows, jitterRatio){
+  // offsetX/offsetYを起点に、幅w・高さhの範囲の中だけに格子点を生成する。
+  // （被写体の範囲だけをポリゴン化する方式にしたため、キャンバス全体ではなく
+  //  一部の範囲だけを対象にできるよう、原点をずらせるようにしてある）
+  function buildPoints(offsetX, offsetY, w, h, cols, rows, jitterRatio){
     const cellW = w / cols, cellH = h / rows;
     const points = [];
     const border = [];
@@ -439,19 +442,19 @@
       for(let i = 1; i < cols; i++){
         const jx = (Math.random() - 0.5) * cellW * jitterRatio;
         const jy = (Math.random() - 0.5) * cellH * jitterRatio;
-        points.push([i * cellW + jx, j * cellH + jy]);
+        points.push([offsetX + i * cellW + jx, offsetY + j * cellH + jy]);
         border.push(false);
       }
     }
     // 外周の点はあえて動かさない。ここをジッターさせると、Delaunay三角形分割の
-    // 凸包（＝塗られる範囲）がキャンバスの四辺から欠けてしまい、端に塗り残しの隙間ができるため
+    // 凸包（＝塗られる範囲）が対象範囲の四辺から欠けてしまい、端に塗り残しの隙間ができるため
     for(let i = 0; i <= cols; i++){
-      points.push([i * cellW, 0]); border.push(true);
-      points.push([i * cellW, h]); border.push(true);
+      points.push([offsetX + i * cellW, offsetY]); border.push(true);
+      points.push([offsetX + i * cellW, offsetY + h]); border.push(true);
     }
     for(let j = 1; j < rows; j++){
-      points.push([0, j * cellH]); border.push(true);
-      points.push([w, j * cellH]); border.push(true);
+      points.push([offsetX, offsetY + j * cellH]); border.push(true);
+      points.push([offsetX + w, offsetY + j * cellH]); border.push(true);
     }
     return { points: points, border: border };
   }
@@ -515,17 +518,53 @@
     return skinMap.density[cy * skinMap.cols + cx];
   }
 
+  // 肌色密度マップから「被写体（人物）が写っていそうな範囲」を大まかに割り出す。
+  // 検出した肌色の範囲そのままだと顔だけになってしまうので、髪・首・肩・服の分を
+  // 見込んで上下左右にゆとりを持たせて広げてある。肌色が全く検出できなかった画像
+  // （人物以外の写真など）では、画像全体を対象にする（＝これまで通りの動作）にフォールバックする
+  const SKIN_REGION_THRESHOLD = 0.15;
+  function detectSubjectRegion(skinMap, canvasW, canvasH){
+    let minCol = skinMap.cols, maxCol = -1, minRow = skinMap.rows, maxRow = -1;
+    for(let r = 0; r < skinMap.rows; r++){
+      for(let c = 0; c < skinMap.cols; c++){
+        if(skinMap.density[r * skinMap.cols + c] > SKIN_REGION_THRESHOLD){
+          if(c < minCol) minCol = c;
+          if(c > maxCol) maxCol = c;
+          if(r < minRow) minRow = r;
+          if(r > maxRow) maxRow = r;
+        }
+      }
+    }
+    if(maxCol < 0){
+      return { x: 0, y: 0, w: canvasW, h: canvasH, detected: false };
+    }
+    const cs = skinMap.cellSize;
+    const minX = minCol * cs, maxX = Math.min(canvasW, (maxCol + 1) * cs);
+    const minY = minRow * cs, maxY = Math.min(canvasH, (maxRow + 1) * cs);
+    const boxW = maxX - minX, boxH = maxY - minY;
+    const topPad = boxH * 0.8;    // 髪の分
+    const bottomPad = boxH * 1.1; // 首・肩・服の分
+    const sidePad = boxW * 0.4;
+    const rx0 = Math.max(0, minX - sidePad);
+    const ry0 = Math.max(0, minY - topPad);
+    const rx1 = Math.min(canvasW, maxX + sidePad);
+    const ry1 = Math.min(canvasH, maxY + bottomPad);
+    return { x: rx0, y: ry0, w: rx1 - rx0, h: ry1 - ry0, detected: true };
+  }
+
   // 棄却法（ランダムに候補点を出し、勾配が強い場所・肌色っぽい場所ほど採用されやすくする）で
-  // 顔のパーツや輪郭に点を優先的に追加する
-  function sampleEdgePoints(gradMap, skinMap, w, h, count){
+  // 顔のパーツや輪郭に点を優先的に追加する。候補点はoffsetX/offsetYを起点にした範囲内だけに絞るが、
+  // gradMap（勾配マップ）はキャンバス全体を対象に作ってあるので、参照する時はキャンバス全体の
+  // 幅（fullW）を使ってインデックスを計算する
+  function sampleEdgePoints(gradMap, skinMap, offsetX, offsetY, w, h, fullW, count){
     const points = [];
     const maxTries = count * 50; // 万一なかなか当たらない画像でも無限ループにならないよう上限を設ける
     let tries = 0;
     while(points.length < count && tries < maxTries){
       tries++;
-      const x = Math.random() * w, y = Math.random() * h;
-      const xi = Math.min(w - 1, Math.floor(x)), yi = Math.min(h - 1, Math.floor(y));
-      const g = gradMap[yi * w + xi];
+      const x = offsetX + Math.random() * w, y = offsetY + Math.random() * h;
+      const xi = Math.max(0, Math.min(fullW - 1, Math.floor(x))), yi = Math.max(0, Math.floor(y));
+      const g = gradMap[yi * fullW + xi];
       const skin = skinWeightAt(skinMap, x, y);
       // 勾配が強いほど採用されやすくしつつ、平坦な場所にも最低限は点が入るよう下駄を履かせてある。
       // 平方根をかけて緩やかな勾配（眉・唇の輪郭など）の採用率も底上げしている。そのままの比率だと、
@@ -557,10 +596,13 @@
   }
 
   function buildMesh(imageData, w, h){
-    const built = buildPoints(w, h, GRID_COLS, GRID_ROWS, JITTER_RATIO);
     const gradMap = computeGradientMap(imageData, w, h);
     const skinMap = computeSkinDensityMap(imageData, w, h, 14);
-    const edgePoints = sampleEdgePoints(gradMap, skinMap, w, h, EXTRA_POINTS);
+    // 背景はいじらず、被写体（人物）が写っていそうな範囲だけをポリゴン化する。
+    // 肌色が検出できなかった画像では、region.detected=falseとなり画像全体が対象になる
+    const region = detectSubjectRegion(skinMap, w, h);
+    const built = buildPoints(region.x, region.y, region.w, region.h, GRID_COLS, GRID_ROWS, JITTER_RATIO);
+    const edgePoints = sampleEdgePoints(gradMap, skinMap, region.x, region.y, region.w, region.h, w, EXTRA_POINTS);
     const points = built.points.concat(edgePoints);
     const border = built.border.concat(edgePoints.map(function(){ return false; }));
     const delaunay = Delaunator.from(points);
@@ -585,13 +627,26 @@
     const animAmp = points.map(function(p, i){ return border[i] ? 0 : (3 + Math.random() * 5); });
     const animSpeed = points.map(function(p, i){ return border[i] ? 0 : (0.0012 + Math.random() * 0.0022); });
     return {
-      w: w, h: h, points: points, triIdx: triIdx, colors: colors,
+      w: w, h: h, region: region, points: points, triIdx: triIdx, colors: colors,
       animPhaseX: animPhaseX, animPhaseY: animPhaseY, animAmp: animAmp, animSpeed: animSpeed
     };
   }
 
-  function renderMesh(ctx, mesh, animate, t){
-    ctx.clearRect(0, 0, mesh.w, mesh.h);
+  // originalImageDataを毎回まず描き直してから、その上に被写体範囲だけポリゴンを重ねる方式。
+  // こうすることで背景は常に元の写真のまま（一切いじらない）になる。
+  // 被写体の範囲を検出できていた場合は、四角いまま切り抜くと合成っぽく浮いてしまうため、
+  // 少し余裕を持たせた楕円でクリップしてなじませている（検出できなかった＝画像全体が対象の
+  // 場合は、クリップせずそのまま全面に描く）
+  function renderMesh(ctx, mesh, originalImageData, animate, t){
+    ctx.putImageData(originalImageData, 0, 0);
+    ctx.save();
+    if(mesh.region.detected){
+      const r = mesh.region;
+      const cx0 = r.x + r.w / 2, cy0 = r.y + r.h / 2;
+      ctx.beginPath();
+      ctx.ellipse(cx0, cy0, r.w / 2 * 1.04, r.h / 2 * 1.04, 0, 0, Math.PI * 2);
+      ctx.clip();
+    }
     const pts = mesh.points;
     const tri = mesh.triIdx;
     const colors = mesh.colors;
@@ -622,6 +677,7 @@
       ctx.lineWidth = 1;
       ctx.stroke();
     }
+    ctx.restore();
   }
 
   // ==== DOM ====
@@ -692,7 +748,7 @@
       await Promise.all([ speakAndWait(DEVIL_LINE), wait(900) ]);
 
       currentMesh = mesh;
-      renderMesh(photoCtx, mesh, false, 0);
+      renderMesh(photoCtx, mesh, originalImageData, false, 0);
       resultRevealed = true;
       convertBtn.classList.add("hidden");
       downloadBtn.classList.remove("hidden");
@@ -713,7 +769,7 @@
     danceRunning = true;
     function loop(t){
       if(!danceUnlocked || !resultRevealed){ danceRunning = false; return; }
-      renderMesh(photoCtx, currentMesh, true, t);
+      renderMesh(photoCtx, currentMesh, originalImageData, true, t);
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
