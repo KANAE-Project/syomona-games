@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>カードバトラーケン</title>
+<title>カードバトラー★ケン</title>
 <meta name="description" content="3〜4枚のカードから1枚を選び続けるだけ。ハズレの「ターンエンド」を引くまで、仲間の裏面に効果をびっしり上乗せしていくジョークカードゲーム">
 <style>
   :root{
@@ -31,6 +31,7 @@
   }
   .wrap{ width:100%; max-width:480px; }
   h1{ text-align:center; font-size:1.35rem; margin:0 0 4px; }
+  .tagline{ text-align:center; font-size:1rem; font-weight:900; color:var(--accent2); margin-bottom:6px; }
   .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:18px; }
   .stage{
     background:rgba(255,255,255,.06);
@@ -268,7 +269,8 @@
 <body>
 <div class="wrap">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
-  <h1>カードバトラーケン</h1>
+  <h1>カードバトラー★ケン</h1>
+  <div class="tagline">「俺のターン！」</div>
   <div class="sub">3〜4枚のカードから1枚を選ぶだけ。「ターンエンド」を引いたら終了です</div>
 
   <div class="stage">
@@ -340,6 +342,9 @@
 
   // クラスチェンジが発生するターンの確率（0〜1）。数値は遊びながら調整してよい。
   const CLASS_CHANGE_PROB = 0.35;
+  // クラスチェンジではないターンのうち、実際にターンエンドが混ざる確率（0〜1）。
+  // 外れると4枚とも安全な効果カードになる。低いほどターンエンドを引きにくくなる。
+  const TURNEND_PROB = 0.5;
 
   const creatures = {
     "レッドドラゴン": { emoji: "🐉" },
@@ -505,17 +510,25 @@
 
   // ==== 2ターン目以降：4択（クラスチェンジ発生ターンはターンエンドなし） ====
   function buildTurnCards(){
-    const bases = pickN(effectPool, 3);
     const prefix = mode === "dark" ? "ダーク" : "";
-    const effectCards = bases.map(function(b){
-      return { type: "effect", name: prefix + b.name, emoji: b.emoji };
-    });
+    function makeEffectCards(n){
+      return pickN(effectPool, n).map(function(b){
+        return { type: "effect", name: prefix + b.name, emoji: b.emoji };
+      });
+    }
 
     const classChangeTurn = Math.random() < CLASS_CHANGE_PROB;
     if(classChangeTurn){
-      return shuffle([{ type: "classchange" }].concat(effectCards));
+      return shuffle([{ type: "classchange" }].concat(makeEffectCards(3)));
     }
-    return shuffle([{ type: "turnend" }].concat(effectCards));
+
+    // クラスチェンジではないターンでも、TURNEND_PROBの確率でしかターンエンドは混ざらない。
+    // 外れた場合は4枚とも安全な効果カードになる（＝その回は無条件で生き残れる）。
+    const turnendTurn = Math.random() < TURNEND_PROB;
+    if(turnendTurn){
+      return shuffle([{ type: "turnend" }].concat(makeEffectCards(3)));
+    }
+    return shuffle(makeEffectCards(4));
   }
 
   // クラスチェンジ確定後、「何のクラスになるか」を4枚からめくって決める第2抽選。
