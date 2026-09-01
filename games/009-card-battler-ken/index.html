@@ -745,7 +745,9 @@
   // ==== めくった中身を大きく表示する演出カード ====
   function showReveal(html, cls){
     revealCard.innerHTML = html;
-    revealCard.className = "reveal-card tcg-frame" + (cls ? " " + cls : "");
+    // ホロ演出(tcg-frame)は毎ターン出る「めくる」「さらに・・・」「効果発動」には付けず、
+    // クラスチェンジ確定・ターンエンドなど「ここぞ」の場面だけに絞る（clsで個別に指定する）
+    revealCard.className = "reveal-card" + (cls ? " " + cls : "");
     revealCard.classList.remove("hidden");
   }
   function hideReveal(){
@@ -848,7 +850,7 @@
     cards.forEach(function(card){
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "card-btn card-facedown tcg-frame";
+      btn.className = "card-btn card-facedown";
       btn.innerHTML = "<span class='facedown-icon'>🎴</span><span class='facedown-label'>めくる</span>";
       btn.addEventListener("click", function(){
         if(inputLocked) return;
@@ -869,7 +871,7 @@
     titles.forEach(function(title){
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "card-btn card-facedown tcg-frame";
+      btn.className = "card-btn card-facedown";
       btn.innerHTML = "<span class='facedown-icon'>🎴</span><span class='facedown-label'>めくる</span>";
       btn.addEventListener("click", function(){
         if(inputLocked) return;
@@ -894,11 +896,11 @@
     const info = classChangeRevealInfo(title);
     const flashCls = title === "ダーク" ? "dark-flash" : title === "シャイン" ? "shine-flash" : "";
     screenFlash(flashCls);
-    showReveal("<div class='reveal-emoji'>" + info.emoji + "</div><div class='reveal-name'>" + info.text + "</div>", info.cls + " reveal-big-event");
+    showReveal("<div class='reveal-emoji'>" + info.emoji + "</div><div class='reveal-name'>" + info.text + "</div>", info.cls + " reveal-big-event tcg-frame");
     await wait(1300);
     const lostText = lostAbilityText(title);
     if(lostText){
-      showReveal("<div class='reveal-emoji'>💥</div><div class='reveal-name'>" + lostText + "</div>", info.cls + " reveal-big-event");
+      showReveal("<div class='reveal-emoji'>💥</div><div class='reveal-name'>" + lostText + "</div>", info.cls + " reveal-big-event tcg-frame");
       await wait(1100);
     }
     hideReveal();
@@ -944,7 +946,7 @@
       hideReveal();
       onSelectEffect(card);
     } else if(card.type === "turnend"){
-      showReveal("<div class='reveal-emoji'>⚠️</div><div class='reveal-name'>ターンエンド！</div>", "reveal-turnend-card");
+      showReveal("<div class='reveal-emoji'>⚠️</div><div class='reveal-name'>ターンエンド！</div>", "reveal-turnend-card tcg-frame");
       await wait(900);
       hideReveal();
       onSelectTurnEnd();
@@ -955,7 +957,7 @@
       );
       await waitForTap(revealCard);
       screenFlash();
-      showReveal("<div class='reveal-emoji'>☆</div><div class='reveal-name'>クラスチェンジ☆</div>", "reveal-classchange reveal-big-event");
+      showReveal("<div class='reveal-emoji'>☆</div><div class='reveal-name'>クラスチェンジ☆</div>", "reveal-classchange reveal-big-event tcg-frame");
       await wait(1300);
       hideReveal();
       inputLocked = false;
