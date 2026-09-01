@@ -326,9 +326,67 @@
   .codex-cell.unlocked{
     background:linear-gradient(160deg, rgba(245,185,66,.28), rgba(224,71,44,.22));
     border-color:var(--accent2);
+    cursor:pointer;
   }
+  .codex-cell.unlocked:active{ transform:scale(.94); }
   .codex-cell.locked{ opacity:.5; }
   .codex-cell .codex-cell-emoji{ font-size:1.3rem; }
+
+  /* ==== カードビューアー（図鑑のマスをタップした時のフルスクリーン表示） ==== */
+  .card-viewer-overlay{
+    position:fixed; inset:0; z-index:10000;
+    background:rgba(10,5,5,.92);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .card-viewer-close{
+    position:absolute; top:18px; right:18px; width:42px; height:42px; border-radius:50%;
+    background:rgba(255,255,255,.15); color:#fff; border:none; font-size:1.3rem; cursor:pointer;
+    font-family:inherit; line-height:1;
+  }
+  .card-viewer-close:active{ transform:scale(.92); }
+  .card-viewer-stage{
+    width:min(320px, 82vw);
+    height:min(460px, 62vh);
+    touch-action:pan-y;
+  }
+  /* 3D回転(backface-visibility)は端末によって表示が不安定になりやすいため使わず、
+     裏返しカード（card-facedown）と同じscaleX(0)の単純フリップで統一している。 */
+  .card-viewer-card{
+    width:100%; height:100%;
+    border-radius:22px; border:4px solid var(--accent2);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px 18px;
+    box-shadow:0 14px 34px rgba(0,0,0,.55);
+    cursor:pointer;
+    transition:transform .18s ease;
+    background:linear-gradient(165deg, rgba(245,185,66,.3), rgba(224,71,44,.28)), var(--bg1);
+  }
+  .card-viewer-card.flipping{ transform:scaleX(0); }
+  .card-viewer-card.tier-dark{
+    background:linear-gradient(165deg, rgba(139,92,246,.4), rgba(20,10,30,.95));
+    border-color:#8b5cf6;
+  }
+  .card-viewer-card.showing-back{
+    background:repeating-linear-gradient(0deg, #f4ecd8, #f4ecd8 9px, #ece2c8 9px, #ece2c8 10px);
+    color:var(--ink);
+    border-color:var(--accent2);
+    align-items:stretch;
+    justify-content:flex-start;
+    padding:18px 16px;
+  }
+  .card-viewer-emoji{ font-size:5rem; margin-bottom:16px; }
+  .card-viewer-name{ font-size:1.5rem; font-weight:900; color:#fff; text-align:center; word-break:break-word; }
+  .card-viewer-tier{ font-size:.9rem; opacity:.9; margin-top:8px; color:var(--accent2); font-weight:bold; }
+  .card-viewer-back-label{ font-size:.7rem; font-weight:bold; opacity:.6; margin-bottom:6px; text-align:center; }
+  .card-viewer-back-text{
+    font-size:.46rem;
+    line-height:1.45;
+    word-break:break-word;
+    overflow-y:auto;
+    flex:1;
+  }
+  .card-viewer-hint{ margin-top:18px; font-size:.8rem; opacity:.75; color:#fff; text-align:center; }
   #closeCodexBtn{ display:block; margin:16px auto 0; }
 
   .x-share-zone{
@@ -425,6 +483,14 @@
   </div>
 
   <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<div id="cardViewerOverlay" class="card-viewer-overlay hidden">
+  <button type="button" id="closeCardViewerBtn" class="card-viewer-close">✕</button>
+  <div class="card-viewer-stage">
+    <div id="cardViewerCard" class="card-viewer-card"></div>
+  </div>
+  <div class="card-viewer-hint">👆 タップ or 左右スワイプでめくる</div>
 </div>
 
 <script>
@@ -562,12 +628,14 @@
   function saveCodex(data){
     try{ localStorage.setItem(CODEX_KEY, JSON.stringify(data)); }catch(e){}
   }
-  function recordCodexEntry(creature, tierId){
+  // 初めて到達した時点の「名前（称号込み）」「その時並んでいた技」をまるごとスナップショットとして保存する。
+  // 同じ段階に何度到達しても、記録は最初の1回分だけ（＝発見時の思い出のカードとして固定される）。
+  function recordCodexEntry(creature, tierId, name, effects){
     if(!creature) return false;
     const data = loadCodex();
-    if(!data[creature]) data[creature] = [];
-    if(data[creature].indexOf(tierId) === -1){
-      data[creature].push(tierId);
+    if(!data[creature]) data[creature] = {};
+    if(!data[creature][tierId]){
+      data[creature][tierId] = { name: name, effects: (effects || []).slice() };
       saveCodex(data);
       return true;
     }
@@ -884,7 +952,7 @@
     }
 
     // ターンエンドを引いた瞬間の「仲間×段階」を図鑑にこっそり記録する（未課金中も記録は進む）
-    const isNewEntry = recordCodexEntry(creatureBase, currentCodexTierId());
+    const isNewEntry = recordCodexEntry(creatureBase, currentCodexTierId(), fullName(), effectsList);
     codexNewBadge.classList.toggle("hidden", !isNewEntry);
 
     resultZone.classList.remove("hidden");
@@ -951,7 +1019,7 @@
     let unlockedCount = 0;
     codexGrid.innerHTML = "";
     creatureNames.forEach(function(name){
-      const unlockedTiers = data[name] || [];
+      const entries = data[name] || {};
       const block = document.createElement("div");
       block.className = "codex-creature-block";
       const header = document.createElement("div");
@@ -962,12 +1030,13 @@
       const tierGrid = document.createElement("div");
       tierGrid.className = "codex-tier-grid";
       CODEX_TIERS.forEach(function(tier){
-        const isUnlocked = unlockedTiers.indexOf(tier.id) !== -1;
-        if(isUnlocked) unlockedCount++;
+        const entry = entries[tier.id];
         const cell = document.createElement("div");
-        cell.className = "codex-cell" + (isUnlocked ? " unlocked" : " locked");
-        if(isUnlocked){
+        cell.className = "codex-cell" + (entry ? " unlocked" : " locked");
+        if(entry){
+          unlockedCount++;
           cell.innerHTML = "<div class='codex-cell-emoji'>" + (tier.emoji || creatures[name].emoji) + "</div><div>" + tier.label + "</div>";
+          cell.addEventListener("click", function(){ openCardViewer(entry, tier, name); });
         } else {
           cell.innerHTML = "<div class='codex-cell-emoji'>？</div><div>未発見</div>";
         }
@@ -989,6 +1058,74 @@
   if(closeCodexBtn){
     closeCodexBtn.addEventListener("click", function(){
       codexZone.classList.add("hidden");
+    });
+  }
+
+  // ==== カードビューアー：図鑑のマスをタップすると、発見時の姿をフルスクリーンで見られる ====
+  const cardViewerOverlay = document.getElementById("cardViewerOverlay");
+  const cardViewerCard = document.getElementById("cardViewerCard");
+  const closeCardViewerBtn = document.getElementById("closeCardViewerBtn");
+
+  let cvEntry = null, cvTier = null, cvCreature = null, cvShowingBack = false;
+
+  function renderCardViewerFront(){
+    cardViewerCard.classList.remove("showing-back");
+    cardViewerCard.classList.toggle("tier-dark", cvTier.id.indexOf("dark") === 0);
+    // 絵はまだ絵文字のプレースホルダー（後で専用イラストに差し替え予定）
+    cardViewerCard.innerHTML =
+      "<div class='card-viewer-emoji'>" + (cvTier.emoji || creatures[cvCreature].emoji) + "</div>" +
+      "<div class='card-viewer-name'>" + cvEntry.name + "</div>" +
+      "<div class='card-viewer-tier'>" + cvTier.label + "</div>";
+  }
+  function renderCardViewerBack(){
+    cardViewerCard.classList.remove("tier-dark");
+    cardViewerCard.classList.add("showing-back");
+    const text = (cvEntry.effects && cvEntry.effects.length)
+      ? buildResultSentence(cvEntry.effects)
+      : "このカードにはまだ何も刻まれていません……あっという間の決着でした。";
+    cardViewerCard.innerHTML =
+      "<div class='card-viewer-back-label'>裏面</div>" +
+      "<div class='card-viewer-back-text'>" + text + "</div>";
+  }
+  function openCardViewer(entry, tier, creatureName){
+    cvEntry = entry; cvTier = tier; cvCreature = creatureName; cvShowingBack = false;
+    cardViewerCard.classList.remove("flipping");
+    renderCardViewerFront();
+    cardViewerOverlay.classList.remove("hidden");
+  }
+  function closeCardViewer(){
+    cardViewerOverlay.classList.add("hidden");
+  }
+  // 裏返しカード（card-facedown）と同じscaleX(0)方式でめくる（3D回転より端末互換性が高い）
+  function flipCardViewer(){
+    cardViewerCard.classList.add("flipping");
+    setTimeout(function(){
+      cvShowingBack = !cvShowingBack;
+      if(cvShowingBack){ renderCardViewerBack(); } else { renderCardViewerFront(); }
+      cardViewerCard.classList.remove("flipping");
+    }, 180);
+  }
+  if(closeCardViewerBtn){ closeCardViewerBtn.addEventListener("click", closeCardViewer); }
+  if(cardViewerOverlay){
+    cardViewerOverlay.addEventListener("click", function(e){
+      if(e.target === cardViewerOverlay){ closeCardViewer(); } // 背景タップで閉じる
+    });
+  }
+  if(cardViewerCard){
+    cardViewerCard.addEventListener("click", flipCardViewer);
+    // スワイプでもめくれるようにする
+    let swipeStartX = null;
+    cardViewerCard.addEventListener("touchstart", function(e){
+      swipeStartX = e.touches[0].clientX;
+    }, { passive: true });
+    cardViewerCard.addEventListener("touchend", function(e){
+      if(swipeStartX === null) return;
+      const dx = e.changedTouches[0].clientX - swipeStartX;
+      swipeStartX = null;
+      if(Math.abs(dx) > 40){
+        e.preventDefault(); // スワイプ扱いにした時は、直後に発火する合成clickでの二重めくりを防ぐ
+        flipCardViewer();
+      }
     });
   }
 
