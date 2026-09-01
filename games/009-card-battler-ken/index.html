@@ -640,6 +640,13 @@
     });
   }
 
+  // ダーク/シャイン確定時に「反対側の特殊能力を失う」ことを示す一言（技リセットの理由づけ）
+  function lostAbilityText(title){
+    if(title === "ダーク") return "光の特殊能力を失った！！";
+    if(title === "シャイン") return "闇の特殊能力を失った！！";
+    return null;
+  }
+
   async function revealTitleFlow(title){
     clearCardZone();
     const info = classChangeRevealInfo(title);
@@ -647,6 +654,11 @@
     screenFlash(flashCls);
     showReveal("<div class='reveal-emoji'>" + info.emoji + "</div><div class='reveal-name'>" + info.text + "</div>", info.cls + " reveal-big-event");
     await wait(1300);
+    const lostText = lostAbilityText(title);
+    if(lostText){
+      showReveal("<div class='reveal-emoji'>💥</div><div class='reveal-name'>" + lostText + "</div>", info.cls + " reveal-big-event");
+      await wait(1100);
+    }
     hideReveal();
     onSelectClassChange(title);
   }
@@ -736,6 +748,8 @@
     }
     const tag = title === "ダーク" ? "dark" : title === "シャイン" ? "shine" : "classchange";
     addLog(info.text, tag);
+    const lostText = lostAbilityText(title);
+    if(lostText){ addLog(lostText, tag); }
     updateCreatureCard();
     inputLocked = false;
     renderNextTurn();
