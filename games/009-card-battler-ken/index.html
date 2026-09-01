@@ -218,6 +218,10 @@
   .result-title .result-name{ display:block; word-break:break-word; }
   .result-title .result-tagline{ display:block; font-size:.95rem; margin-top:2px; }
   .result-sub{ text-align:center; font-size:.75rem; opacity:.7; margin-bottom:12px; }
+  .codex-new-badge{
+    text-align:center; font-size:.8rem; font-weight:bold; color:#fff;
+    background:var(--accent2); border-radius:999px; padding:6px 12px; margin:0 auto 10px; max-width:280px;
+  }
   .result-back{
     background:repeating-linear-gradient(0deg, #f4ecd8, #f4ecd8 26px, #ece2c8 26px, #ece2c8 27px);
     border-radius:10px;
@@ -293,7 +297,39 @@
     display:inline-block; background:var(--accent); color:#fff;
     font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px;
   }
-  .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
+  .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; margin-bottom:12px; }
+
+  /* ==== 仲間図鑑（グレードアップ限定） ==== */
+  #codexZone{
+    margin-top:20px;
+    background:rgba(0,0,0,.25);
+    border:2px solid var(--accent2);
+    border-radius:18px;
+    padding:18px 14px;
+  }
+  .codex-title{ text-align:center; font-size:1.15rem; font-weight:900; color:var(--accent2); margin-bottom:4px; }
+  .codex-progress{ text-align:center; font-size:.8rem; opacity:.8; margin-bottom:16px; }
+  .codex-creature-block{ margin-bottom:18px; }
+  .codex-creature-block:last-child{ margin-bottom:0; }
+  .codex-creature-header{ font-weight:900; margin-bottom:8px; text-align:center; font-size:.95rem; }
+  .codex-tier-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+  .codex-cell{
+    aspect-ratio:1;
+    border-radius:12px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.15);
+    font-size:.62rem;
+    padding:4px;
+    text-align:center;
+  }
+  .codex-cell.unlocked{
+    background:linear-gradient(160deg, rgba(245,185,66,.28), rgba(224,71,44,.22));
+    border-color:var(--accent2);
+  }
+  .codex-cell.locked{ opacity:.5; }
+  .codex-cell .codex-cell-emoji{ font-size:1.3rem; }
+  #closeCodexBtn{ display:block; margin:16px auto 0; }
 
   .x-share-zone{
     margin-top:26px; padding-top:16px;
@@ -340,6 +376,7 @@
     <div id="resultZone" class="hidden">
       <div class="result-box">
         <div class="result-title" id="resultTitle"></div>
+        <div id="codexNewBadge" class="codex-new-badge hidden">🆕 図鑑に新しい記録が追加されました！</div>
         <div class="result-sub">完成した仲間カードの裏面</div>
         <div class="result-back" id="resultBack"></div>
       </div>
@@ -353,7 +390,7 @@
         <div class="grade-headline">損しかない課金はこちら💁</div>
         <div class="grade-price">🪙 ワンコイン500円</div>
         <a href="https://note.com/kanae_project" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
-        <div class="grade-teaser">課金すると特典が解放される……予定です（内容は近日追加）。本当にお金をドブに捨てる気ですか？</div>
+        <div class="grade-teaser">課金すると「仲間図鑑」が解放される……全21種、あなたはコンプリートできるか？　本当にお金をドブに捨てる気ですか？</div>
         <div class="grade-form">
           <input type="text" id="passwordInput" placeholder="合言葉">
           <button type="button" id="unlockBtn">解放する</button>
@@ -362,8 +399,16 @@
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
         <span class="unlocked-badge">グレードアップ解放済み</span>
-        <div class="unlocked-note">特典の中身は近日追加予定です。今しばらくお待ちください。</div>
+        <div class="unlocked-note">「仲間図鑑」が解放されました。ターンエンドを引くたびに新しい姿が記録されていきます。</div>
+        <button type="button" class="secondary" id="openCodexBtn">📖 仲間図鑑を見る</button>
       </div>
+    </div>
+
+    <div id="codexZone" class="hidden">
+      <div class="codex-title">仲間図鑑</div>
+      <div class="codex-progress" id="codexProgress"></div>
+      <div id="codexGrid"></div>
+      <button type="button" class="secondary" id="closeCodexBtn">閉じる</button>
     </div>
 
     <div class="x-share-zone">
@@ -391,6 +436,19 @@
   // ==== 全ゲーム共通「ブルジョワ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
   const MASTER_PASSWORD = "沼へようこそ";
   const STORAGE_KEY = "card_battler_ken_unlocked";
+  const CODEX_KEY = "card_battler_ken_codex";
+
+  // ==== 図鑑（グレードアップ限定コンテンツ）====
+  // 称号テキスト（見た目、どこまでも伸びる）とは切り離した、図鑑用の7段階。
+  const CODEX_TIERS = [
+    { id: "base",   label: "素",     emoji: "" },
+    { id: "light1", label: "覚醒",   emoji: "✨" },
+    { id: "light2", label: "超覚醒", emoji: "🌟" },
+    { id: "light3", label: "究極覚醒", emoji: "💫" },
+    { id: "dark1",  label: "暗黒",   emoji: "👿" },
+    { id: "dark2",  label: "漆黒",   emoji: "💀" },
+    { id: "dark3",  label: "玄黒",   emoji: "⚫" }
+  ];
 
   // クラスチェンジが発生するターンの確率（0〜1）。数値は遊びながら調整してよい。
   const CLASS_CHANGE_PROB = 0.5;
@@ -459,10 +517,13 @@
   // ==== ゲーム状態 ====
   let creatureBase = null;   // 召喚した仲間の素の名前（例：レッドドラゴン）
   let mode = "normal";       // "normal" | "dark"
-  let currentTitle = "";     // 積み上がった称号プレフィックス
+  let currentTitle = "";     // 積み上がった称号プレフィックス（見た目用、図鑑とは無関係にどこまでも伸びる）
   let effectsList = [];      // 裏面に並ぶ効果テキストの配列
   let gameOver = false;
   let inputLocked = false;   // 演出中の多重クリック防止
+  // 図鑑用の段階カウンター（称号テキストとは切り離した、0〜3の数値管理）
+  let lightLevel = 0;        // 覚醒(1)→超覚醒(2)→究極覚醒(3)
+  let darkLevel = 0;         // 暗黒(1)→漆黒(2)→玄黒(3)
 
   const creatureCard = document.getElementById("creatureCard");
   const creatureEmoji = document.getElementById("creatureEmoji");
@@ -473,9 +534,45 @@
   const resultZone = document.getElementById("resultZone");
   const resultTitle = document.getElementById("resultTitle");
   const resultBack = document.getElementById("resultBack");
+  const codexNewBadge = document.getElementById("codexNewBadge");
   const retryBtn = document.getElementById("retryBtn");
 
   function fullName(){ return currentTitle + creatureBase; }
+
+  // 現在の状態が図鑑のどの段階に該当するかを返す
+  function currentCodexTierId(){
+    if(mode === "dark"){
+      if(darkLevel >= 3) return "dark3";
+      if(darkLevel === 2) return "dark2";
+      return "dark1";
+    }
+    if(lightLevel >= 3) return "light3";
+    if(lightLevel === 2) return "light2";
+    if(lightLevel === 1) return "light1";
+    return "base";
+  }
+
+  // ==== 図鑑データ（未課金中も裏側で記録しておき、課金した瞬間に今まで分がまとめて見える） ====
+  function loadCodex(){
+    try{
+      const raw = localStorage.getItem(CODEX_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveCodex(data){
+    try{ localStorage.setItem(CODEX_KEY, JSON.stringify(data)); }catch(e){}
+  }
+  function recordCodexEntry(creature, tierId){
+    if(!creature) return false;
+    const data = loadCodex();
+    if(!data[creature]) data[creature] = [];
+    if(data[creature].indexOf(tierId) === -1){
+      data[creature].push(tierId);
+      saveCodex(data);
+      return true;
+    }
+    return false;
+  }
 
   function updateCreatureCard(){
     if(!creatureBase){
@@ -560,6 +657,8 @@
     currentTitle = "";
     effectsList = [];
     gameOver = false;
+    lightLevel = 0;
+    darkLevel = 0;
     updateCreatureCard();
     addLog(name + "を召喚！");
     await wait(500);
@@ -739,12 +838,20 @@
       mode = "dark";
       currentTitle = "ダーク";
       effectsList = [];
+      darkLevel = 1;
     } else if(title === "シャイン"){
       mode = "normal";
       currentTitle = "";
       effectsList = [];
+      lightLevel = 0;
+      darkLevel = 0;
     } else {
       currentTitle += title;
+      if(mode === "dark"){
+        darkLevel = Math.min(darkLevel + 1, 3);
+      } else {
+        lightLevel = Math.min(lightLevel + 1, 3);
+      }
     }
     const tag = title === "ダーク" ? "dark" : title === "シャイン" ? "shine" : "classchange";
     addLog(info.text, tag);
@@ -775,6 +882,11 @@
       p.textContent = buildResultSentence(effectsList);
       resultBack.appendChild(p);
     }
+
+    // ターンエンドを引いた瞬間の「仲間×段階」を図鑑にこっそり記録する（未課金中も記録は進む）
+    const isNewEntry = recordCodexEntry(creatureBase, currentCodexTierId());
+    codexNewBadge.classList.toggle("hidden", !isNewEntry);
+
     resultZone.classList.remove("hidden");
   }
 
@@ -786,6 +898,8 @@
     currentTitle = "";
     effectsList = [];
     gameOver = false;
+    lightLevel = 0;
+    darkLevel = 0;
     inputLocked = false;
     updateCreatureCard();
     resetLog();
@@ -822,6 +936,61 @@
       gradeMsg.textContent = "違うようです、もう一度確認してください…";
     }
   });
+
+  // ==== 仲間図鑑（グレードアップ限定：解放するまで存在自体が見えない） ====
+  const codexZone = document.getElementById("codexZone");
+  const codexGrid = document.getElementById("codexGrid");
+  const codexProgress = document.getElementById("codexProgress");
+  const openCodexBtn = document.getElementById("openCodexBtn");
+  const closeCodexBtn = document.getElementById("closeCodexBtn");
+
+  function renderCodex(){
+    const data = loadCodex();
+    const creatureNames = Object.keys(creatures);
+    const totalCount = creatureNames.length * CODEX_TIERS.length;
+    let unlockedCount = 0;
+    codexGrid.innerHTML = "";
+    creatureNames.forEach(function(name){
+      const unlockedTiers = data[name] || [];
+      const block = document.createElement("div");
+      block.className = "codex-creature-block";
+      const header = document.createElement("div");
+      header.className = "codex-creature-header";
+      header.textContent = creatures[name].emoji + " " + name;
+      block.appendChild(header);
+
+      const tierGrid = document.createElement("div");
+      tierGrid.className = "codex-tier-grid";
+      CODEX_TIERS.forEach(function(tier){
+        const isUnlocked = unlockedTiers.indexOf(tier.id) !== -1;
+        if(isUnlocked) unlockedCount++;
+        const cell = document.createElement("div");
+        cell.className = "codex-cell" + (isUnlocked ? " unlocked" : " locked");
+        if(isUnlocked){
+          cell.innerHTML = "<div class='codex-cell-emoji'>" + (tier.emoji || creatures[name].emoji) + "</div><div>" + tier.label + "</div>";
+        } else {
+          cell.innerHTML = "<div class='codex-cell-emoji'>？</div><div>未発見</div>";
+        }
+        tierGrid.appendChild(cell);
+      });
+      block.appendChild(tierGrid);
+      codexGrid.appendChild(block);
+    });
+    codexProgress.textContent = unlockedCount + " / " + totalCount + " 個発見";
+  }
+
+  if(openCodexBtn){
+    openCodexBtn.addEventListener("click", function(){
+      renderCodex();
+      codexZone.classList.remove("hidden");
+      codexZone.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+  if(closeCodexBtn){
+    closeCodexBtn.addEventListener("click", function(){
+      codexZone.classList.add("hidden");
+    });
+  }
 
   // ==== X（旧Twitter）投稿ボタン ====
   const xShareBtn = document.getElementById("xShareBtn");
