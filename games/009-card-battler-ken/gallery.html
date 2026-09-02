@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カードバトラー★ケン 画像チェック用</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{
+    --bg1:#1a0e0e;
+    --bg2:#3a1414;
+    --accent:#e0472c;
+    --accent2:#f5b942;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 75%);
+    color:#f6ece0;
+    padding:20px 12px 60px;
+  }
+  h1{ text-align:center; font-size:1.1rem; margin:0 0 4px; }
+  .sub{ text-align:center; font-size:.75rem; opacity:.7; margin-bottom:24px; }
+  .creature-block{ margin-bottom:34px; }
+  .creature-header{
+    font-size:1.05rem; font-weight:900;
+    padding-bottom:6px; margin-bottom:12px;
+    border-bottom:2px solid var(--accent);
+  }
+  .tier-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:12px;
+  }
+  .tier-cell{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:14px;
+    padding:8px;
+    text-align:center;
+  }
+  .tier-cell img{
+    width:100%; aspect-ratio:1/1; object-fit:contain;
+    display:block; margin-bottom:6px;
+    background:rgba(0,0,0,.25); border-radius:10px;
+  }
+  .tier-cell .label{ font-size:.78rem; font-weight:700; color:var(--accent2); }
+  .tier-cell .fname{ font-size:.62rem; opacity:.5; word-break:break-all; }
+  .tier-cell.missing{ opacity:.35; }
+  .tier-cell.missing .label::after{ content:" (未実装)"; font-weight:400; }
+</style>
+</head>
+<body>
+  <h1>🃏 カードバトラー★ケン 画像チェック用ページ</h1>
+  <div class="sub">※一覧やゲーム本編にはリンクされていない確認専用ページです</div>
+  <div id="root"></div>
+
+<script>
+  const creatures = [
+    { slug: "reddragon",   name: "レッドドラゴン", emoji: "🐉" },
+    { slug: "metalknight", name: "メタルナイト",   emoji: "🛡️" },
+    { slug: "waterslime",  name: "ウォータースライム", emoji: "💧" }
+  ];
+  // 段階ID・ラベル・想定拡張子（compress-image.ps1の透過判定で決まった実際の拡張子）
+  const tiers = [
+    { id: "base",   label: "素",       ext: "jpg" },
+    { id: "light1", label: "覚醒✨",    ext: "png" },
+    { id: "light2", label: "超覚醒🌟",  ext: "png" },
+    { id: "light3", label: "究極覚醒💫", ext: "jpg" },
+    { id: "dark1",  label: "暗黒👿",    ext: "png" },
+    { id: "dark2",  label: "漆黒💀",    ext: "png" },
+    { id: "dark3",  label: "玄黒⚫",    ext: "png" },
+    { id: "ultra",  label: "涅槃⚪",    ext: "png" }
+  ];
+
+  const root = document.getElementById("root");
+  creatures.forEach(function(c){
+    const block = document.createElement("div");
+    block.className = "creature-block";
+    block.innerHTML = "<div class='creature-header'>" + c.emoji + " " + c.name + "</div>";
+    const grid = document.createElement("div");
+    grid.className = "tier-grid";
+    tiers.forEach(function(t){
+      const fname = c.slug + "-" + t.id + "." + t.ext;
+      const cell = document.createElement("div");
+      cell.className = "tier-cell";
+      const img = document.createElement("img");
+      img.src = "images/" + fname;
+      img.alt = c.name + " " + t.label;
+      img.onerror = function(){
+        cell.classList.add("missing");
+        img.remove();
+      };
+      cell.appendChild(img);
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = t.label;
+      cell.appendChild(label);
+      const fn = document.createElement("div");
+      fn.className = "fname";
+      fn.textContent = fname;
+      cell.appendChild(fn);
+      grid.appendChild(cell);
+    });
+    block.appendChild(grid);
+    root.appendChild(block);
+  });
+</script>
+</body>
+</html>

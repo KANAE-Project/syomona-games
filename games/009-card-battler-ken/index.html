@@ -99,6 +99,23 @@
   }
   .creature-emoji{ font-size:3.4rem; margin-bottom:6px; }
   .creature-illust{ width:160px; height:160px; object-fit:contain; display:block; }
+  .summon-tornado{
+    position:absolute;
+    top:50%; left:50%;
+    width:210px; height:210px;
+    object-fit:contain;
+    opacity:0;
+    pointer-events:none;
+    z-index:5;
+    transform:translate(-50%,-50%) scale(.25) rotate(0deg);
+  }
+  .summon-tornado.playing{ animation:summonTornadoSpin .9s ease-out forwards; }
+  @keyframes summonTornadoSpin{
+    0%{ opacity:0; transform:translate(-50%,-50%) scale(.25) rotate(0deg); }
+    22%{ opacity:1; }
+    70%{ opacity:1; transform:translate(-50%,-50%) scale(1.25) rotate(300deg); }
+    100%{ opacity:0; transform:translate(-50%,-50%) scale(1.5) rotate(400deg); }
+  }
   .creature-name{ font-weight:900; font-size:1.05rem; line-height:1.4; color:var(--accent2); }
   .creature-card.dark-mode .creature-name{ color:#c4b5fd; }
   .creature-count{ font-size:.72rem; opacity:.8; margin-top:4px; }
@@ -512,6 +529,7 @@
     <div class="creature-card tcg-frame" id="creatureCard">
       <div class="creature-emoji" id="creatureEmoji">🃏</div>
       <div class="creature-name" id="creatureName">カードを選んで<br>仲間を呼び出そう</div>
+      <img src="images/summon-tornado.png" alt="" class="summon-tornado" id="summonTornado">
     </div>
 
     <div class="log-zone" id="logZone"></div>
@@ -689,6 +707,16 @@
   }
   function wait(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
 
+  // 召喚演出：竜巻が回転・拡大しながら晴れる（900ms）。晴れきったタイミングでキャラの絵に差し替える
+  function playSummonTornado(){
+    return new Promise(function(resolve){
+      summonTornado.classList.remove("playing");
+      void summonTornado.offsetWidth; // reflowでアニメーションを頭から再生させる
+      summonTornado.classList.add("playing");
+      setTimeout(resolve, 900);
+    });
+  }
+
   // ==== ゲーム状態 ====
   let creatureBase = null;   // 召喚した仲間の素の名前（例：レッドドラゴン）
   let mode = "normal";       // "normal" | "dark"
@@ -704,6 +732,7 @@
   const creatureCard = document.getElementById("creatureCard");
   const creatureEmoji = document.getElementById("creatureEmoji");
   const creatureNameEl = document.getElementById("creatureName");
+  const summonTornado = document.getElementById("summonTornado");
   const logZone = document.getElementById("logZone");
   const cardZone = document.getElementById("cardZone");
   const revealCard = document.getElementById("revealCard");
@@ -863,6 +892,9 @@
     lightLevel = 0;
     darkLevel = 0;
     hasBeenDark = false;
+    creatureEmoji.innerHTML = "";
+    creatureNameEl.innerHTML = "";
+    await playSummonTornado();
     updateCreatureCard();
     addLog(name + "を召喚！");
     await wait(500);
