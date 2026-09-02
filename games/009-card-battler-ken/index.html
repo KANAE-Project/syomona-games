@@ -619,14 +619,16 @@
   const creatures = {
     "レッドドラゴン": {
       emoji: "🐉",
-      tierImages: {
-        base: "images/red-dragon-0.jpg",
-        light1: "images/red-dragon_1.png",
-        light2: "images/red-dragon-2.jpg"
-      }
+      tierImages: { base: "images/reddragon-base.jpg" }
     },
-    "メタルナイト": { emoji: "🛡️" },
-    "ウォータースライム": { emoji: "💧" }
+    "メタルナイト": {
+      emoji: "🛡️",
+      tierImages: { base: "images/metalknight-base.jpg" }
+    },
+    "ウォータースライム": {
+      emoji: "💧",
+      tierImages: { base: "images/waterslime-base.jpg" }
+    }
   };
 
   // 現在（または指定した）段階に応じたイラストのパスを返す。無ければnull。
