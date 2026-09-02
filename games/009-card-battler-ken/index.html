@@ -109,7 +109,7 @@
     z-index:5;
     transform:translate(-50%,-50%) scale(.25) rotate(0deg);
   }
-  .summon-tornado.playing{ animation:summonTornadoSpin .9s ease-out forwards; }
+  .summon-tornado.playing{ animation:summonTornadoSpin 1.8s ease-out forwards; }
   @keyframes summonTornadoSpin{
     0%{ opacity:0; transform:translate(-50%,-50%) scale(.25) rotate(0deg); }
     22%{ opacity:1; }
@@ -734,13 +734,13 @@
   }
   function wait(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
 
-  // 召喚演出：竜巻が回転・拡大しながら晴れる（900ms）。晴れきったタイミングでキャラの絵に差し替える
+  // 召喚演出：竜巻が回転・拡大しながら晴れる（1800ms）。晴れきったタイミングでキャラの絵に差し替える
   function playSummonTornado(){
     return new Promise(function(resolve){
       summonTornado.classList.remove("playing");
       void summonTornado.offsetWidth; // reflowでアニメーションを頭から再生させる
       summonTornado.classList.add("playing");
-      setTimeout(resolve, 900);
+      setTimeout(resolve, 1800);
     });
   }
 
