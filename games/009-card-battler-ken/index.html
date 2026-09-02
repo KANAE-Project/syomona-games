@@ -1088,6 +1088,11 @@
   });
 
   // ==== 初期化 ====
+  // URLに ?resetcodex=1 を付けて開くと、図鑑データだけを消せる（グレードアップの解放状態はそのまま）。
+  // 開発初期の移行データ（名前・技が空のまま復元された古い記録）をやり直したい時などに使う。
+  if(location.search.indexOf("resetcodex=1") !== -1){
+    try{ localStorage.removeItem(CODEX_KEY); }catch(e){}
+  }
   updateCreatureCard();
   renderSummonChoice();
 
