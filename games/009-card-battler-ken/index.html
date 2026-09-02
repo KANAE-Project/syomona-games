@@ -98,6 +98,7 @@
     box-shadow:0 0 26px rgba(139,92,246,.5), 0 6px 16px rgba(0,0,0,.5);
   }
   .creature-emoji{ font-size:3.4rem; margin-bottom:6px; }
+  .creature-illust{ width:160px; height:160px; object-fit:contain; display:block; }
   .creature-name{ font-weight:900; font-size:1.05rem; line-height:1.4; color:var(--accent2); }
   .creature-card.dark-mode .creature-name{ color:#c4b5fd; }
   .creature-count{ font-size:.72rem; opacity:.8; margin-top:4px; }
@@ -610,8 +611,9 @@
   // 外れると4枚とも安全な効果カードになる。低いほどターンエンドを引きにくくなる。
   const TURNEND_PROB = 0.5;
 
+  // image を指定すると、絵文字の代わりにイラストを表示する（未指定の仲間は今まで通り絵文字）
   const creatures = {
-    "レッドドラゴン": { emoji: "🐉" },
+    "レッドドラゴン": { emoji: "🐉", image: "images/red-dragon_1.png" },
     "メタルナイト": { emoji: "🛡️" },
     "ウォータースライム": { emoji: "💧" }
   };
@@ -752,12 +754,15 @@
 
   function updateCreatureCard(){
     if(!creatureBase){
-      creatureEmoji.textContent = "🃏";
+      creatureEmoji.innerHTML = "🃏";
       creatureNameEl.innerHTML = "カードを選んで<br>仲間を呼び出そう";
       creatureCard.classList.remove("dark-mode");
       return;
     }
-    creatureEmoji.textContent = creatures[creatureBase].emoji;
+    const c = creatures[creatureBase];
+    creatureEmoji.innerHTML = c.image
+      ? "<img src='" + c.image + "' alt='" + creatureBase + "' class='creature-illust'>"
+      : c.emoji;
     creatureNameEl.textContent = fullName();
     creatureCard.classList.toggle("dark-mode", mode === "dark");
   }
