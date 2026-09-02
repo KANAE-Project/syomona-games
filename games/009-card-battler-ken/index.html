@@ -377,6 +377,7 @@
     box-shadow:0 0 14px rgba(255,255,255,.55);
   }
   .codex-cell .codex-cell-emoji{ font-size:1.3rem; }
+  .codex-cell .codex-cell-illust{ width:36px; height:36px; object-fit:contain; }
 
   /* ==== カードビューアー（図鑑のマスをタップした時のフルスクリーン表示） ==== */
   .card-viewer-overlay{
@@ -462,6 +463,7 @@
     padding:18px 16px;
   }
   .card-viewer-emoji{ font-size:5rem; margin-bottom:16px; }
+  .card-viewer-illust{ width:180px; height:180px; object-fit:contain; display:block; margin-bottom:10px; }
   .card-viewer-name{ font-size:1.5rem; font-weight:900; color:#fff; text-align:center; word-break:break-word; }
   .card-viewer-tier{ font-size:.9rem; opacity:.9; margin-top:8px; color:var(--accent2); font-weight:bold; }
   .card-viewer-back-label{ font-size:.7rem; font-weight:bold; opacity:.6; margin-bottom:6px; text-align:center; }
@@ -612,11 +614,26 @@
   const TURNEND_PROB = 0.5;
 
   // image を指定すると、絵文字の代わりにイラストを表示する（未指定の仲間は今まで通り絵文字）
+  // tierImages: 図鑑の段階ID（currentCodexTierIdの戻り値）ごとにイラストを割り当てる。
+  // 該当する段階の絵がまだ無ければ絵文字にフォールバックする。
   const creatures = {
-    "レッドドラゴン": { emoji: "🐉", image: "images/red-dragon_1.png" },
+    "レッドドラゴン": {
+      emoji: "🐉",
+      tierImages: {
+        base: "images/red-dragon-0.jpg",
+        light1: "images/red-dragon_1.png",
+        light2: "images/red-dragon-2.jpg"
+      }
+    },
     "メタルナイト": { emoji: "🛡️" },
     "ウォータースライム": { emoji: "💧" }
   };
+
+  // 現在（または指定した）段階に応じたイラストのパスを返す。無ければnull。
+  function creatureImageFor(name, tierId){
+    const c = creatures[name];
+    return (c && c.tierImages && c.tierImages[tierId]) || null;
+  }
 
   const normalTitles = ["スペリオール", "マスター", "エクセルシオール", "ファウンディング"];
 
@@ -760,8 +777,9 @@
       return;
     }
     const c = creatures[creatureBase];
-    creatureEmoji.innerHTML = c.image
-      ? "<img src='" + c.image + "' alt='" + creatureBase + "' class='creature-illust'>"
+    const img = creatureImageFor(creatureBase, currentCodexTierId());
+    creatureEmoji.innerHTML = img
+      ? "<img src='" + img + "' alt='" + creatureBase + "' class='creature-illust'>"
       : c.emoji;
     creatureNameEl.textContent = fullName();
     creatureCard.classList.toggle("dark-mode", mode === "dark");
@@ -1158,7 +1176,11 @@
         cell.className = "codex-cell" + (entry ? " unlocked" : " locked") + (tier.id === "ultra" ? " codex-cell-ultra" : "");
         if(entry){
           unlockedCount++;
-          cell.innerHTML = "<div class='codex-cell-emoji'>" + (tier.emoji || creatures[name].emoji) + "</div><div>" + tier.label + "</div>";
+          const tierImg = creatureImageFor(name, tier.id);
+          const cellVisual = tierImg
+            ? "<img src='" + tierImg + "' alt='' class='codex-cell-illust'>"
+            : "<div class='codex-cell-emoji'>" + (tier.emoji || creatures[name].emoji) + "</div>";
+          cell.innerHTML = cellVisual + "<div>" + tier.label + "</div>";
           cell.addEventListener("click", function(){ openCardViewer(entry, tier, name); });
         } else {
           cell.innerHTML = "<div class='codex-cell-emoji'>？</div><div>未発見</div>";
@@ -1218,10 +1240,14 @@
     const ornamentSwap = { "⚫": "🖤", "⚪": "🤍" };
     const ornamentChar = ornamentSwap[cvTier.emoji] || cvTier.emoji;
     const ornament = rank > 0 ? "<div class='tier-ornament-row'>" + (ornamentChar || "").repeat(rank) + "</div>" : "";
-    // 絵はまだ絵文字のプレースホルダー（後で専用イラストに差し替え予定）
+    // その段階専用のイラストがあればそれを使う。無ければ絵文字のプレースホルダーのまま。
+    const tierImg = creatureImageFor(cvCreature, cvTier.id);
+    const visual = tierImg
+      ? "<img src='" + tierImg + "' alt='" + cvCreature + "' class='card-viewer-illust'>"
+      : "<div class='card-viewer-emoji'>" + (cvTier.emoji || creatures[cvCreature].emoji) + "</div>";
     cardViewerCard.innerHTML =
       ornament +
-      "<div class='card-viewer-emoji'>" + (cvTier.emoji || creatures[cvCreature].emoji) + "</div>" +
+      visual +
       "<div class='card-viewer-name'>" + cvEntry.name + "</div>" +
       "<div class='tcg-title-deco'><span></span>✦<span></span></div>" +
       "<div class='card-viewer-tier'>" + cvTier.label + "</div>";
