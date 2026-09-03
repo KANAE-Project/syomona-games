@@ -201,6 +201,7 @@
   .reveal-phrase{ font-size:1.25rem; font-weight:900; color:var(--accent2); }
   .reveal-name{ font-size:1.25rem; font-weight:900; color:#fff; }
   .reveal-sub{ font-size:.85rem; opacity:.85; margin-top:4px; }
+  .reveal-desc{ font-size:.78rem; opacity:.9; margin-top:10px; padding:0 8px; line-height:1.6; color:var(--accent2); }
   .reveal-hint{ font-size:.72rem; opacity:.7; margin-top:12px; }
 
   /* ==== クラスチェンジは「メインイベント」として派手に演出する ==== */
@@ -704,32 +705,32 @@
 
   // カード裏面の演出でそのまま「絵文字＋名前」を表示するため、効果は名前と絵文字のペアで持つ
   const effectPool = [
-    { name: "ファイヤーブレス", emoji: "🔥" },
-    { name: "アイスニードルシャワー", emoji: "❄️" },
-    { name: "サンダーインパクト", emoji: "⚡" },
-    { name: "イグザクトリーチェイン", emoji: "⛓️" },
-    { name: "ソウルイーター", emoji: "👻" },
-    { name: "ミラクルジェネシス", emoji: "✨" },
-    { name: "デッドリーテンション", emoji: "💀" },
-    { name: "スパイシーカレーブレス", emoji: "🍛" },
-    { name: "ドラゴンネイルアート", emoji: "💅" },
-    { name: "プリティポメラニアン", emoji: "🐶" },
-    { name: "のろいのわら人形", emoji: "🪆" },
-    { name: "うたた寝タイム", emoji: "😴" },
-    { name: "二度寝コンボ", emoji: "💤" },
-    { name: "スーパーやきいもボンバー", emoji: "🍠" },
-    { name: "ぎっくり腰", emoji: "🦴" },
-    { name: "ネコパンチプラス", emoji: "🐱" },
-    { name: "かくれんぼマスタリー", emoji: "🙈" },
-    { name: "しょうゆさし補充", emoji: "🍶" },
-    { name: "カリスマオーラ", emoji: "💫" },
-    { name: "アンラッキーホール", emoji: "🕳️" },
-    { name: "だいたい合ってる占い", emoji: "🔮" },
-    { name: "サイレントいびき", emoji: "😪" },
-    { name: "しっぽフリフリムーブ", emoji: "🐾" },
-    { name: "マジカルおにぎり", emoji: "🍙" },
-    { name: "謎の筋肉痛", emoji: "💪" },
-    { name: "満腹コンボ", emoji: "🍚" }
+    { name: "ファイヤーブレス", emoji: "🔥", desc: "相手の前衛ユニット全てに20のダメージ" },
+    { name: "アイスニードルシャワー", emoji: "❄️", desc: "無数の氷の針が降り注ぎ、相手全体を凍結状態にする。相手ユニットを1ターン行動不能にする" },
+    { name: "サンダーインパクト", emoji: "⚡", desc: "強力な雷撃で相手フィールドの罠カードを全て破壊する" },
+    { name: "イグザクトリーチェイン", emoji: "⛓️", desc: "相手ユニット1体を拘束し、2ターンの間行動不能にする" },
+    { name: "ソウルイーター", emoji: "👻", desc: "相手の魂を喰らい、自身のHPを50回復する" },
+    { name: "ミラクルジェネシス", emoji: "✨", desc: "破壊されたユニットを1体、ランダムに蘇生させる" },
+    { name: "デッドリーテンション", emoji: "💀", desc: "自分のHPを半分犠牲にして、攻撃力を2倍にする" },
+    { name: "スパイシーカレーブレス", emoji: "🍛", desc: "激辛の炎で焼き尽くす、相手は3ターンの間口から火を吹く（継続ダメージ）" },
+    { name: "ドラゴンネイルアート", emoji: "💅", desc: "爪が美しく輝く" },
+    { name: "プリティポメラニアン", emoji: "🐶", desc: "かわいさで相手が1ターン攻撃を忘れる" },
+    { name: "のろいのわら人形", emoji: "🪆", desc: "藁人形に五寸釘を打ち込み、相手に呪いの継続ダメージを与える" },
+    { name: "うたた寝タイム", emoji: "😴", desc: "急に眠くなり、そのターンは何もせず終了する" },
+    { name: "二度寝コンボ", emoji: "💤", desc: "アラームを2回無視、さらにもう1ターン眠り続ける" },
+    { name: "スーパーやきいもボンバー", emoji: "🍠", desc: "焼き芋を高速回転させて爆発、周囲を香ばしい匂いで包む" },
+    { name: "ぎっくり腰", emoji: "🦴", desc: "8ターン行動不能" },
+    { name: "ネコパンチプラス", emoji: "🐱", desc: "肉球の裏でパンチを2連発、敵1体にダメージ2を与える" },
+    { name: "かくれんぼマスタリー", emoji: "🙈", desc: "相手からの攻撃対象外になる（1ターンステルス効果）" },
+    { name: "しょうゆさし補充", emoji: "🍶", desc: "食卓の醤油を静かに補充" },
+    { name: "カリスマオーラ", emoji: "💫", desc: "圧倒的なカリスマ性で相手を委縮させ、次の攻撃を無効化する" },
+    { name: "アンラッキーホール", emoji: "🕳️", desc: "足元に謎の穴が出現、相手をそのまま吸い込む" },
+    { name: "だいたい合ってる占い", emoji: "🔮", desc: "だいたい合っています" },
+    { name: "サイレントいびき", emoji: "😪", desc: "静かながら地響きのようないびきで周囲を震わせる" },
+    { name: "しっぽフリフリムーブ", emoji: "🐾", desc: "尻尾を左右に振って相手の集中力を乱す" },
+    { name: "マジカルおにぎり", emoji: "🍙", desc: "食べると不思議な力が湧いてくる、HPを30回復する" },
+    { name: "謎の筋肉痛", emoji: "💪", desc: "覚えのない筋肉痛に襲われ、次のターンの行動が制限される" },
+    { name: "満腹コンボ", emoji: "🍚", desc: "お腹いっぱいで動けなくなる、幸せな満腹感に包まれる（HP全回復＆4ターン行動不能）" }
   ];
 
   function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
@@ -952,7 +953,7 @@
     const prefix = mode === "dark" ? "ダーク" : "";
     function makeEffectCards(n){
       return pickN(effectPool, n).map(function(b){
-        return { type: "effect", name: prefix + b.name, emoji: b.emoji };
+        return { type: "effect", name: prefix + b.name, emoji: b.emoji, desc: b.desc };
       });
     }
 
@@ -1074,11 +1075,12 @@
         "reveal-phrase-card"
       );
       await waitForTap(revealCard);
+      const descHtml = card.desc ? "<div class='reveal-desc'>「" + card.desc + "」</div>" : "";
       showReveal(
-        "<div class='reveal-emoji'>" + card.emoji + "</div><div class='reveal-name'>" + card.name + "</div><div class='reveal-sub'>発動！</div>",
+        "<div class='reveal-emoji'>" + card.emoji + "</div><div class='reveal-name'>" + card.name + "</div><div class='reveal-sub'>発動！</div>" + descHtml,
         "reveal-effect-card"
       );
-      await wait(900);
+      await wait(card.desc ? 1800 : 900);
       hideReveal();
       onSelectEffect(card);
     } else if(card.type === "turnend"){
