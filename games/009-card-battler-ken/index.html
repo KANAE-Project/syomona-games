@@ -1075,12 +1075,12 @@
         "reveal-phrase-card"
       );
       await waitForTap(revealCard);
-      const descHtml = card.desc ? "<div class='reveal-desc'>「" + card.desc + "」</div>" : "";
+      const descHtml = card.desc ? "<div class='reveal-desc'>" + card.desc + "</div>" : "";
       showReveal(
-        "<div class='reveal-emoji'>" + card.emoji + "</div><div class='reveal-name'>" + card.name + "</div><div class='reveal-sub'>発動！</div>" + descHtml,
+        "<div class='reveal-emoji'>" + card.emoji + "</div><div class='reveal-name'>" + card.name + "</div><div class='reveal-sub'>発動！</div>" + descHtml + "<div class='reveal-hint'>タップして次へ</div>",
         "reveal-effect-card"
       );
-      await wait(card.desc ? 1800 : 900);
+      await waitForTap(revealCard);
       hideReveal();
       onSelectEffect(card);
     } else if(card.type === "turnend"){
@@ -1106,7 +1106,7 @@
   async function onSelectEffect(card){
     inputLocked = true;
     lockCards();
-    const storageText = card.emoji + " " + card.name + "を発動";
+    const storageText = card.emoji + " " + card.name + "を発動" + (card.desc ? "（" + card.desc + "）" : "");
     effectsList.push(storageText);
     addLog(storageText + "！");
     inputLocked = false;
