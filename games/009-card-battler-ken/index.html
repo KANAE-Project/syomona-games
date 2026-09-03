@@ -177,6 +177,7 @@
     transition:transform .2s ease;
   }
   .card-facedown .facedown-icon{ font-size:1.6rem; }
+  .card-facedown .facedown-icon-img{ width:38px; height:38px; object-fit:contain; }
   .card-facedown .facedown-label{ font-size:.72rem; font-weight:bold; color:#f6ece0; opacity:.8; }
   .card-btn.card-facedown.flipping{ transform:scaleX(0); }
 
@@ -684,6 +685,17 @@
 
   const normalTitles = ["スペリオール", "マスター", "エクセルシオール", "ファウンディング"];
 
+  // 裏返しカードの絵柄（火・水・木・風）。4枚並ぶカードの左から順に固定で割り当てる。
+  const ELEMENT_ICONS = [
+    "images/element-fire.png",
+    "images/element-water.png",
+    "images/element-wood.png",
+    "images/element-wind.png"
+  ];
+  function facedownIconHtml(index){
+    return "<img src='" + ELEMENT_ICONS[index % ELEMENT_ICONS.length] + "' class='facedown-icon-img' alt=''>";
+  }
+
   // カード裏面の演出でそのまま「絵文字＋名前」を表示するため、効果は名前と絵文字のペアで持つ
   const effectPool = [
     { name: "ファイヤーブレス", emoji: "🔥" },
@@ -965,11 +977,11 @@
     clearCardZone();
     cardZone.classList.remove("cols-3");
     const cards = buildTurnCards();
-    cards.forEach(function(card){
+    cards.forEach(function(card, i){
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "card-btn card-facedown";
-      btn.innerHTML = "<span class='facedown-icon'>🎴</span><span class='facedown-label'>めくる</span>";
+      btn.innerHTML = facedownIconHtml(i) + "<span class='facedown-label'>めくる</span>";
       btn.addEventListener("click", function(){
         if(inputLocked) return;
         inputLocked = true;
@@ -986,11 +998,11 @@
     clearCardZone();
     cardZone.classList.remove("cols-3");
     const titles = buildTitleDrawCards();
-    titles.forEach(function(title){
+    titles.forEach(function(title, i){
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "card-btn card-facedown";
-      btn.innerHTML = "<span class='facedown-icon'>🎴</span><span class='facedown-label'>めくる</span>";
+      btn.innerHTML = facedownIconHtml(i) + "<span class='facedown-label'>めくる</span>";
       btn.addEventListener("click", function(){
         if(inputLocked) return;
         inputLocked = true;
