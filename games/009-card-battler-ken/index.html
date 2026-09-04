@@ -319,6 +319,57 @@
     opacity:.8; transition:transform .15s ease, opacity .15s ease;
   }
   .codex-reset-btn:active{ transform:scale(.95); opacity:1; }
+  .codex-reward-btn{
+    display:block; margin:10px auto 0;
+    font-family:inherit; cursor:pointer;
+    border:1px solid rgba(245,185,66,.6); border-radius:10px;
+    background:rgba(245,185,66,.12); color:var(--accent2);
+    padding:8px 16px; font-size:.78rem; font-weight:bold;
+    transition:transform .15s ease;
+  }
+  .codex-reward-btn:active{ transform:scale(.95); }
+
+  /* ==== コンプリート報酬（選択・獲得演出・見返し、共通オーバーレイ） ==== */
+  .reward-overlay-inner{
+    width:min(340px, 88vw);
+    max-height:80vh;
+    overflow-y:auto;
+    text-align:center;
+    color:#f6ece0;
+  }
+  .reward-title{
+    font-size:1.3rem; font-weight:900; color:var(--accent2);
+    margin-bottom:6px; font-family:var(--tcg-font); letter-spacing:.02em;
+  }
+  .reward-sub{ font-size:.85rem; opacity:.85; margin-bottom:18px; line-height:1.6; }
+  .reward-choice-row{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .reward-choice-card{
+    width:140px;
+    border-radius:16px;
+    border:3px solid var(--accent2);
+    background:linear-gradient(160deg, rgba(245,185,66,.18), rgba(224,71,44,.18));
+    padding:10px;
+    cursor:pointer;
+    font-family:inherit;
+    transition:transform .15s ease;
+  }
+  .reward-choice-card:active{ transform:scale(.95); }
+  .reward-choice-card img{ width:100%; aspect-ratio:1/1; object-fit:contain; display:block; margin-bottom:6px; }
+  .reward-choice-card .label{ font-size:.85rem; font-weight:bold; color:#f6ece0; }
+  .reward-choice-card.owned{ opacity:.5; cursor:default; border-color:rgba(255,255,255,.3); }
+  .reward-choice-card.owned .label::after{ content:"（獲得済み）"; font-size:.68rem; font-weight:normal; display:block; opacity:.8; }
+  .reward-card-display{
+    width:min(260px, 70vw);
+    margin:0 auto;
+    border-radius:18px; border:4px solid var(--accent2);
+    background:linear-gradient(160deg, rgba(245,185,66,.18), rgba(224,71,44,.18));
+    padding:14px;
+    box-shadow:0 0 22px rgba(245,185,66,.35), 0 6px 16px rgba(0,0,0,.4);
+  }
+  .reward-card-display img{ width:100%; aspect-ratio:1/1; object-fit:contain; display:block; }
+  .reward-card-display .label{ margin-top:8px; font-weight:900; font-size:1.05rem; color:var(--accent2); font-family:var(--tcg-font); }
+  .reward-both-row{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  .reward-both-row .reward-card-display{ width:140px; padding:8px; }
   .sound-notice{
     display:block;
     text-align:center;
@@ -590,7 +641,7 @@
         <div class="grade-headline">損しかない課金はこちら💁</div>
         <div class="grade-price">🪙 ワンコイン500円</div>
         <a href="https://note.com/kanae_project" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
-        <div class="grade-teaser">課金すると「仲間図鑑」が解放される……全21種、あなたはコンプリートできるか？　本当にお金をドブに捨てる気ですか？</div>
+        <div class="grade-teaser">課金すると「仲間図鑑」が解放される……全24種、あなたはコンプリートできるか？　本当にお金をドブに捨てる気ですか？</div>
         <div class="grade-form">
           <input type="text" id="passwordInput" placeholder="合言葉">
           <button type="button" id="unlockBtn">解放する</button>
@@ -609,6 +660,7 @@
       <div class="codex-progress" id="codexProgress"></div>
       <div id="codexGrid"></div>
       <button type="button" class="secondary" id="closeCodexBtn">閉じる</button>
+      <button type="button" class="codex-reward-btn hidden" id="openRewardViewerBtn">🏆 コンプリート報酬を見る</button>
       <button type="button" class="codex-reset-btn" id="resetCodexBtn">🗑️ 図鑑をリセット</button>
     </div>
 
@@ -636,6 +688,11 @@
   <div class="card-viewer-hint">👆 タップ or 左右スワイプでめくる</div>
 </div>
 
+<div id="rewardOverlay" class="card-viewer-overlay hidden">
+  <button type="button" id="closeRewardOverlayBtn" class="card-viewer-close">✕</button>
+  <div id="rewardOverlayInner" class="reward-overlay-inner"></div>
+</div>
+
 <script>
 (function(){
   const GAME_URL = "https://kanae-project.github.io/syomona-games/games/009-card-battler-ken/";
@@ -646,6 +703,24 @@
   const MASTER_PASSWORD = "沼へようこそ";
   const STORAGE_KEY = "card_battler_ken_unlocked";
   const CODEX_KEY = "card_battler_ken_codex";
+  // ==== 図鑑オールコンプリート報酬（男の子/女の子アバターカード） ====
+  // REWARD_KEY: 獲得済みの報酬（{boy, girl}）。図鑑リセットしても消えない＝もう片方を集め直す動機になる。
+  // REWARD_PROMPT_KEY: 「今の周（リセットしてから今回のコンプリートまで）で演出済みか」の印。図鑑リセット時にこちらだけ一緒に消す。
+  const REWARD_KEY = "card_battler_ken_reward_claimed";
+  const REWARD_PROMPT_KEY = "card_battler_ken_reward_prompt_shown";
+  const REWARD_TYPES = {
+    girl: { label: "女の子Ver.", image: "images/reward-girl.png" },
+    boy:  { label: "男の子Ver.", image: "images/reward-boy.png" }
+  };
+  function loadRewardClaimed(){
+    try{
+      const raw = localStorage.getItem(REWARD_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveRewardClaimed(data){
+    try{ localStorage.setItem(REWARD_KEY, JSON.stringify(data)); }catch(e){}
+  }
 
   // ==== 図鑑（グレードアップ限定コンテンツ）====
   // 称号テキスト（見た目、どこまでも伸びる）とは切り離した、図鑑用の7段階。
@@ -1263,6 +1338,7 @@
   // 開発初期の移行データ（名前・技が空のまま復元された古い記録）をやり直したい時などに使う。
   if(location.search.indexOf("resetcodex=1") !== -1){
     try{ localStorage.removeItem(CODEX_KEY); }catch(e){}
+    try{ localStorage.removeItem(REWARD_PROMPT_KEY); }catch(e){}
   }
   updateCreatureCard();
   renderSummonChoice();
@@ -1339,6 +1415,93 @@
       codexGrid.appendChild(block);
     });
     codexProgress.textContent = unlockedCount + " / " + totalCount + " 個発見";
+    checkRewardStatus(unlockedCount === totalCount);
+  }
+
+  // ==== コンプリート報酬（男の子/女の子アバターカード） ====
+  const rewardOverlay = document.getElementById("rewardOverlay");
+  const rewardOverlayInner = document.getElementById("rewardOverlayInner");
+  const closeRewardOverlayBtn = document.getElementById("closeRewardOverlayBtn");
+  const openRewardViewerBtn = document.getElementById("openRewardViewerBtn");
+
+  function rewardCardHtml(type, extraCls){
+    const r = REWARD_TYPES[type];
+    return "<div class='reward-card-display" + (extraCls ? " " + extraCls : "") + "'>" +
+      "<img src='" + r.image + "' alt='" + r.label + "'>" +
+      "<div class='label'>" + r.label + "</div></div>";
+  }
+
+  function showRewardOverlay(html){
+    rewardOverlayInner.innerHTML = html;
+    rewardOverlay.classList.remove("hidden");
+  }
+  if(closeRewardOverlayBtn){
+    closeRewardOverlayBtn.addEventListener("click", function(){
+      rewardOverlay.classList.add("hidden");
+    });
+  }
+
+  // 図鑑を開く/更新するたびに呼ばれる。コンプリート済みなら未演出（このリセット周で1回だけ）の場合に選択/自動付与を出す。
+  function checkRewardStatus(isComplete){
+    const claimed = loadRewardClaimed();
+    openRewardViewerBtn.classList.toggle("hidden", !(claimed.girl || claimed.boy));
+    if(!isComplete) return;
+    if(claimed.girl && claimed.boy) return; // 両方獲得済みなら何もしない
+    if(safeGet(REWARD_PROMPT_KEY) === "1") return; // このリセット周ですでに演出済み
+    safeSet(REWARD_PROMPT_KEY, "1");
+    if(!claimed.girl && !claimed.boy){
+      openRewardChoice();
+    } else {
+      const missing = claimed.girl ? "boy" : "girl";
+      grantReward(missing, true);
+    }
+  }
+
+  function openRewardChoice(){
+    const claimed = loadRewardClaimed();
+    const html =
+      "<div class='reward-title'>🎉 図鑑オールコンプリート！</div>" +
+      "<div class='reward-sub'>お疲れさまでした。ご褒美アバターカードをどちらか1枚、選んでください。<br>（もう一度図鑑をリセットしてコンプリートすると、もう片方ももらえます）</div>" +
+      "<div class='reward-choice-row'>" +
+      Object.keys(REWARD_TYPES).map(function(type){
+        const owned = !!claimed[type];
+        return "<button type='button' class='reward-choice-card" + (owned ? " owned" : "") + "' data-type='" + type + "'" + (owned ? " disabled" : "") + ">" +
+          "<img src='" + REWARD_TYPES[type].image + "' alt=''>" +
+          "<div class='label'>" + REWARD_TYPES[type].label + "</div></button>";
+      }).join("") +
+      "</div>";
+    showRewardOverlay(html);
+    rewardOverlayInner.querySelectorAll(".reward-choice-card:not(.owned)").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        grantReward(btn.getAttribute("data-type"), false);
+      });
+    });
+  }
+
+  function grantReward(type, isAutoGrant){
+    const claimed = loadRewardClaimed();
+    claimed[type] = true;
+    saveRewardClaimed(claimed);
+    const bothNow = claimed.girl && claimed.boy;
+    const html =
+      "<div class='reward-title'>" + (isAutoGrant ? "🎁 コンプリート報酬をゲット！" : "🎉 獲得しました！") + "</div>" +
+      "<div class='reward-sub'>" + (bothNow ? "これで男の子Ver.・女の子Ver.、両方そろいました！" : "") + "</div>" +
+      rewardCardHtml(type);
+    showRewardOverlay(html);
+    openRewardViewerBtn.classList.remove("hidden");
+  }
+
+  function openRewardViewer(){
+    const claimed = loadRewardClaimed();
+    const owned = Object.keys(REWARD_TYPES).filter(function(t){ return claimed[t]; });
+    if(owned.length === 0) return;
+    const html =
+      "<div class='reward-title'>🏆 コンプリート報酬</div>" +
+      "<div class='reward-both-row'>" + owned.map(function(t){ return rewardCardHtml(t); }).join("") + "</div>";
+    showRewardOverlay(html);
+  }
+  if(openRewardViewerBtn){
+    openRewardViewerBtn.addEventListener("click", openRewardViewer);
   }
 
   if(openCodexBtn){
@@ -1359,6 +1522,7 @@
     resetCodexBtn.addEventListener("click", function(){
       if(!confirm("リセットしますがよろしいですか？")) return;
       try{ localStorage.removeItem(CODEX_KEY); }catch(e){}
+      try{ localStorage.removeItem(REWARD_PROMPT_KEY); }catch(e){}
       renderCodex();
     });
   }
