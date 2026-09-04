@@ -152,6 +152,7 @@
   .log-line.tag-dark{ background:#2a1a3d; color:#c4b5fd; font-weight:bold; border:1px solid #8b5cf6; }
   .log-line.tag-shine{ background:var(--shine); color:#2a1414; font-weight:bold; }
   .log-line.tag-classchange{ background:var(--accent2); color:#2a1414; font-weight:bold; }
+  .log-line.tag-rumor{ background:#2a1a3d; color:#c4b5fd; font-style:italic; border:1px dashed rgba(139,92,246,.5); }
 
   .card-grid{
     display:grid;
@@ -206,6 +207,8 @@
   .reveal-card.reveal-dark{ background:linear-gradient(160deg, rgba(139,92,246,.3), rgba(20,10,30,.9)); border-color:#8b5cf6; }
   .reveal-card.reveal-shine{ background:linear-gradient(160deg, rgba(255,243,196,.4), rgba(240,208,96,.25)); border-color:var(--shine); }
   .reveal-card.reveal-turnend-card{ background:linear-gradient(160deg, rgba(192,57,43,.35), rgba(80,20,20,.4)); border-color:var(--danger); }
+  .reveal-card.reveal-rumor-card{ background:linear-gradient(160deg, rgba(139,92,246,.25), rgba(20,10,30,.85)); border-color:#8b5cf6; border-style:dashed; }
+  .reveal-rumor-text{ font-size:1.05rem; font-weight:bold; color:#c4b5fd; line-height:1.7; font-style:italic; }
   .reveal-emoji{ font-size:2.6rem; margin-bottom:8px; }
   .reveal-phrase{ font-size:1.25rem; font-weight:900; color:var(--accent2); }
   .reveal-name{ font-size:1.35rem; font-weight:900; color:#fff; font-family:var(--tcg-font); letter-spacing:.02em; }
@@ -290,6 +293,9 @@
   .codex-new-badge{
     text-align:center; font-size:.8rem; font-weight:bold; color:#fff;
     background:var(--accent2); border-radius:999px; padding:6px 12px; margin:0 auto 10px; max-width:280px;
+  }
+  .result-codex-progress{
+    text-align:center; font-size:.74rem; opacity:.75; margin:0 0 10px;
   }
   .result-back{
     background:repeating-linear-gradient(0deg, #f4ecd8, #f4ecd8 26px, #ece2c8 26px, #ece2c8 27px);
@@ -627,7 +633,8 @@
       <div class="result-box tcg-frame">
         <div class="result-title" id="resultTitle"></div>
         <div class="tcg-title-deco"><span></span>✦<span></span></div>
-        <div id="codexNewBadge" class="codex-new-badge hidden">🆕 図鑑に新しい記録が追加されました！</div>
+        <div id="codexNewBadge" class="codex-new-badge hidden">🎉 おめでとう！初めて仲間になるキャラだよ❤︎</div>
+        <div id="resultCodexProgress" class="result-codex-progress"></div>
         <div class="result-sub">完成した仲間カードの裏面</div>
         <div class="result-back" id="resultBack"></div>
       </div>
@@ -812,6 +819,18 @@
     return "<img src='" + ELEMENT_ICONS[index % ELEMENT_ICONS.length] + "' class='facedown-icon-img' alt=''>";
   }
 
+  // ==== ウルトラレア（涅槃）をちらつかせる噂話 ====
+  // 実際の解放条件（闇落ちを経験してからもう一度究極覚醒に到達する）は明言せず、噂レベルでぼかす。
+  // 技は発動しない「ハズレなし」の特別枠として、安全なターンにたまに混ざる。
+  const RUMOR_PROB = 0.15;
+  const RUMOR_LINES = [
+    "ウルトラレアを呼び出すには特別な条件が必要らしいぞ！",
+    "闇から舞い戻った光の戦士は特別な力が宿る時があるらしい",
+    "一度も堕ちたことのない者には、決して見えない景色があるという……",
+    "村の古老いわく、光と闇、両方を極めた者だけが辿り着く境地があるとかないとか",
+    "噂：闇落ちから引き返した勇者だけが、鏡に映らない自分の姿を見るらしい"
+  ];
+
   // カード裏面の演出でそのまま「絵文字＋名前」を表示するため、効果は名前と絵文字のペアで持つ
   const effectPool = [
     { name: "ファイヤーブレス", emoji: "🔥", desc: "相手の前衛ユニット全てに20のダメージ" },
@@ -922,6 +941,7 @@
   const resultTitle = document.getElementById("resultTitle");
   const resultBack = document.getElementById("resultBack");
   const codexNewBadge = document.getElementById("codexNewBadge");
+  const resultCodexProgress = document.getElementById("resultCodexProgress");
   const retryBtn = document.getElementById("retryBtn");
 
   function fullName(){ return currentTitle + creatureBase; }
@@ -1105,6 +1125,10 @@
     if(turnendTurn){
       return shuffle([{ type: "turnend" }].concat(makeEffectCards(3)));
     }
+    // 安全な4枚のうち、たまに1枚だけウルトラレアの噂話に差し替える（技は発動しない、ハズレなし枠）
+    if(Math.random() < RUMOR_PROB){
+      return shuffle([{ type: "rumor", text: pick(RUMOR_LINES) }].concat(makeEffectCards(3)));
+    }
     return shuffle(makeEffectCards(4));
   }
 
@@ -1223,6 +1247,15 @@
       await waitForTap(revealCard);
       hideReveal();
       onSelectEffect(card);
+    } else if(card.type === "rumor"){
+      showReveal(
+        "<div class='reveal-emoji'>🔮</div><div class='reveal-rumor-text'>" + card.text + "</div><div class='reveal-hint'>タップして次へ</div>",
+        "reveal-rumor-card"
+      );
+      speak(card.text);
+      await waitForTap(revealCard);
+      hideReveal();
+      onSelectRumor(card);
     } else if(card.type === "turnend"){
       showReveal("<div class='reveal-emoji'>⚠️</div><div class='reveal-name'>ターンエンド！</div>", "reveal-turnend-card tcg-frame");
       speak("ターンエンド！");
@@ -1250,6 +1283,15 @@
     const storageText = card.emoji + " " + card.name + "を発動" + (card.desc ? "（" + card.desc + "）" : "");
     effectsList.push(storageText);
     addLog(storageText + "！");
+    inputLocked = false;
+    renderNextTurn();
+  }
+
+  // 噂話カード：技は発動しない（effectsList・裏面には残らない）、ログにだけ残してそのまま次のターンへ
+  async function onSelectRumor(card){
+    inputLocked = true;
+    lockCards();
+    addLog("🔮 " + card.text, "rumor");
     inputLocked = false;
     renderNextTurn();
   }
@@ -1298,7 +1340,6 @@
   function showResult(){
     clearCardZone();
     resultTitle.innerHTML = "<span class='result-name'>" + fullName() + "</span><span class='result-tagline'>が爆誕した！</span>";
-    speak(fullName() + "が爆誕した！");
     resultBack.innerHTML = "";
     if(effectsList.length === 0){
       resultBack.innerHTML = "<div class='result-empty'>裏面はまだ真っ白……あっという間の決着でした。</div>";
@@ -1312,6 +1353,16 @@
     // ターンエンドを引いた瞬間の「仲間×段階」を図鑑にこっそり記録する（未課金中も記録は進む）
     const isNewEntry = recordCodexEntry(creatureBase, currentCodexTierId(), fullName(), effectsList);
     codexNewBadge.classList.toggle("hidden", !isNewEntry);
+    // 「が爆誕した！」＋（初めての記録なら）祝福メッセージを、1回の発話にまとめて読み上げる（speak()は毎回前の発話をキャンセルするため）
+    speak(fullName() + "が爆誕した！" + (isNewEntry ? "　おめでとう！初めて仲間になるキャラだよ！" : ""));
+
+    // このキャラ（creatureBase）が図鑑上であと何体未発見かを表示（未課金でも表示、図鑑機能への誘導も兼ねる）
+    const codexDataNow = loadCodex();
+    const discoveredForCreature = Object.keys(codexDataNow[creatureBase] || {}).length;
+    const remainingForCreature = CODEX_TIERS.length - discoveredForCreature;
+    resultCodexProgress.textContent = remainingForCreature === 0
+      ? creatureBase + "はコンプリート済みです！"
+      : creatureBase + "はあと" + remainingForCreature + "体が未発見です";
 
     resultZone.classList.remove("hidden");
   }
