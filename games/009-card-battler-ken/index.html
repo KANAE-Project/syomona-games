@@ -310,6 +310,15 @@
     background:var(--accent2); color:#2a1414; transition:transform .15s ease;
   }
   button.secondary:active{ transform:scale(.95); }
+  .codex-reset-btn{
+    display:block; margin:10px auto 0;
+    font-family:inherit; cursor:pointer;
+    border:1px solid rgba(192,57,43,.5); border-radius:10px;
+    background:transparent; color:#e08f85;
+    padding:8px 16px; font-size:.78rem; font-weight:bold;
+    opacity:.8; transition:transform .15s ease, opacity .15s ease;
+  }
+  .codex-reset-btn:active{ transform:scale(.95); opacity:1; }
 
   .back-link{
     display:inline-block; font-size:.8rem; font-weight:700;
@@ -587,6 +596,7 @@
       <div class="codex-progress" id="codexProgress"></div>
       <div id="codexGrid"></div>
       <button type="button" class="secondary" id="closeCodexBtn">閉じる</button>
+      <button type="button" class="codex-reset-btn" id="resetCodexBtn">🗑️ 図鑑をリセット</button>
     </div>
 
     <div class="x-share-zone">
@@ -1295,6 +1305,15 @@
   if(closeCodexBtn){
     closeCodexBtn.addEventListener("click", function(){
       codexZone.classList.add("hidden");
+    });
+  }
+
+  const resetCodexBtn = document.getElementById("resetCodexBtn");
+  if(resetCodexBtn){
+    resetCodexBtn.addEventListener("click", function(){
+      if(!confirm("リセットしますがよろしいですか？")) return;
+      try{ localStorage.removeItem(CODEX_KEY); }catch(e){}
+      renderCodex();
     });
   }
 
