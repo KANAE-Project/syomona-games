@@ -319,6 +319,18 @@
     opacity:.8; transition:transform .15s ease, opacity .15s ease;
   }
   .codex-reset-btn:active{ transform:scale(.95); opacity:1; }
+  .sound-notice{
+    display:block;
+    text-align:center;
+    font-size:.85rem;
+    font-weight:900;
+    color:#2a1414;
+    background:var(--accent2);
+    padding:7px 18px;
+    border-radius:999px;
+    margin:0 auto 16px;
+    max-width:280px;
+  }
 
   .back-link{
     display:inline-block; font-size:.8rem; font-weight:700;
@@ -545,6 +557,7 @@
   <h1>カードバトラー★ケン</h1>
   <div class="tagline">『俺だけのターン！』</div>
   <div class="sub">仲間を召喚してターンエンドになるまでグレードアップさせよう！</div>
+  <div class="sound-notice">🔊 このゲームは音が出ます</div>
 
   <div class="stage">
 
@@ -774,6 +787,33 @@
   }
   function wait(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
 
+  // ==== ナレーション（Web Speech API） ====
+  // 渋め・低めの声にするため、rate/pitchを低く設定。日本語の男性っぽい声が端末にあれば優先して使う。
+  // テンポ優先のゲームなので、読み上げ完了を待たずに次へ進めるよう「呼びっぱなし」で使う（speakAndWaitのように待機はしない）。
+  // 連打で古い読み上げが積み重ならないよう、必ずcancel()してから次を話す。
+  function pickJapaneseVoice(){
+    try{
+      const voices = window.speechSynthesis.getVoices();
+      const male = voices.find(function(v){
+        return /^ja(-JP)?$/i.test(v.lang) && /(male|man|otoya|ichiro|hattori|takumi|kenji)/i.test(v.name);
+      });
+      return male || voices.find(function(v){ return /^ja(-JP)?$/i.test(v.lang); }) || null;
+    }catch(e){ return null; }
+  }
+  function speak(text){
+    try{
+      if(!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ja-JP";
+      u.rate = 0.92;
+      u.pitch = 0.55;
+      const voice = pickJapaneseVoice();
+      if(voice) u.voice = voice;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
   // 召喚演出：竜巻が回転・拡大しながら晴れる（1800ms）。晴れきったタイミングでキャラの絵に差し替える
   function playSummonTornado(){
     return new Promise(function(resolve){
@@ -964,6 +1004,7 @@
     await playSummonTornado();
     updateCreatureCard();
     addLog(name + "を召喚！");
+    speak(name + "を召喚！");
     await wait(500);
     inputLocked = false;
     renderNextTurn();
@@ -1055,10 +1096,12 @@
     const flashCls = title === "ダーク" ? "dark-flash" : title === "シャイン" ? "shine-flash" : "";
     screenFlash(flashCls);
     showReveal("<div class='reveal-emoji'>" + info.emoji + "</div><div class='reveal-name'>" + info.text + "</div>", info.cls + " reveal-big-event tcg-frame");
+    speak(info.text);
     await wait(1300);
     const lostText = lostAbilityText(title);
     if(lostText){
       showReveal("<div class='reveal-emoji'>💥</div><div class='reveal-name'>" + lostText + "</div>", info.cls + " reveal-big-event tcg-frame");
+      speak(lostText);
       await wait(1100);
     }
     hideReveal();
@@ -1101,11 +1144,13 @@
         "<div class='reveal-emoji'>" + card.emoji + "</div><div class='reveal-name'>" + card.name + "</div><div class='reveal-sub'>発動！</div>" + descHtml + "<div class='reveal-hint'>タップして次へ</div>",
         "reveal-effect-card"
       );
+      speak(card.name + "、発動！" + (card.desc ? "　" + card.desc : ""));
       await waitForTap(revealCard);
       hideReveal();
       onSelectEffect(card);
     } else if(card.type === "turnend"){
       showReveal("<div class='reveal-emoji'>⚠️</div><div class='reveal-name'>ターンエンド！</div>", "reveal-turnend-card tcg-frame");
+      speak("ターンエンド！");
       await wait(900);
       hideReveal();
       onSelectTurnEnd();
@@ -1178,6 +1223,7 @@
   function showResult(){
     clearCardZone();
     resultTitle.innerHTML = "<span class='result-name'>" + fullName() + "</span><span class='result-tagline'>が爆誕した！</span>";
+    speak(fullName() + "が爆誕した！");
     resultBack.innerHTML = "";
     if(effectsList.length === 0){
       resultBack.innerHTML = "<div class='result-empty'>裏面はまだ真っ白……あっという間の決着でした。</div>";
