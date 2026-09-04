@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>カードバトラー★ケン</title>
 <meta name="description" content="3〜4枚のカードから1枚を選び続けるだけ。ハズレの「ターンエンド」を引くまで、仲間の裏面に効果をびっしり上乗せしていくジョークカードゲーム">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yuji+Boku&display=swap">
 <style>
   :root{
     --bg1:#1a0e0e;
@@ -17,6 +20,7 @@
     --danger:#c0392b;
     --dark:#2a1a3d;
     --shine:#f0d060;
+    --tcg-font:'Yuji Boku', "Hiragino Mincho ProN", serif;
   }
   *{box-sizing:border-box;}
   body{
@@ -30,8 +34,8 @@
     padding:24px 14px 60px;
   }
   .wrap{ width:100%; max-width:480px; }
-  h1{ text-align:center; font-size:1.35rem; margin:0 0 4px; }
-  .tagline{ text-align:center; font-size:1rem; font-weight:900; color:var(--accent2); margin-bottom:6px; }
+  h1{ text-align:center; font-size:1.5rem; margin:0 0 4px; font-family:var(--tcg-font); letter-spacing:.03em; }
+  .tagline{ text-align:center; font-size:1.15rem; font-weight:900; color:var(--accent2); margin-bottom:6px; font-family:var(--tcg-font); letter-spacing:.03em; }
   .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:18px; }
   .stage{
     background:rgba(255,255,255,.06);
@@ -116,7 +120,7 @@
     70%{ opacity:1; transform:translate(-50%,-50%) scale(1.25) rotate(300deg); }
     100%{ opacity:0; transform:translate(-50%,-50%) scale(1.5) rotate(400deg); }
   }
-  .creature-name{ font-weight:900; font-size:1.05rem; line-height:1.4; color:var(--accent2); }
+  .creature-name{ font-weight:900; font-size:1.15rem; line-height:1.5; color:var(--accent2); font-family:var(--tcg-font); letter-spacing:.02em; }
   .creature-card.dark-mode .creature-name{ color:#c4b5fd; }
   .creature-count{ font-size:.72rem; opacity:.8; margin-top:4px; }
 
@@ -199,7 +203,7 @@
   .reveal-card.reveal-turnend-card{ background:linear-gradient(160deg, rgba(192,57,43,.35), rgba(80,20,20,.4)); border-color:var(--danger); }
   .reveal-emoji{ font-size:2.6rem; margin-bottom:8px; }
   .reveal-phrase{ font-size:1.25rem; font-weight:900; color:var(--accent2); }
-  .reveal-name{ font-size:1.25rem; font-weight:900; color:#fff; }
+  .reveal-name{ font-size:1.35rem; font-weight:900; color:#fff; font-family:var(--tcg-font); letter-spacing:.02em; }
   .reveal-sub{ font-size:.85rem; opacity:.85; margin-top:4px; }
   .reveal-desc{ font-size:.78rem; opacity:.9; margin-top:10px; padding:0 8px; line-height:1.6; color:var(--accent2); }
   .reveal-hint{ font-size:.72rem; opacity:.7; margin-top:12px; }
@@ -269,9 +273,11 @@
   .result-title{
     text-align:center;
     font-weight:900;
-    font-size:1.15rem;
+    font-size:1.25rem;
     color:var(--accent);
     margin-bottom:2px;
+    font-family:var(--tcg-font);
+    letter-spacing:.02em;
   }
   .result-title .result-name{ display:block; word-break:break-word; }
   .result-title .result-tagline{ display:block; font-size:.95rem; margin-top:2px; }
@@ -483,7 +489,7 @@
   }
   .card-viewer-emoji{ font-size:5rem; margin-bottom:16px; }
   .card-viewer-illust{ width:180px; height:180px; object-fit:contain; display:block; margin-bottom:10px; }
-  .card-viewer-name{ font-size:1.5rem; font-weight:900; color:#fff; text-align:center; word-break:break-word; }
+  .card-viewer-name{ font-size:1.6rem; font-weight:900; color:#fff; text-align:center; word-break:break-word; font-family:var(--tcg-font); letter-spacing:.02em; }
   .card-viewer-tier{ font-size:.9rem; opacity:.9; margin-top:8px; color:var(--accent2); font-weight:bold; }
   .card-viewer-back-label{ font-size:.7rem; font-weight:bold; opacity:.6; margin-bottom:6px; text-align:center; }
   .card-viewer-back-text{
