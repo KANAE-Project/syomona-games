@@ -387,7 +387,13 @@
     border-radius:999px;
     margin:0 auto 16px;
     max-width:280px;
+    font-family:inherit;
+    border:none;
+    cursor:pointer;
+    transition:transform .15s ease, opacity .15s ease;
   }
+  .sound-notice:active{ transform:scale(.96); }
+  .sound-notice.sound-off{ background:rgba(255,255,255,.15); color:#f6ece0; opacity:.75; }
 
   .back-link{
     display:inline-block; font-size:.8rem; font-weight:700;
@@ -614,7 +620,7 @@
   <h1>カードバトラー★ケン</h1>
   <div class="tagline">『俺だけのターン！』</div>
   <div class="sub">仲間を召喚してターンエンドになるまでグレードアップさせよう！</div>
-  <div class="sound-notice">🔊 このゲームは音が出ます</div>
+  <button type="button" id="soundToggleBtn" class="sound-notice">🔊 このゲームは音が出ます（タップでOFF）</button>
 
   <div class="stage">
 
@@ -894,7 +900,18 @@
       return male || voices.find(function(v){ return /^ja(-JP)?$/i.test(v.lang); }) || null;
     }catch(e){ return null; }
   }
+  // ==== 音声ON/OFF切り替え ====
+  const SOUND_KEY = "card_battler_ken_sound_on";
+  function isSoundOn(){
+    try{ return localStorage.getItem(SOUND_KEY) !== "0"; }catch(e){ return true; } // 未設定ならON扱い
+  }
+  function setSoundOn(on){
+    try{ localStorage.setItem(SOUND_KEY, on ? "1" : "0"); }catch(e){}
+    if(!on){ try{ if("speechSynthesis" in window) window.speechSynthesis.cancel(); }catch(e){} }
+  }
+
   function speak(text){
+    if(!isSoundOn()) return;
     try{
       if(!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
@@ -906,6 +923,20 @@
       if(voice) u.voice = voice;
       window.speechSynthesis.speak(u);
     }catch(e){}
+  }
+
+  const soundToggleBtn = document.getElementById("soundToggleBtn");
+  function renderSoundToggle(){
+    const on = isSoundOn();
+    soundToggleBtn.textContent = on ? "🔊 このゲームは音が出ます（タップでOFF）" : "🔇 音声はOFFです（タップでON）";
+    soundToggleBtn.classList.toggle("sound-off", !on);
+  }
+  if(soundToggleBtn){
+    renderSoundToggle();
+    soundToggleBtn.addEventListener("click", function(){
+      setSoundOn(!isSoundOn());
+      renderSoundToggle();
+    });
   }
 
   // 召喚演出：竜巻が回転・拡大しながら晴れる（1800ms）。晴れきったタイミングでキャラの絵に差し替える
