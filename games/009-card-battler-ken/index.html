@@ -278,6 +278,21 @@
     margin-bottom:16px;
     border:3px solid var(--accent2);
   }
+  .result-rarity-icon{
+    display:block;
+    max-width:70%;
+    height:auto;
+    margin:0 auto 6px;
+    opacity:0;
+  }
+  .result-rarity-icon.pop{
+    animation:rarityPop .5s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  @keyframes rarityPop{
+    0%{ opacity:0; transform:scale(.4) rotate(-8deg); }
+    70%{ opacity:1; transform:scale(1.12) rotate(2deg); }
+    100%{ opacity:1; transform:scale(1) rotate(0deg); }
+  }
   .result-title{
     text-align:center;
     font-weight:900;
@@ -637,6 +652,7 @@
 
     <div id="resultZone" class="hidden">
       <div class="result-box tcg-frame">
+        <img id="resultRarityIcon" class="result-rarity-icon" src="" alt="">
         <div class="result-title" id="resultTitle"></div>
         <div class="tcg-title-deco"><span></span>✦<span></span></div>
         <div id="codexNewBadge" class="codex-new-badge hidden">🎉 おめでとう！初めて仲間になるキャラだよ❤︎</div>
@@ -748,6 +764,18 @@
     // ウルトラレア枠：光→闇→光を経由してもう一度究極覚醒に達した時だけ記録される（詳細はcurrentCodexTierId）
     { id: "ultra",  label: "涅槃",   emoji: "⚪" }
   ];
+
+  // 図鑑の段階IDごとのレアリティ表記画像。ターンエンド時の結果画面で大きく表示する。
+  const RARITY_ICONS = {
+    base:   "images/rarity-N.png",
+    light1: "images/rarity-R.png",
+    light2: "images/rarity-SR.png",
+    light3: "images/rarity-SSR.png",
+    dark1:  "images/rarity-DR.png",
+    dark2:  "images/rarity-DSR.png",
+    dark3:  "images/rarity-DSSR.png",
+    ultra:  "images/rarity-UR.png"
+  };
 
   // クラスチェンジが発生するターンの確率（0〜1）。数値は遊びながら調整してよい。
   const CLASS_CHANGE_PROB = 0.5;
@@ -970,6 +998,7 @@
   const revealCard = document.getElementById("revealCard");
   const resultZone = document.getElementById("resultZone");
   const resultTitle = document.getElementById("resultTitle");
+  const resultRarityIcon = document.getElementById("resultRarityIcon");
   const resultBack = document.getElementById("resultBack");
   const codexNewBadge = document.getElementById("codexNewBadge");
   const resultCodexProgress = document.getElementById("resultCodexProgress");
@@ -1371,6 +1400,11 @@
   function showResult(){
     clearCardZone();
     resultTitle.innerHTML = "<span class='result-name'>" + fullName() + "</span><span class='result-tagline'>が爆誕した！</span>";
+    // レアリティ表記を大きく表示（毎回アニメーションし直すため、一度クラスを外してreflowしてから付け直す）
+    resultRarityIcon.src = RARITY_ICONS[currentCodexTierId()] || RARITY_ICONS.base;
+    resultRarityIcon.classList.remove("pop");
+    void resultRarityIcon.offsetWidth;
+    resultRarityIcon.classList.add("pop");
     resultBack.innerHTML = "";
     if(effectsList.length === 0){
       resultBack.innerHTML = "<div class='result-empty'>裏面はまだ真っ白……あっという間の決着でした。</div>";
