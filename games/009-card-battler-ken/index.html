@@ -278,20 +278,37 @@
     margin-bottom:16px;
     border:3px solid var(--accent2);
   }
-  .result-rarity-icon{
-    display:block;
-    max-width:70%;
-    height:auto;
-    margin:0 auto 6px;
+  /* ==== ターンエンド結果：レアリティロゴのフルスクリーン演出 ==== */
+  .rarity-reveal-overlay{
+    position:fixed; inset:0; z-index:10500;
+    background:rgba(10,5,5,.55);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px;
+    cursor:pointer;
+  }
+  .rarity-reveal-img{
+    max-width:88vw;
+    max-height:70vh;
+    width:auto; height:auto;
+    object-fit:contain;
+    opacity:.9;
+    filter:drop-shadow(0 0 26px rgba(245,185,66,.65));
+    animation:rarityRevealGrow .6s cubic-bezier(.2,1.5,.35,1) both;
+  }
+  @keyframes rarityRevealGrow{
+    0%{ transform:scale(.2); opacity:0; }
+    65%{ transform:scale(1.06); opacity:.92; }
+    100%{ transform:scale(1); opacity:.9; }
+  }
+  .rarity-reveal-hint{
+    font-size:.8rem;
+    color:#f6ece0;
     opacity:0;
+    animation:rarityHintFade .4s ease .5s both;
   }
-  .result-rarity-icon.pop{
-    animation:rarityPop .5s cubic-bezier(.2,1.4,.4,1) both;
-  }
-  @keyframes rarityPop{
-    0%{ opacity:0; transform:scale(.4) rotate(-8deg); }
-    70%{ opacity:1; transform:scale(1.12) rotate(2deg); }
-    100%{ opacity:1; transform:scale(1) rotate(0deg); }
+  @keyframes rarityHintFade{
+    0%{ opacity:0; transform:translateY(6px); }
+    100%{ opacity:.75; transform:translateY(0); }
   }
   .result-title{
     text-align:center;
@@ -689,7 +706,6 @@
 
     <div id="resultZone" class="hidden">
       <div class="result-box tcg-frame">
-        <img id="resultRarityIcon" class="result-rarity-icon" src="" alt="">
         <div class="result-title" id="resultTitle"></div>
         <div class="tcg-title-deco"><span></span>✦<span></span></div>
         <div id="resultSkillCount" class="result-skill-count"></div>
@@ -745,6 +761,11 @@
   </div>
 
   <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<div id="rarityRevealOverlay" class="rarity-reveal-overlay hidden">
+  <img id="rarityRevealImg" class="rarity-reveal-img" src="" alt="">
+  <div class="rarity-reveal-hint">タップして結果を見る</div>
 </div>
 
 <div id="cardViewerOverlay" class="card-viewer-overlay hidden">
@@ -1041,7 +1062,8 @@
   const revealCard = document.getElementById("revealCard");
   const resultZone = document.getElementById("resultZone");
   const resultTitle = document.getElementById("resultTitle");
-  const resultRarityIcon = document.getElementById("resultRarityIcon");
+  const rarityRevealOverlay = document.getElementById("rarityRevealOverlay");
+  const rarityRevealImg = document.getElementById("rarityRevealImg");
   const resultBack = document.getElementById("resultBack");
   const codexNewBadge = document.getElementById("codexNewBadge");
   const resultCodexProgress = document.getElementById("resultCodexProgress");
@@ -1438,17 +1460,12 @@
     lockCards();
     gameOver = true;
     addLog("ターンエンド！", "turnend");
-    showResult();
+    await showResult();
   }
 
-  function showResult(){
+  async function showResult(){
     clearCardZone();
     resultTitle.innerHTML = "<span class='result-name'>" + fullName() + "</span><span class='result-tagline'>が爆誕した！</span>";
-    // レアリティ表記を大きく表示（毎回アニメーションし直すため、一度クラスを外してreflowしてから付け直す）
-    resultRarityIcon.src = RARITY_ICONS[currentCodexTierId()] || RARITY_ICONS.base;
-    resultRarityIcon.classList.remove("pop");
-    void resultRarityIcon.offsetWidth;
-    resultRarityIcon.classList.add("pop");
     resultBack.innerHTML = "";
     if(effectsList.length === 0){
       resultBack.innerHTML = "<div class='result-empty'>裏面はまだ真っ白……あっという間の決着でした。</div>";
@@ -1476,8 +1493,6 @@
       isNewEntry = recordCodexEntry(creatureBase, tierId, fullName(), effectsList);
     }
     codexNewBadge.classList.toggle("hidden", !isNewEntry);
-    // 「が爆誕した！」＋スキル数＋（初めての記録なら）祝福メッセージを、1回の発話にまとめて読み上げる（speak()は毎回前の発話をキャンセルするため）
-    speak(fullName() + "が爆誕した！　" + skillCountText + (isNewEntry ? "　おめでとう！初めて仲間になるキャラだよ！" : ""));
 
     // このキャラ（creatureBase）が図鑑上であと何体未発見かを表示（未課金でも表示、図鑑機能への誘導も兼ねる）
     const codexDataNow = loadCodex();
@@ -1487,7 +1502,16 @@
       ? creatureBase + "はコンプリート済みです！"
       : creatureBase + "はあと" + remainingForCreature + "体が未発見です";
 
+    // レアリティロゴを画面いっぱいに大きく透過表示し、タップされるまで結果本体は見せない
+    // （カード選択時の「めくる」演出＝revealCardと同じ、タップ待ちのフルスクリーン演出パターン）
+    rarityRevealImg.src = RARITY_ICONS[tierId] || RARITY_ICONS.base;
+    rarityRevealOverlay.classList.remove("hidden");
+    await waitForTap(rarityRevealOverlay);
+    rarityRevealOverlay.classList.add("hidden");
+
     resultZone.classList.remove("hidden");
+    // 「が爆誕した！」＋スキル数＋（初めての記録なら）祝福メッセージを、1回の発話にまとめて読み上げる（speak()は毎回前の発話をキャンセルするため）
+    speak(fullName() + "が爆誕した！　" + skillCountText + (isNewEntry ? "　おめでとう！初めて仲間になるキャラだよ！" : ""));
 
     // 同じ仲間×段階の記録が既にある場合は、結果画面の上に「入れ替えるか」の確認を出す
     if(existingEntry){
