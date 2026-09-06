@@ -312,6 +312,10 @@
   .result-codex-progress{
     text-align:center; font-size:.74rem; opacity:.75; margin:0 0 10px;
   }
+  .result-skill-count{
+    text-align:center; font-size:.95rem; font-weight:900; color:var(--accent2);
+    margin:0 0 10px;
+  }
   .result-back{
     background:repeating-linear-gradient(0deg, #f4ecd8, #f4ecd8 26px, #ece2c8 26px, #ece2c8 27px);
     border-radius:10px;
@@ -390,6 +394,39 @@
   .reward-card-display img{ width:100%; aspect-ratio:1/1; object-fit:contain; display:block; }
   .reward-card-display .label{ margin-top:8px; font-weight:900; font-size:1.05rem; color:var(--accent2); font-family:var(--tcg-font); }
   .reward-both-row{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+
+  /* ==== 図鑑：同じランク（同じ仲間×段階）に再到達した時の入れ替え確認 ==== */
+  .swap-overlay-inner{
+    width:min(360px, 90vw);
+    max-height:85vh;
+    overflow-y:auto;
+    text-align:center;
+    color:#f6ece0;
+  }
+  .swap-title{
+    font-size:1.05rem; font-weight:900; color:var(--accent2);
+    margin-bottom:16px; font-family:var(--tcg-font); letter-spacing:.02em;
+  }
+  .swap-card{
+    background:linear-gradient(160deg, rgba(245,185,66,.14), rgba(224,71,44,.12));
+    border:3px solid var(--accent2);
+    border-radius:16px;
+    padding:14px;
+    margin-bottom:16px;
+  }
+  .swap-card-label{ font-size:.72rem; font-weight:bold; opacity:.7; margin-bottom:8px; }
+  .swap-card img{ width:120px; height:120px; object-fit:contain; margin:0 auto 8px; display:block; }
+  .swap-card-name{ font-weight:900; font-size:1.02rem; color:#fff; margin-bottom:8px; font-family:var(--tcg-font); word-break:break-word; }
+  .swap-card-effects{
+    font-size:.7rem; opacity:.85; line-height:1.6; max-height:100px; overflow-y:auto;
+    background:rgba(0,0,0,.25); border-radius:8px; padding:8px; margin-bottom:10px; text-align:left;
+  }
+  .swap-keep-btn{
+    font-family:inherit; cursor:pointer; border:none; border-radius:999px;
+    background:var(--accent2); color:#2a1414; font-weight:bold; font-size:.85rem;
+    padding:9px 20px; transition:transform .15s ease;
+  }
+  .swap-keep-btn:active{ transform:scale(.95); }
   .reward-both-row .reward-card-display{ width:140px; padding:8px; }
   .sound-notice{
     display:block;
@@ -655,6 +692,7 @@
         <img id="resultRarityIcon" class="result-rarity-icon" src="" alt="">
         <div class="result-title" id="resultTitle"></div>
         <div class="tcg-title-deco"><span></span>✦<span></span></div>
+        <div id="resultSkillCount" class="result-skill-count"></div>
         <div id="codexNewBadge" class="codex-new-badge hidden">🎉 おめでとう！初めて仲間になるキャラだよ❤︎</div>
         <div id="resultCodexProgress" class="result-codex-progress"></div>
         <div class="result-sub">完成した仲間カードの裏面</div>
@@ -720,6 +758,11 @@
 <div id="rewardOverlay" class="card-viewer-overlay hidden">
   <button type="button" id="closeRewardOverlayBtn" class="card-viewer-close">✕</button>
   <div id="rewardOverlayInner" class="reward-overlay-inner"></div>
+</div>
+
+<div id="swapOverlay" class="card-viewer-overlay hidden">
+  <button type="button" id="closeSwapOverlayBtn" class="card-viewer-close">✕</button>
+  <div id="swapOverlayInner" class="swap-overlay-inner"></div>
 </div>
 
 <script>
@@ -1002,6 +1045,7 @@
   const resultBack = document.getElementById("resultBack");
   const codexNewBadge = document.getElementById("codexNewBadge");
   const resultCodexProgress = document.getElementById("resultCodexProgress");
+  const resultSkillCount = document.getElementById("resultSkillCount");
   const retryBtn = document.getElementById("retryBtn");
 
   function fullName(){ return currentTitle + creatureBase; }
@@ -1415,11 +1459,25 @@
       resultBack.appendChild(p);
     }
 
-    // ターンエンドを引いた瞬間の「仲間×段階」を図鑑にこっそり記録する（未課金中も記録は進む）
-    const isNewEntry = recordCodexEntry(creatureBase, currentCodexTierId(), fullName(), effectsList);
+    // 獲得したスキル（効果）の数を表示
+    const skillCount = effectsList.length;
+    const skillCountText = skillCount > 0
+      ? "🎴 " + skillCount + "個のスキルを獲得したぞ！"
+      : "スキルは1つも獲得できなかった……";
+    resultSkillCount.textContent = skillCountText;
+
+    // ターンエンドを引いた瞬間の「仲間×段階」を図鑑にこっそり記録する（未課金中も記録は進む）。
+    // 既に同じ仲間×段階の記録がある場合は上書きせず、後で「入れ替え確認」を出す。
+    const tierId = currentCodexTierId();
+    const codexDataBefore = loadCodex();
+    const existingEntry = (codexDataBefore[creatureBase] || {})[tierId];
+    let isNewEntry = false;
+    if(!existingEntry){
+      isNewEntry = recordCodexEntry(creatureBase, tierId, fullName(), effectsList);
+    }
     codexNewBadge.classList.toggle("hidden", !isNewEntry);
-    // 「が爆誕した！」＋（初めての記録なら）祝福メッセージを、1回の発話にまとめて読み上げる（speak()は毎回前の発話をキャンセルするため）
-    speak(fullName() + "が爆誕した！" + (isNewEntry ? "　おめでとう！初めて仲間になるキャラだよ！" : ""));
+    // 「が爆誕した！」＋スキル数＋（初めての記録なら）祝福メッセージを、1回の発話にまとめて読み上げる（speak()は毎回前の発話をキャンセルするため）
+    speak(fullName() + "が爆誕した！　" + skillCountText + (isNewEntry ? "　おめでとう！初めて仲間になるキャラだよ！" : ""));
 
     // このキャラ（creatureBase）が図鑑上であと何体未発見かを表示（未課金でも表示、図鑑機能への誘導も兼ねる）
     const codexDataNow = loadCodex();
@@ -1430,6 +1488,11 @@
       : creatureBase + "はあと" + remainingForCreature + "体が未発見です";
 
     resultZone.classList.remove("hidden");
+
+    // 同じ仲間×段階の記録が既にある場合は、結果画面の上に「入れ替えるか」の確認を出す
+    if(existingEntry){
+      openSwapChoice(tierId, existingEntry, fullName(), effectsList);
+    }
   }
 
   retryBtn.addEventListener("click", function(){
@@ -1618,6 +1681,52 @@
   }
   if(openRewardViewerBtn){
     openRewardViewerBtn.addEventListener("click", openRewardViewer);
+  }
+
+  // ==== 同じ仲間×段階に再到達した時の「入れ替え確認」====
+  // 記録は最初の1回で終わりにせず、同じランクを引き直した時は「今回の結果」と「現在の記録」を見比べて選び直せるようにする。
+  const swapOverlay = document.getElementById("swapOverlay");
+  const swapOverlayInner = document.getElementById("swapOverlayInner");
+  const closeSwapOverlayBtn = document.getElementById("closeSwapOverlayBtn");
+  if(closeSwapOverlayBtn){
+    closeSwapOverlayBtn.addEventListener("click", function(){
+      swapOverlay.classList.add("hidden");
+    });
+  }
+  function overwriteCodexEntry(creature, tierId, name, effects){
+    if(!creature) return;
+    const data = loadCodex();
+    if(!data[creature]) data[creature] = {};
+    data[creature][tierId] = { name: name, effects: (effects || []).slice() };
+    saveCodex(data);
+  }
+  function swapCardHtml(label, tierId, name, effects){
+    const img = creatureImageFor(creatureBase, tierId);
+    const imgHtml = img ? "<img src='" + img + "' alt=''>" : "";
+    const effectsText = effects && effects.length ? buildResultSentence(effects) : "（技はまだ何も無し）";
+    return "<div class='swap-card'>" +
+      "<div class='swap-card-label'>" + label + "</div>" +
+      imgHtml +
+      "<div class='swap-card-name'>" + name + "</div>" +
+      "<div class='swap-card-effects'>" + effectsText + "</div>" +
+      "<button type='button' class='swap-keep-btn' data-choice='" + label + "'>こちらを残す！</button>" +
+      "</div>";
+  }
+  function openSwapChoice(tierId, existingEntry, newName, newEffects){
+    const html =
+      "<div class='swap-title'>今の同じランクのキャラを入れ替えますか？</div>" +
+      swapCardHtml("現在の記録", tierId, existingEntry.name, existingEntry.effects) +
+      swapCardHtml("今回の結果", tierId, newName, newEffects);
+    swapOverlayInner.innerHTML = html;
+    swapOverlay.classList.remove("hidden");
+    swapOverlayInner.querySelectorAll(".swap-keep-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        if(btn.getAttribute("data-choice") === "今回の結果"){
+          overwriteCodexEntry(creatureBase, tierId, newName, newEffects);
+        }
+        swapOverlay.classList.add("hidden");
+      });
+    });
   }
 
   if(openCodexBtn){
