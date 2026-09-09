@@ -74,7 +74,9 @@
     padding:5px 10px;
     border-radius:999px;
     white-space:nowrap;
+    cursor:pointer; font-family:inherit; -webkit-appearance:none; appearance:none;
   }
+  .sound-badge.sound-off{ opacity:.55; }
   .center{ text-align:center; }
   .unlock-badge{
     display:inline-block;
@@ -332,7 +334,7 @@
 
   <div class="top-bar">
     <a class="back-link" href="../../">← ゲーム一覧に戻る</a>
-    <div class="sound-badge">🔊 このゲームは音が出ます</div>
+    <button type="button" id="soundToggleBtn" class="sound-badge">🔊 このゲームは音が出ます（タップでOFF）</button>
   </div>
 
   <!-- スタート画面 -->
@@ -409,6 +411,15 @@
   // ==== 全ゲーム共通「ブルジョワ全開放」の合言葉（全ゲーム共通、変更時は6本すべてに反映すること） ====
   const MASTER_PASSWORD = "金ドブ全開放";
   const STORAGE_KEY = "obento_tsumetsume_unlocked";
+  // ==== 音声ON/OFF切り替え ====
+  const SOUND_KEY = "obento_tsumetsume_sound_on";
+  function isSoundOn(){
+    try{ return localStorage.getItem(SOUND_KEY) !== "0"; }catch(e){ return true; } // 未設定ならON扱い
+  }
+  function setSoundOn(on){
+    try{ localStorage.setItem(SOUND_KEY, on ? "1" : "0"); }catch(e){}
+    if(!on){ try{ if("speechSynthesis" in window) window.speechSynthesis.cancel(); }catch(e){} }
+  }
   const GAME_SECONDS = 30;
 
   // お弁当箱の形（ラウンドが進むごとに切り替わる。大きさもバラバラ）
@@ -495,6 +506,7 @@
     return audioCtx;
   }
   function beep(freq, duration, type, vol, delay){
+    if(!isSoundOn()) return;
     try{
       const ctx = getCtx();
       const osc = ctx.createOscillator();
@@ -515,6 +527,7 @@
   function playCompleteFanfare(){ [660,880,1100,1320].forEach((f,i)=>beep(f,0.18,"triangle",0.2,i*0.09)); }
 
   function speak(text){
+    if(!isSoundOn()) return;
     try{
       if(!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
@@ -526,6 +539,20 @@
     }catch(e){ /* 非対応環境は無視 */ }
   }
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  const soundToggleBtn = document.getElementById("soundToggleBtn");
+  function renderSoundToggle(){
+    const on = isSoundOn();
+    soundToggleBtn.textContent = on ? "🔊 このゲームは音が出ます（タップでOFF）" : "🔇 音声はOFFです（タップでON）";
+    soundToggleBtn.classList.toggle("sound-off", !on);
+  }
+  if(soundToggleBtn){
+    renderSoundToggle();
+    soundToggleBtn.addEventListener("click", function(){
+      setSoundOn(!isSoundOn());
+      renderSoundToggle();
+    });
+  }
 
   let bubbleTimer = null;
   function showBubble(text, duration){
