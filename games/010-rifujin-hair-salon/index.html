@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>理不尽ヘアサロン！パーマ屋おばちゃん｜しょーもなゲームズ</title>
+<meta name="description" content="写真をセットすると、おばちゃんが勝手に理不尽な髪型を被せてくる、しょーもないジョークゲーム">
+<style>
+  :root{
+    --bg1:#fff2f6;
+    --bg2:#ffd6e8;
+    --bubble:#ffffff;
+    --ink:#3a1f2b;
+    --accent:#d6336c;
+    --accent2:#ff9f1c;
+    --safe:#8a6d3b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.35rem; margin:0 0 4px; }
+  .tagline{ text-align:center; font-size:.95rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:18px; }
+  .stage{
+    background:rgba(255,255,255,.6);
+    border-radius:22px;
+    padding:22px 16px 26px;
+    box-shadow:0 8px 24px rgba(120,20,60,.15);
+  }
+  .sound-notice{
+    display:block;
+    text-align:center;
+    font-size:1rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent);
+    padding:8px 20px;
+    border-radius:999px;
+    margin:0 auto 16px;
+    max-width:280px;
+    border:none; cursor:pointer; font-family:inherit; -webkit-appearance:none; appearance:none;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  .sound-notice:active{ transform:scale(.96); }
+  .sound-notice.sound-off{ opacity:.55; }
+
+  .hidden{ display:none !important; }
+
+  .bubble{
+    position:relative;
+    background:var(--bubble);
+    border:3px solid var(--ink);
+    border-radius:18px;
+    padding:14px 16px;
+    margin:0 auto 16px;
+    max-width:360px;
+    font-size:1rem;
+    line-height:1.6;
+    text-align:center;
+    opacity:0;
+    transform:translateY(8px) scale(.97);
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .bubble.show{ opacity:1; transform:translateY(0) scale(1); }
+
+  .step-hint{
+    text-align:center;
+    font-size:.78rem;
+    font-weight:bold;
+    color:var(--accent);
+    margin-bottom:10px;
+  }
+
+  /* ==== 写真ステージ（円ガイド＆髪型合成の舞台） ==== */
+  .photo-stage{
+    position:relative;
+    width:100%;
+    max-width:320px;
+    aspect-ratio:1/1;
+    margin:0 auto 14px;
+    border-radius:20px;
+    overflow:hidden;
+    background:#e8e0da;
+    border:3px solid var(--ink);
+    touch-action:none;
+  }
+  .photo-layer, .hair-layer{
+    position:absolute;
+    top:50%; left:50%;
+    max-width:none;
+    transform-origin:center center;
+    user-select:none;
+    -webkit-user-drag:none;
+    cursor:grab;
+  }
+  .photo-layer:active, .hair-layer:active{ cursor:grabbing; }
+  .circle-guide{
+    position:absolute;
+    top:50%; left:50%;
+    width:58%;
+    aspect-ratio:1/1;
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+    border:3px dashed #fff;
+    box-shadow:0 0 0 999px rgba(20,10,15,.5);
+    pointer-events:none;
+  }
+  .result-canvas-wrap{
+    width:100%;
+    max-width:320px;
+    aspect-ratio:1/1;
+    margin:0 auto 16px;
+    border-radius:20px;
+    overflow:hidden;
+    border:3px solid var(--ink);
+  }
+  #resultCanvas{ width:100%; height:100%; display:block; }
+
+  .zoom-controls{
+    max-width:320px;
+    margin:0 auto 6px;
+    text-align:center;
+  }
+  .zoom-controls label{ display:block; font-size:.78rem; opacity:.75; margin-bottom:4px; }
+  .zoom-controls input[type=range]{ width:100%; margin-bottom:14px; }
+
+  .primary-btn{
+    display:block;
+    width:100%;
+    max-width:320px;
+    margin:0 auto 10px;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:1.05rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent);
+    box-shadow:0 4px 0 #a3204f;
+    transition:transform .15s ease;
+  }
+  .primary-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #a3204f; }
+
+  .photo-pick-label{
+    display:block;
+    width:100%;
+    max-width:320px;
+    margin:0 auto 14px;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:14px;
+    padding:16px 16px;
+    font-size:1.1rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent);
+    text-align:center;
+    box-shadow:0 4px 0 #a3204f;
+    transition:transform .15s ease;
+  }
+  .photo-pick-label:active{ transform:translateY(2px); box-shadow:0 2px 0 #a3204f; }
+
+  .text-btn{
+    display:block;
+    width:100%;
+    text-align:center;
+    background:none;
+    border:none;
+    font-family:inherit;
+    cursor:pointer;
+    color:var(--ink);
+    opacity:.7;
+    font-size:.85rem;
+    font-weight:700;
+    padding:6px;
+    margin:0 auto 4px;
+  }
+  .text-btn:active{ opacity:1; }
+
+  .privacy-note{
+    font-size:.7rem;
+    opacity:.65;
+    text-align:center;
+    margin:0 auto 16px;
+    max-width:340px;
+    line-height:1.6;
+  }
+
+  .actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+    margin-top:4px;
+  }
+
+  .grade-zone{
+    margin-top:26px;
+    padding-top:16px;
+    border-top:1px dashed #e0a0bb;
+    text-align:center;
+  }
+  .grade-cta{
+    background:linear-gradient(160deg,#fff0e4,#ffe3ee);
+    border:3px dashed var(--accent2);
+    border-radius:18px;
+    padding:18px 14px;
+  }
+  .grade-headline{ font-size:1.15rem; font-weight:bold; color:var(--accent2); margin-bottom:6px; }
+  .grade-price{
+    display:inline-block; background:rgba(255,255,255,.7); color:var(--ink);
+    font-size:.85rem; font-weight:bold; padding:4px 14px; border-radius:999px;
+    margin-bottom:10px; border:1px solid var(--accent2);
+  }
+  .note-link-btn{
+    display:block; background:#41c9b4; color:#fff;
+    font-size:1.15rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:16px 14px; border-radius:14px; margin-bottom:14px;
+    box-shadow:0 4px 0 #2e9c8c;
+  }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{ font-size:.85rem; font-weight:bold; color:var(--ink); margin-bottom:14px; }
+  .grade-form{ display:flex; flex-direction:column; gap:10px; max-width:320px; margin:0 auto; }
+  .grade-form input[type=text]{ text-align:center; padding:10px 12px; border-radius:12px; border:2px solid var(--accent2); font-size:1rem; font-family:inherit; }
+  .grade-form #unlockBtn{
+    font-family:inherit; cursor:pointer; border:none; border-radius:12px;
+    font-size:1.05rem; padding:13px 16px; background:var(--accent2); color:#fff; font-weight:bold;
+  }
+  .grade-msg{ font-size:.8rem; margin-top:8px; }
+  .unlocked-badge{
+    display:inline-block; background:var(--accent); color:#fff;
+    font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px;
+  }
+  .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
+
+  .x-share-zone{
+    margin-top:26px; padding-top:16px;
+    border-top:1px dashed #e0a0bb;
+    text-align:center;
+  }
+  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:12px; }
+  .x-link-btn{
+    display:block; background:#000; color:#fff;
+    font-size:1rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:14px 14px; border-radius:14px;
+    box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer;
+    font-family:inherit;
+  }
+  .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
+
+  .usage-notice{
+    margin-top:18px; font-size:.72rem; line-height:1.8; opacity:.85; text-align:left;
+    background:#fff8ea; border-radius:10px; padding:12px 14px; border:1px solid #e8d2a0;
+  }
+  .usage-notice .usage-title{ font-weight:bold; color:var(--accent); display:block; margin-bottom:4px; }
+
+  .back-link{
+    display:inline-block; font-size:.8rem; font-weight:700;
+    color:var(--ink); opacity:.65; text-decoration:none; margin-bottom:10px;
+  }
+  .back-link:hover{ opacity:1; }
+  .back-link-btn{
+    display:block; background:var(--accent); color:#fff;
+    font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:14px 16px; border-radius:14px; margin-top:20px;
+    box-shadow:0 4px 0 #a3204f;
+  }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #a3204f; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <h1>理不尽ヘアサロン！</h1>
+  <div class="tagline">パーマ屋おばちゃん</div>
+  <div class="sub">写真をセットすると、おばちゃんが勝手に髪型を変えてきます</div>
+  <button type="button" id="soundToggleBtn" class="sound-notice">🔊 このゲームは音が出ます（タップでOFF）</button>
+
+  <div class="stage">
+
+    <!-- ==== 画面1：写真セット ==== -->
+    <div id="screenIntro" class="screen">
+      <div class="bubble show">写真、撮るか選ぶかしいや。ワテがすぐ変えたるさかいな！</div>
+      <input type="file" id="photoInput" accept="image/*" capture="user" class="hidden">
+      <label for="photoInput" class="photo-pick-label">📷 写真を撮る／選ぶ</label>
+      <div class="privacy-note">※ 写真はこの端末（ブラウザ）の中だけで処理されます。サーバーには送信・保存されません。</div>
+    </div>
+
+    <!-- ==== 画面2：顔合わせ→髪型セット→微調整 ==== -->
+    <div id="screenEdit" class="screen hidden">
+      <div id="editBubble" class="bubble show"></div>
+      <div id="stepHint" class="step-hint"></div>
+
+      <div class="photo-stage" id="photoStage">
+        <img id="photoImg" class="photo-layer" alt="">
+        <img id="hairImg" class="hair-layer hidden" alt="">
+        <div id="circleGuide" class="circle-guide"></div>
+      </div>
+
+      <div id="alignControls" class="zoom-controls">
+        <label>🔍 写真の拡大縮小</label>
+        <input type="range" id="photoZoom" min="1" max="3" step="0.01" value="1">
+        <button type="button" id="alignOkBtn" class="primary-btn">OK！このまま合わせる</button>
+        <button type="button" id="retakeBtn" class="text-btn">← 写真をやり直す</button>
+      </div>
+
+      <div id="hairControls" class="zoom-controls hidden">
+        <label>🔍 髪型の拡大縮小・位置はドラッグで調整</label>
+        <input type="range" id="hairZoom" min="0.3" max="2.5" step="0.01" value="1">
+        <button type="button" id="finishBtn" class="primary-btn">できあがり！</button>
+      </div>
+    </div>
+
+    <!-- ==== 画面3：結果 ==== -->
+    <div id="screenResult" class="screen hidden">
+      <div id="resultBubble" class="bubble show"></div>
+      <div class="result-canvas-wrap">
+        <canvas id="resultCanvas"></canvas>
+      </div>
+      <div class="actions">
+        <button type="button" id="downloadBtn" class="primary-btn">💾 画像を保存する</button>
+        <button type="button" id="restartBtn" class="text-btn">🔁 もう一度最初から</button>
+      </div>
+    </div>
+
+    <div class="grade-zone">
+      <div class="grade-cta" id="gradeForm">
+        <div class="grade-headline">損しかない課金はこちら💁</div>
+        <div class="grade-price">🪙 ワンコイン500円</div>
+        <a href="https://note.com/kanae_project" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
+        <!-- TODO: グレードアップの中身は検討中。note記事執筆前に確定させ、下の説明文とPASSWORDを更新すること -->
+        <div class="grade-teaser">課金するとおばちゃんの理不尽度がさらに増す……らしい（内容は検討中）</div>
+        <div class="grade-form">
+          <input type="text" id="passwordInput" placeholder="合言葉">
+          <button type="button" id="unlockBtn">解放する</button>
+        </div>
+      </div>
+      <div id="gradeMsg" class="grade-msg"></div>
+      <div id="unlockedZone" class="hidden">
+        <span class="unlocked-badge">グレードアップ解放済み</span>
+        <div class="unlocked-note">（グレードアップの中身は近日実装予定です）</div>
+      </div>
+    </div>
+
+    <div class="x-share-zone">
+      <div class="x-share-title">このゲームを拡散！</div>
+      <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xでシェアする</button>
+    </div>
+
+    <div class="usage-notice">
+      <span class="usage-title">🎥 実況・動画での使用について</span>
+      「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+      ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
+      それ以外は自由に、しょーもなく広めていただけると嬉しいです。
+    </div>
+  </div>
+
+  <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<script>
+(function(){
+  const GAME_URL = "https://kanae-project.github.io/syomona-games/games/010-rifujin-hair-salon/";
+
+  // ==== 合言葉：note有料部分に載せる文字列。仮の値、正式決定まで暫定（note記事執筆時に確定させること） ====
+  const PASSWORD = "パーマ暴走（仮）";
+  // ==== 全ゲーム共通「ブルジョワ改め金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
+  const MASTER_PASSWORD = "金ドブ全開放";
+  const STORAGE_KEY = "hair_salon_unlocked";
+  const SOUND_KEY = "hair_salon_sound_on";
+
+  function safeGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+  function safeSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
+
+  function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
+  // ==== 音声（Web Speech API）====
+  function isSoundOn(){
+    try{ return localStorage.getItem(SOUND_KEY) !== "0"; }catch(e){ return true; } // 未設定ならON扱い
+  }
+  function setSoundOn(on){
+    try{ localStorage.setItem(SOUND_KEY, on ? "1" : "0"); }catch(e){}
+    if(!on){ try{ if("speechSynthesis" in window) window.speechSynthesis.cancel(); }catch(e){} }
+  }
+  function pickJapaneseVoice(){
+    try{
+      const voices = window.speechSynthesis.getVoices();
+      const female = voices.find(function(v){
+        return /^ja(-JP)?$/i.test(v.lang) && /(female|woman|kyoko|o-ren|sayaka)/i.test(v.name);
+      });
+      return female || voices.find(function(v){ return /^ja(-JP)?$/i.test(v.lang); }) || null;
+    }catch(e){ return null; }
+  }
+  // 「呼びっぱなし」方式：呼ぶたびにcancel()してから話すので、連打しても積み重ならない
+  function speak(text){
+    if(!isSoundOn()) return;
+    try{
+      if(!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ja-JP";
+      u.rate = 1.0;
+      u.pitch = 1.15;
+      const voice = pickJapaneseVoice();
+      if(voice) u.voice = voice;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  const soundToggleBtn = document.getElementById("soundToggleBtn");
+  function renderSoundToggle(){
+    const on = isSoundOn();
+    soundToggleBtn.textContent = on ? "🔊 このゲームは音が出ます（タップでOFF）" : "🔇 音声はOFFです（タップでON）";
+    soundToggleBtn.classList.toggle("sound-off", !on);
+  }
+  renderSoundToggle();
+  soundToggleBtn.addEventListener("click", function(){
+    setSoundOn(!isSoundOn());
+    renderSoundToggle();
+  });
+
+  // ==== 髪型ダミー画像（本番イラストが届くまでの仮素材） ====
+  // TODO: 本番の透過PNGイラストが揃ったら、下のimgをそれぞれ images/<slug>.png のパスに差し替える。
+  //       差し替え後は baseScale の係数（HAIR_FIT）も実際の絵柄に合わせて調整すること。
+  function dummyHairImg(label, bg, fg){
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320">'
+      + '<rect x="6" y="6" width="308" height="308" rx="36" fill="' + bg + '" opacity="0.88" stroke="#2a1a20" stroke-width="4"/>'
+      + '<text x="160" y="175" font-size="30" font-family="sans-serif" font-weight="bold" fill="' + fg + '" text-anchor="middle">' + label + '</text>'
+      + '</svg>';
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+  const HAIRSTYLES = [
+    { id:"chonmage", name:"ちょんまげ", img: dummyHairImg("ちょんまげ", "#8b5a2b", "#fff") },
+    { id:"namihira",  name:"波平",       img: dummyHairImg("波平",       "#333333", "#fff") },
+    { id:"barcode",   name:"バーコード", img: dummyHairImg("バーコード", "#555555", "#fff") },
+    { id:"rizento",   name:"リーゼント", img: dummyHairImg("リーゼント", "#1a1a2e", "#ffd166") },
+    { id:"mohican",   name:"モヒカン",   img: dummyHairImg("モヒカン",   "#c0392b", "#fff") }
+  ];
+  const HAIR_LINES = [
+    "ほな、これやな！",
+    "これがイッチバンや！",
+    "文句言うたらあかんで！",
+    "よう似合うとるがな！",
+    "そのままお家帰りや！"
+  ];
+
+  // ==== 画面切り替え ====
+  function showScreen(id){
+    document.querySelectorAll(".screen").forEach(function(el){ el.classList.add("hidden"); });
+    document.getElementById(id).classList.remove("hidden");
+  }
+
+  // ==== 状態 ====
+  let currentStep = "align"; // "align" | "hair"
+  let chosenStyle = null;
+  let currentPhotoUrl = null;
+  const photo = { x:0, y:0, zoom:1, baseScale:1 };
+  const hair  = { x:0, y:0, zoom:1, baseScale:1 };
+
+  const photoStage = document.getElementById("photoStage");
+  const photoImg = document.getElementById("photoImg");
+  const hairImg = document.getElementById("hairImg");
+  const circleGuide = document.getElementById("circleGuide");
+  const editBubble = document.getElementById("editBubble");
+  const stepHint = document.getElementById("stepHint");
+  const alignControls = document.getElementById("alignControls");
+  const hairControls = document.getElementById("hairControls");
+  const photoZoomInput = document.getElementById("photoZoom");
+  const hairZoomInput = document.getElementById("hairZoom");
+
+  function renderPhotoLayer(){
+    photoImg.style.transform = "translate(-50%,-50%) translate(" + photo.x + "px," + photo.y + "px) scale(" + (photo.baseScale * photo.zoom) + ")";
+  }
+  function renderHairLayer(){
+    hairImg.style.transform = "translate(-50%,-50%) translate(" + hair.x + "px," + hair.y + "px) scale(" + (hair.baseScale * hair.zoom) + ")";
+  }
+
+  // ==== ドラッグ（写真／髪型 共通のポインター処理） ====
+  function attachDrag(el, state, activeStepName, onMove){
+    let dragging = false, lastX = 0, lastY = 0;
+    el.addEventListener("pointerdown", function(e){
+      if(currentStep !== activeStepName) return;
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+      try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    el.addEventListener("pointermove", function(e){
+      if(!dragging || currentStep !== activeStepName) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      state.x += dx; state.y += dy;
+      onMove();
+    });
+    function endDrag(){ dragging = false; }
+    el.addEventListener("pointerup", endDrag);
+    el.addEventListener("pointercancel", endDrag);
+    el.addEventListener("pointerleave", function(){ if(dragging) endDrag(); });
+  }
+  attachDrag(photoImg, photo, "align", renderPhotoLayer);
+  attachDrag(hairImg, hair, "hair", renderHairLayer);
+
+  // マウスホイールでも拡大縮小できるようにする（PC操作の補助、スライダーがメイン）
+  photoStage.addEventListener("wheel", function(e){
+    if(currentStep === "align"){
+      e.preventDefault();
+      photo.zoom = Math.min(3, Math.max(1, photo.zoom - e.deltaY * 0.001));
+      photoZoomInput.value = photo.zoom.toFixed(2);
+      renderPhotoLayer();
+    } else if(currentStep === "hair"){
+      e.preventDefault();
+      hair.zoom = Math.min(2.5, Math.max(0.3, hair.zoom - e.deltaY * 0.001));
+      hairZoomInput.value = hair.zoom.toFixed(2);
+      renderHairLayer();
+    }
+  }, { passive:false });
+
+  photoZoomInput.addEventListener("input", function(){
+    photo.zoom = parseFloat(this.value);
+    renderPhotoLayer();
+  });
+  hairZoomInput.addEventListener("input", function(){
+    hair.zoom = parseFloat(this.value);
+    renderHairLayer();
+  });
+
+  // ==== 画面1：写真セット ====
+  const photoInput = document.getElementById("photoInput");
+  photoInput.addEventListener("change", function(e){
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    if(currentPhotoUrl) URL.revokeObjectURL(currentPhotoUrl);
+    currentPhotoUrl = URL.createObjectURL(file);
+
+    photoImg.onload = function(){
+      const rect = photoStage.getBoundingClientRect();
+      photo.baseScale = Math.max(rect.width / photoImg.naturalWidth, rect.height / photoImg.naturalHeight);
+      photo.x = 0; photo.y = 0; photo.zoom = 1;
+      photoZoomInput.value = 1;
+      renderPhotoLayer();
+    };
+    photoImg.src = currentPhotoUrl;
+
+    currentStep = "align";
+    circleGuide.classList.remove("hidden");
+    hairImg.classList.add("hidden");
+    alignControls.classList.remove("hidden");
+    hairControls.classList.add("hidden");
+    editBubble.textContent = "顔を丸の中に合わせてや！";
+    stepHint.textContent = "ステップ1/2：円に顔を合わせてOKを押してね";
+    speak("顔を丸の中に合わせてや！");
+    showScreen("screenEdit");
+  });
+
+  // ==== 画面2：顔合わせ→髪型セット ====
+  document.getElementById("retakeBtn").addEventListener("click", function(){
+    photoInput.value = "";
+    showScreen("screenIntro");
+  });
+
+  document.getElementById("alignOkBtn").addEventListener("click", function(){
+    currentStep = "hair";
+    circleGuide.classList.add("hidden");
+    alignControls.classList.add("hidden");
+    hairControls.classList.remove("hidden");
+    stepHint.textContent = "ステップ2/2：位置と大きさを微調整できるよ";
+
+    chosenStyle = pick(HAIRSTYLES);
+    hairImg.classList.remove("hidden");
+    hairImg.onload = function(){
+      const rect = photoStage.getBoundingClientRect();
+      hair.baseScale = (rect.width * 0.95) / hairImg.naturalWidth;
+      hair.x = 0; hair.y = -rect.height * 0.12; hair.zoom = 1;
+      hairZoomInput.value = 1;
+      renderHairLayer();
+    };
+    hairImg.src = chosenStyle.img;
+
+    const line = pick(HAIR_LINES);
+    editBubble.textContent = "「" + chosenStyle.name + "」や！" + line;
+    speak(chosenStyle.name + "。" + line);
+  });
+
+  // ==== 画面3：結果 ====
+  const resultCanvas = document.getElementById("resultCanvas");
+
+  function bakeResult(){
+    const RES = 900;
+    resultCanvas.width = RES;
+    resultCanvas.height = RES;
+    const ctx = resultCanvas.getContext("2d");
+    ctx.fillStyle = "#eee2da";
+    ctx.fillRect(0, 0, RES, RES);
+
+    const rect = photoStage.getBoundingClientRect();
+    const scaleFactor = RES / rect.width;
+
+    if(photoImg.naturalWidth){
+      ctx.save();
+      ctx.translate(RES / 2 + photo.x * scaleFactor, RES / 2 + photo.y * scaleFactor);
+      const s = photo.baseScale * photo.zoom * scaleFactor;
+      ctx.scale(s, s);
+      ctx.drawImage(photoImg, -photoImg.naturalWidth / 2, -photoImg.naturalHeight / 2);
+      ctx.restore();
+    }
+    if(hairImg.naturalWidth && chosenStyle){
+      ctx.save();
+      ctx.translate(RES / 2 + hair.x * scaleFactor, RES / 2 + hair.y * scaleFactor);
+      const s2 = hair.baseScale * hair.zoom * scaleFactor;
+      ctx.scale(s2, s2);
+      ctx.drawImage(hairImg, -hairImg.naturalWidth / 2, -hairImg.naturalHeight / 2);
+      ctx.restore();
+    }
+  }
+
+  document.getElementById("finishBtn").addEventListener("click", function(){
+    bakeResult();
+    const msg = "こんな感じや！文句あるか？";
+    document.getElementById("resultBubble").textContent = msg;
+    speak(msg);
+    showScreen("screenResult");
+  });
+
+  document.getElementById("downloadBtn").addEventListener("click", function(){
+    resultCanvas.toBlob(function(blob){
+      if(!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "rifujin-hair-salon.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    }, "image/png");
+  });
+
+  document.getElementById("restartBtn").addEventListener("click", function(){
+    photoInput.value = "";
+    chosenStyle = null;
+    showScreen("screenIntro");
+  });
+
+  // ==== Xシェア（window.open方式：広告ブロック拡張機能によるリンク非表示を避けるため） ====
+  document.getElementById("xShareBtn").addEventListener("click", function(){
+    let text = "「理不尽ヘアサロン！パーマ屋おばちゃん」で";
+    text += chosenStyle ? "「" + chosenStyle.name + "」を強制的に被せられました…😱" : "髪型を勝手に変えられました…😱";
+    text += "\nCMなしの0秒ブラウザゲーム！\n#しょーもなゲームズ";
+    if(GAME_URL){ text += "\n" + GAME_URL; }
+    const url = "https://x.com/intent/tweet?text=" + encodeURIComponent(text);
+    window.open(url, "_blank");
+  });
+
+  // ==== グレードアップ（合言葉）まわり ====
+  const gradeForm = document.getElementById("gradeForm");
+  const unlockBtn = document.getElementById("unlockBtn");
+  const gradeMsg = document.getElementById("gradeMsg");
+  const unlockedZone = document.getElementById("unlockedZone");
+
+  function setUnlocked(){
+    gradeForm.classList.add("hidden");
+    gradeMsg.textContent = "";
+    unlockedZone.classList.remove("hidden");
+  }
+  if(safeGet(STORAGE_KEY) === "1"){ setUnlocked(); }
+
+  unlockBtn.addEventListener("click", function(){
+    const val = document.getElementById("passwordInput").value.trim();
+    if(val === PASSWORD || val === MASTER_PASSWORD){
+      safeSet(STORAGE_KEY, "1");
+      setUnlocked();
+    } else {
+      gradeMsg.textContent = "違います、もう一度確認してください。";
+    }
+  });
+})();
+</script>
+</body>
+</html>
