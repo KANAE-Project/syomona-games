@@ -435,7 +435,8 @@
   });
 
   // ==== 髪型画像 ====
-  // 本番の透過PNGが揃ったスタイルは images/<slug>.png を使用。未着手のものは仮のダミー画像（色付き角丸＋ラベル文字）で代用する。
+  // 5種とも本番の透過PNG（images/<slug>.png）に差し替え済み。dummyHairImg()は今後スタイルを
+  // 追加する時のための仮画像ジェネレーター（色付き角丸＋ラベル文字）として残してある。
   // widthFrac: ステージ幅に対する画像の初期表示幅の割合／yOffsetFrac: ステージ高さに対する初期の縦オフセット（マイナスで上寄せ）。
   // どちらも「だいたいの初期位置」を決めるだけで、実際は毎回ドラッグ・拡大縮小で微調整する前提の値。
   function dummyHairImg(label, bg, fg){
@@ -447,10 +448,10 @@
   }
   const HAIRSTYLES = [
     { id:"chonmage", name:"ちょんまげ", img: "images/chonmage.png", widthFrac:0.88, yOffsetFrac:-0.06 },
-    { id:"namihira",  name:"波平",       img: dummyHairImg("波平",       "#333333", "#fff"), widthFrac:0.95, yOffsetFrac:-0.12 },
-    { id:"barcode",   name:"バーコード", img: dummyHairImg("バーコード", "#555555", "#fff"), widthFrac:0.95, yOffsetFrac:-0.12 },
+    { id:"namihira",  name:"波平",       img: "images/namihira.png", widthFrac:0.88, yOffsetFrac:-0.06 },
+    { id:"barcode",   name:"バーコード", img: "images/barcode.png", widthFrac:0.88, yOffsetFrac:-0.06 },
     { id:"rizento",   name:"リーゼント", img: "images/rizento.png", widthFrac:0.88, yOffsetFrac:-0.06 },
-    { id:"mohican",   name:"モヒカン",   img: dummyHairImg("モヒカン",   "#c0392b", "#fff"), widthFrac:0.95, yOffsetFrac:-0.12 }
+    { id:"mohican",   name:"モヒカン",   img: "images/mohican.png", widthFrac:0.88, yOffsetFrac:-0.06 }
   ];
   const HAIR_LINES = [
     "ほな、これやな！",
