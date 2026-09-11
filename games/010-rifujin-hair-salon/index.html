@@ -320,6 +320,8 @@
         <label>🔍 髪型の拡大縮小・位置はドラッグで調整</label>
         <input type="range" id="hairZoom" min="0.3" max="2.5" step="0.01" value="1">
         <button type="button" id="finishBtn" class="primary-btn">できあがり！</button>
+        <button type="button" id="rerollBtnEdit" class="text-btn">🎲 違う髪型にする</button>
+        <button type="button" id="resetBtnEdit" class="text-btn">🔁 リセット（顔からやり直す）</button>
       </div>
     </div>
 
@@ -331,7 +333,8 @@
       </div>
       <div class="actions">
         <button type="button" id="downloadBtn" class="primary-btn">💾 画像を保存する</button>
-        <button type="button" id="restartBtn" class="text-btn">🔁 もう一度最初から</button>
+        <button type="button" id="rerollBtn" class="text-btn">🎲 違う髪型にする</button>
+        <button type="button" id="restartBtn" class="text-btn">🔁 リセット（顔からやり直す）</button>
       </div>
     </div>
 
@@ -569,14 +572,14 @@
     showScreen("screenIntro");
   });
 
-  document.getElementById("alignOkBtn").addEventListener("click", function(){
-    currentStep = "hair";
-    circleGuide.classList.add("hidden");
-    alignControls.classList.add("hidden");
-    hairControls.classList.remove("hidden");
-    stepHint.textContent = "ステップ2/2：位置と大きさを微調整できるよ";
-
-    chosenStyle = pick(HAIRSTYLES);
+  // 髪型をランダムに1つ選んでセットする（excludeCurrent: trueなら今と違う髪型になるまで選び直す）。
+  // 顔（photo）側の状態には一切触れないので、何度呼んでも位置合わせ済みの写真はそのまま。
+  function applyRandomHairstyle(excludeCurrent){
+    let next = pick(HAIRSTYLES);
+    if(excludeCurrent && chosenStyle && HAIRSTYLES.length > 1){
+      while(next.id === chosenStyle.id){ next = pick(HAIRSTYLES); }
+    }
+    chosenStyle = next;
     hairImg.classList.remove("hidden");
     hairImg.onload = function(){
       const rect = photoStage.getBoundingClientRect();
@@ -584,13 +587,58 @@
       hair.x = 0; hair.y = rect.height * chosenStyle.yOffsetFrac; hair.zoom = 1;
       hairZoomInput.value = 1;
       renderHairLayer();
+      // 結果画面を見ている最中に押した場合は、その場で焼き直す
+      if(!document.getElementById("screenResult").classList.contains("hidden")){
+        bakeResult();
+      }
     };
     hairImg.src = chosenStyle.img;
 
     const line = pick(HAIR_LINES);
-    editBubble.textContent = "「" + chosenStyle.name + "」や！" + line;
+    const msg = "「" + chosenStyle.name + "」や！" + line;
+    if(currentStep === "hair" && !document.getElementById("screenEdit").classList.contains("hidden")){
+      editBubble.textContent = msg;
+    } else {
+      document.getElementById("resultBubble").textContent = msg;
+    }
     speak(chosenStyle.name + "。" + line);
+  }
+
+  // 顔（写真）は今読み込んでいるものをそのまま使い、位置合わせだけやり直す
+  function resetToAlign(){
+    if(!photoImg.naturalWidth) return; // 写真が未読み込みなら何もしない
+    currentStep = "align";
+    circleGuide.classList.remove("hidden");
+    hairImg.classList.add("hidden");
+    alignControls.classList.remove("hidden");
+    hairControls.classList.add("hidden");
+    // 表示状態にしてからサイズを測る（非表示のままだとgetBoundingClientRectが0になり、拡大率が壊れるため）
+    showScreen("screenEdit");
+
+    const rect = photoStage.getBoundingClientRect();
+    photo.baseScale = Math.max(rect.width / photoImg.naturalWidth, rect.height / photoImg.naturalHeight);
+    photo.x = 0; photo.y = 0; photo.zoom = 1;
+    photoZoomInput.value = 1;
+    renderPhotoLayer();
+
+    editBubble.textContent = "もう一回、顔を丸の中に合わせてや！";
+    stepHint.textContent = "ステップ1/2：円に顔を合わせてOKを押してね";
+    speak("もう一回、顔を丸の中に合わせてや！");
+  }
+
+  document.getElementById("alignOkBtn").addEventListener("click", function(){
+    currentStep = "hair";
+    circleGuide.classList.add("hidden");
+    alignControls.classList.add("hidden");
+    hairControls.classList.remove("hidden");
+    stepHint.textContent = "ステップ2/2：位置と大きさを微調整できるよ";
+    applyRandomHairstyle(false);
   });
+
+  document.getElementById("rerollBtnEdit").addEventListener("click", function(){
+    applyRandomHairstyle(true);
+  });
+  document.getElementById("resetBtnEdit").addEventListener("click", resetToAlign);
 
   // ==== 画面3：結果 ====
   const resultCanvas = document.getElementById("resultCanvas");
@@ -646,11 +694,12 @@
     }, "image/png");
   });
 
-  document.getElementById("restartBtn").addEventListener("click", function(){
-    photoInput.value = "";
-    chosenStyle = null;
-    showScreen("screenIntro");
+  document.getElementById("rerollBtn").addEventListener("click", function(){
+    applyRandomHairstyle(true);
   });
+
+  // 「顔からやり直す」＝今の写真は残したまま、位置合わせ（円ガイド）からやり直す
+  document.getElementById("restartBtn").addEventListener("click", resetToAlign);
 
   // ==== Xシェア（window.open方式：広告ブロック拡張機能によるリンク非表示を避けるため） ====
   document.getElementById("xShareBtn").addEventListener("click", function(){
