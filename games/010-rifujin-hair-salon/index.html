@@ -30,6 +30,21 @@
   h1{ text-align:center; font-size:1.35rem; margin:0 0 4px; }
   .tagline{ text-align:center; font-size:.95rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
   .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:18px; }
+  /* おばちゃんSVG（1本目「理不尽献立おばちゃん」と同一キャラ、シリーズの顔として共通で使い回す） */
+  .obachan{
+    display:block;
+    margin:0 auto 6px;
+    width:150px;
+    height:150px;
+    filter:drop-shadow(0 6px 8px rgba(0,0,0,.15));
+  }
+  .name-tag{
+    text-align:center;
+    font-weight:bold;
+    color:var(--accent);
+    margin-bottom:14px;
+    font-size:.95rem;
+  }
   .stage{
     background:rgba(255,255,255,.6);
     border-radius:22px;
@@ -189,6 +204,25 @@
   }
   .text-btn:active{ opacity:1; }
 
+  .reroll-btn{
+    display:block;
+    width:100%;
+    max-width:320px;
+    margin:0 auto 10px;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:1.05rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent2);
+    box-shadow:0 4px 0 #c97600;
+    transition:transform .15s ease;
+  }
+  .reroll-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #c97600; }
+
   .privacy-note{
     font-size:.7rem;
     opacity:.65;
@@ -286,6 +320,56 @@
   <h1>理不尽ヘアサロン！</h1>
   <div class="tagline">パーマ屋おばちゃん</div>
   <div class="sub">写真をセットすると、おばちゃんが勝手に髪型を変えてきます</div>
+
+  <svg class="obachan" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="leopard" width="34" height="34" patternUnits="userSpaceOnUse">
+        <rect width="34" height="34" fill="#d9a85e"/>
+        <path d="M6 4 q4 -4 8 0 q3 3 -1 6 q-5 2 -8 -1 q-2 -3 1 -5z" fill="#5a3d1e"/>
+        <path d="M22 14 q5 -3 8 1 q2 4 -2 6 q-5 2 -8 -2 q-1 -3 2 -5z" fill="#5a3d1e"/>
+        <path d="M4 22 q5 -2 7 2 q2 4 -3 5 q-5 1 -7 -3 q-1 -3 3 -4z" fill="#5a3d1e"/>
+      </pattern>
+    </defs>
+    <!-- body -->
+    <path d="M40 200 Q40 140 100 140 Q160 140 160 200 Z" fill="url(#leopard)" stroke="#3a2a1a" stroke-width="3"/>
+    <!-- neck -->
+    <rect x="88" y="108" width="24" height="24" rx="6" fill="#f2c79a" stroke="#3a2a1a" stroke-width="2"/>
+    <!-- head -->
+    <circle cx="100" cy="82" r="46" fill="#f6d1a6" stroke="#3a2a1a" stroke-width="3"/>
+    <!-- perm hair -->
+    <g fill="#8a6d3b" stroke="#3a2a1a" stroke-width="2">
+      <circle cx="55" cy="55" r="16"/>
+      <circle cx="70" cy="35" r="17"/>
+      <circle cx="100" cy="28" r="18"/>
+      <circle cx="130" cy="35" r="17"/>
+      <circle cx="146" cy="58" r="16"/>
+      <circle cx="52" cy="78" r="14"/>
+      <circle cx="149" cy="80" r="14"/>
+    </g>
+    <!-- perm curls detail -->
+    <g fill="none" stroke="#3a2a1a" stroke-width="2" opacity=".5">
+      <path d="M48 50 q6 -8 12 0"/>
+      <path d="M78 28 q6 -8 12 0"/>
+      <path d="M112 26 q6 -8 12 0"/>
+      <path d="M138 52 q6 -8 12 0"/>
+    </g>
+    <!-- eyebrows: angry-ish -->
+    <path d="M76 72 q10 -8 20 -2" stroke="#3a2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M104 70 q10 -6 20 2" stroke="#3a2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- eyes -->
+    <circle cx="85" cy="85" r="3.5" fill="#3a2a1a"/>
+    <circle cx="115" cy="85" r="3.5" fill="#3a2a1a"/>
+    <!-- blush -->
+    <circle cx="72" cy="98" r="7" fill="#f19a8e" opacity=".6"/>
+    <circle cx="128" cy="98" r="7" fill="#f19a8e" opacity=".6"/>
+    <!-- mouth: talking -->
+    <path d="M88 106 Q100 118 112 106" stroke="#3a2a1a" stroke-width="3" fill="#c0392b" stroke-linejoin="round"/>
+    <!-- earrings -->
+    <circle cx="54" cy="92" r="4" fill="#e8b923" stroke="#3a2a1a" stroke-width="1.5"/>
+    <circle cx="146" cy="92" r="4" fill="#e8b923" stroke="#3a2a1a" stroke-width="1.5"/>
+  </svg>
+  <div class="name-tag">パーマ屋おばちゃん</div>
+
   <button type="button" id="soundToggleBtn" class="sound-notice">🔊 このゲームは音が出ます（タップでOFF）</button>
 
   <div class="stage">
@@ -320,7 +404,7 @@
         <label>🔍 髪型の拡大縮小・位置はドラッグで調整</label>
         <input type="range" id="hairZoom" min="0.3" max="2.5" step="0.01" value="1">
         <button type="button" id="finishBtn" class="primary-btn">できあがり！</button>
-        <button type="button" id="rerollBtnEdit" class="text-btn">🎲 違う髪型にする</button>
+        <button type="button" id="rerollBtnEdit" class="reroll-btn">🎲 違う髪型にする</button>
         <button type="button" id="resetBtnEdit" class="text-btn">🔁 リセット（顔からやり直す）</button>
       </div>
     </div>
@@ -333,7 +417,7 @@
       </div>
       <div class="actions">
         <button type="button" id="downloadBtn" class="primary-btn">💾 画像を保存する</button>
-        <button type="button" id="rerollBtn" class="text-btn">🎲 違う髪型にする</button>
+        <button type="button" id="rerollBtn" class="reroll-btn">🎲 違う髪型にする</button>
         <button type="button" id="restartBtn" class="text-btn">🔁 リセット（顔からやり直す）</button>
       </div>
     </div>
