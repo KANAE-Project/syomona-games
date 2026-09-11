@@ -431,9 +431,10 @@
     renderSoundToggle();
   });
 
-  // ==== 髪型ダミー画像（本番イラストが届くまでの仮素材） ====
-  // TODO: 本番の透過PNGイラストが揃ったら、下のimgをそれぞれ images/<slug>.png のパスに差し替える。
-  //       差し替え後は baseScale の係数（HAIR_FIT）も実際の絵柄に合わせて調整すること。
+  // ==== 髪型画像 ====
+  // 本番の透過PNGが揃ったスタイルは images/<slug>.png を使用。未着手のものは仮のダミー画像（色付き角丸＋ラベル文字）で代用する。
+  // widthFrac: ステージ幅に対する画像の初期表示幅の割合／yOffsetFrac: ステージ高さに対する初期の縦オフセット（マイナスで上寄せ）。
+  // どちらも「だいたいの初期位置」を決めるだけで、実際は毎回ドラッグ・拡大縮小で微調整する前提の値。
   function dummyHairImg(label, bg, fg){
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320">'
       + '<rect x="6" y="6" width="308" height="308" rx="36" fill="' + bg + '" opacity="0.88" stroke="#2a1a20" stroke-width="4"/>'
@@ -442,11 +443,11 @@
     return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
   }
   const HAIRSTYLES = [
-    { id:"chonmage", name:"ちょんまげ", img: dummyHairImg("ちょんまげ", "#8b5a2b", "#fff") },
-    { id:"namihira",  name:"波平",       img: dummyHairImg("波平",       "#333333", "#fff") },
-    { id:"barcode",   name:"バーコード", img: dummyHairImg("バーコード", "#555555", "#fff") },
-    { id:"rizento",   name:"リーゼント", img: dummyHairImg("リーゼント", "#1a1a2e", "#ffd166") },
-    { id:"mohican",   name:"モヒカン",   img: dummyHairImg("モヒカン",   "#c0392b", "#fff") }
+    { id:"chonmage", name:"ちょんまげ", img: "images/chonmage.png", widthFrac:0.88, yOffsetFrac:-0.06 },
+    { id:"namihira",  name:"波平",       img: dummyHairImg("波平",       "#333333", "#fff"), widthFrac:0.95, yOffsetFrac:-0.12 },
+    { id:"barcode",   name:"バーコード", img: dummyHairImg("バーコード", "#555555", "#fff"), widthFrac:0.95, yOffsetFrac:-0.12 },
+    { id:"rizento",   name:"リーゼント", img: "images/rizento.png", widthFrac:0.88, yOffsetFrac:-0.06 },
+    { id:"mohican",   name:"モヒカン",   img: dummyHairImg("モヒカン",   "#c0392b", "#fff"), widthFrac:0.95, yOffsetFrac:-0.12 }
   ];
   const HAIR_LINES = [
     "ほな、これやな！",
@@ -579,8 +580,8 @@
     hairImg.classList.remove("hidden");
     hairImg.onload = function(){
       const rect = photoStage.getBoundingClientRect();
-      hair.baseScale = (rect.width * 0.95) / hairImg.naturalWidth;
-      hair.x = 0; hair.y = -rect.height * 0.12; hair.zoom = 1;
+      hair.baseScale = (rect.width * chosenStyle.widthFrac) / hairImg.naturalWidth;
+      hair.x = 0; hair.y = rect.height * chosenStyle.yOffsetFrac; hair.zoom = 1;
       hairZoomInput.value = 1;
       renderHairLayer();
     };
