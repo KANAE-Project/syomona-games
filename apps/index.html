@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地味に便利ツールズ</title>
+<meta name="description" content="1機能に特化した、地味だけど実用的なWebアプリを集めたシリーズ「地味に便利ツールズ（ジミベン）」">
+<style>
+  :root{
+    --bg1:#eafaf6;
+    --bg2:#d3f3ea;
+    --ink:#1f3a34;
+    --accent:#2bb695;
+    --accent-dark:#1f8f74;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:40px 16px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.8rem; margin:0 0 6px; }
+  .sub{ text-align:center; font-size:.85rem; opacity:.7; margin-bottom:28px; }
+  .card{
+    display:block;
+    background:rgba(255,255,255,.65);
+    border:3px solid var(--ink);
+    border-radius:18px;
+    padding:18px 20px;
+    margin-bottom:16px;
+    text-decoration:none;
+    color:var(--ink);
+    transition:transform .15s ease;
+  }
+  .card:active{ transform:scale(.97); }
+  .card-title{ font-size:1.15rem; font-weight:bold; color:var(--accent-dark); margin-bottom:4px; }
+  .card-desc{ font-size:.85rem; opacity:.8; }
+  .sister-link{
+    display:block;
+    text-align:center;
+    font-size:.8rem;
+    font-weight:700;
+    color:var(--ink);
+    opacity:.6;
+    text-decoration:none;
+    margin-top:30px;
+  }
+  .sister-link:hover{ opacity:1; }
+  .foot{ text-align:center; font-size:.75rem; opacity:.5; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>地味に便利ツールズ</h1>
+  <div class="sub">1機能に特化した、地味だけど実用的なアプリ集</div>
+
+  <a class="card" href="kaimono-loop/">
+    <div class="card-title">ループする買い物リスト</div>
+    <div class="card-desc">いつもの買い物をタップするだけ。出かける前に今日のリストが完成する</div>
+  </a>
+
+  <a class="card" href="../games/umaoka-seisan/">
+    <div class="card-title">うまおかさん 雀卓精算帳</div>
+    <div class="card-desc">麻雀の対局精算を自動計算してくれる実用ツール</div>
+  </a>
+
+  <a class="sister-link" href="../">← しょーもなゲームズ（姉妹サイト）はこちら</a>
+  <div class="foot">© 地味に便利ツールズ</div>
+</div>
+</body>
+</html>

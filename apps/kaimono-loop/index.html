@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ループする買い物リスト｜地味に便利ツールズ</title>
+<meta name="description" content="いつもの買い物をボタン化。出かける前にタップするだけで今日のリストが完成する、地味に便利な買い物リストアプリ">
+<style>
+  :root{
+    --bg1:#eafaf6;
+    --bg2:#d3f3ea;
+    --ink:#1f3a34;
+    --accent:#2bb695;
+    --accent-dark:#1f8f74;
+    --accent2:#ff8a65;
+    --accent2-dark:#e35f3a;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.4rem; margin:0 0 4px; }
+  .tagline{ text-align:center; font-size:.78rem; font-weight:900; color:var(--accent-dark); background:rgba(43,182,149,.12); display:inline-block; padding:3px 12px; border-radius:999px; margin:0 auto 8px; }
+  .tagline-wrap{ text-align:center; margin-bottom:6px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:18px; }
+  .stage{
+    background:rgba(255,255,255,.55);
+    border-radius:22px;
+    padding:20px 16px 24px;
+    box-shadow:0 8px 24px rgba(20,80,60,.12);
+  }
+  .hidden{ display:none !important; }
+
+  .today-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:1.02rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent2);
+    box-shadow:0 4px 0 var(--accent2-dark);
+    margin-bottom:18px;
+    transition:transform .15s ease;
+  }
+  .today-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2-dark); }
+  .today-btn .count-badge{
+    background:rgba(255,255,255,.85);
+    color:var(--accent2-dark);
+    font-size:.85rem;
+    font-weight:900;
+    padding:2px 10px;
+    border-radius:999px;
+  }
+  .today-btn:disabled{ opacity:.5; cursor:default; }
+
+  .section-label{
+    font-size:.8rem;
+    font-weight:900;
+    opacity:.65;
+    margin:0 2px 8px;
+  }
+
+  .item-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .item-btn{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    font-family:inherit;
+    cursor:pointer;
+    border:3px solid rgba(31,58,52,.12);
+    border-radius:16px;
+    background:var(--card);
+    padding:14px 8px 12px;
+    min-height:88px;
+    transition:transform .12s ease, background .15s ease, border-color .15s ease;
+  }
+  .item-btn:active{ transform:scale(.95); }
+  .item-btn .emoji{ font-size:1.9rem; line-height:1; }
+  .item-btn .name{ font-size:.82rem; font-weight:700; text-align:center; word-break:break-word; line-height:1.3; }
+  .item-btn.checked{
+    background:var(--accent);
+    border-color:var(--accent-dark);
+    color:#fff;
+  }
+  .item-btn.checked .name{ color:#fff; }
+  .item-btn .check-badge{
+    position:absolute;
+    top:-8px; right:-8px;
+    width:26px; height:26px;
+    border-radius:50%;
+    background:var(--accent2);
+    color:#fff;
+    font-size:.85rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+    opacity:0;
+    transform:scale(.4);
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .item-btn.checked .check-badge{ opacity:1; transform:scale(1); }
+  .item-btn.pop .check-badge{ animation:badgePop .35s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes badgePop{
+    0%{ transform:scale(.3) rotate(-15deg); }
+    60%{ transform:scale(1.25) rotate(6deg); }
+    100%{ transform:scale(1) rotate(0deg); }
+  }
+  .item-btn .del-badge{
+    position:absolute;
+    top:-8px; left:-8px;
+    width:24px; height:24px;
+    border-radius:50%;
+    background:#e74c3c;
+    color:#fff;
+    font-size:.8rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+  }
+  .empty-note{
+    text-align:center;
+    font-size:.82rem;
+    opacity:.6;
+    padding:20px 10px;
+  }
+
+  .add-form{
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .add-form input[type=text]{
+    font-family:inherit;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:.95rem;
+    background:#fff;
+  }
+  .add-form .emoji-input{ width:56px; text-align:center; flex:none; }
+  .add-form .name-input{ flex:1; min-width:0; }
+  .add-form button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    padding:0 16px;
+    font-size:.9rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent);
+    flex:none;
+  }
+  .add-form button:active{ transform:scale(.96); }
+
+  .tool-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .tool-btn{
+    flex:1;
+    font-family:inherit;
+    cursor:pointer;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    background:rgba(255,255,255,.7);
+    color:var(--ink);
+    padding:10px 8px;
+    font-size:.8rem;
+    font-weight:700;
+    transition:transform .12s ease, background .15s ease;
+  }
+  .tool-btn:active{ transform:scale(.96); }
+  .tool-btn.on{ background:var(--ink); color:#fff; }
+
+  /* ==== 「今日のリスト」画面（買い物中に見る用） ==== */
+  #todayScreen .today-header{ text-align:center; margin-bottom:16px; }
+  #todayScreen .today-header h2{ font-size:1.1rem; margin:0 0 4px; }
+  #todayScreen .today-header p{ font-size:.78rem; opacity:.65; margin:0; }
+  .today-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+  .today-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--card);
+    border:2px solid rgba(31,58,52,.1);
+    border-radius:14px;
+    padding:12px 14px;
+    cursor:pointer;
+    font-family:inherit;
+    text-align:left;
+    width:100%;
+    transition:transform .12s ease;
+  }
+  .today-row:active{ transform:scale(.98); }
+  .today-row .emoji{ font-size:1.5rem; }
+  .today-row .name{ font-size:1rem; font-weight:700; flex:1; }
+  .today-row .hint{ font-size:.7rem; opacity:.5; }
+  .celebrate{
+    text-align:center;
+    padding:40px 16px;
+  }
+  .celebrate .big{ font-size:2.6rem; margin-bottom:10px; }
+  .celebrate p{ font-size:.95rem; font-weight:700; opacity:.8; }
+  .back-inline{
+    display:block;
+    text-align:center;
+    background:none;
+    border:none;
+    font-family:inherit;
+    cursor:pointer;
+    color:var(--accent-dark);
+    font-weight:900;
+    font-size:.9rem;
+    padding:8px;
+    margin:0 auto 4px;
+  }
+
+  .back-link{
+    display:inline-block; font-size:.8rem; font-weight:700;
+    color:var(--ink); opacity:.65; text-decoration:none; margin-bottom:10px;
+  }
+  .back-link:hover{ opacity:1; }
+  .back-link-btn{
+    display:block; background:var(--accent); color:#fff;
+    font-size:1.02rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:13px 16px; border-radius:14px; margin-top:20px;
+    box-shadow:0 4px 0 var(--accent-dark);
+  }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+
+  .privacy-note{
+    font-size:.68rem;
+    opacity:.55;
+    text-align:center;
+    margin:16px auto 0;
+    max-width:340px;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../" class="back-link">← ジミベン トップに戻る</a>
+  <h1>ループする買い物リスト</h1>
+  <div class="tagline-wrap"><span class="tagline">地味に便利ツールズ</span></div>
+  <div class="sub">いつもの買い物をタップするだけ。今日のリストがすぐできる</div>
+
+  <div class="stage">
+
+    <!-- ==== メイン画面：登録済みアイテム一覧 ==== -->
+    <div id="mainScreen">
+      <button type="button" id="openTodayBtn" class="today-btn" disabled>
+        🛒 今日のリストを見る <span class="count-badge" id="countBadge">0件</span>
+      </button>
+
+      <div class="section-label">いつもの買い物（タップで今日必要なものに）</div>
+      <div id="itemGrid" class="item-grid"></div>
+      <div id="emptyNote" class="empty-note hidden">まだ何も登録されていません。下から追加してね</div>
+
+      <div class="add-form">
+        <input type="text" id="emojiInput" class="emoji-input" placeholder="🛒" maxlength="4">
+        <input type="text" id="nameInput" class="name-input" placeholder="アイテム名（例：牛乳）" maxlength="20">
+        <button type="button" id="addBtn">追加</button>
+      </div>
+
+      <div class="tool-row">
+        <button type="button" id="editModeBtn" class="tool-btn">✏️ 編集する</button>
+        <button type="button" id="resetBtn" class="tool-btn">🔄 チェックをリセット</button>
+      </div>
+    </div>
+
+    <!-- ==== 今日のリスト画面（買い物中用） ==== -->
+    <div id="todayScreen" class="hidden">
+      <div class="today-header">
+        <h2>🛒 今日のリスト</h2>
+        <p>買ったらタップで消していこう</p>
+      </div>
+      <div id="todayList" class="today-list"></div>
+      <div id="celebrate" class="celebrate hidden">
+        <div class="big">🎉</div>
+        <p>全部揃った！お疲れさまでした</p>
+      </div>
+      <button type="button" id="backToMainBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+  </div>
+
+  <div class="privacy-note">※ 登録した買い物リストはこの端末（ブラウザ）の中だけに保存されます。サーバーには送信・保存されません。</div>
+
+  <a href="../" class="back-link-btn">← ジミベン トップに戻る</a>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = "kaimono_loop_items_v1";
+
+  const DEFAULT_ITEMS = [
+    { name:"牛乳", emoji:"🥛" },
+    { name:"卵", emoji:"🥚" },
+    { name:"食パン", emoji:"🍞" },
+    { name:"お米", emoji:"🍚" },
+    { name:"トイレットペーパー", emoji:"🧻" },
+    { name:"洗剤", emoji:"🧴" }
+  ];
+
+  function uid(){
+    return "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function loadItems(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)) return parsed;
+      }
+    }catch(e){}
+    // 初回だけ、よく使う定番アイテムを仮でいくつか入れておく（自由に編集・削除してOK）
+    const seeded = DEFAULT_ITEMS.map(function(it){
+      return { id: uid(), name: it.name, emoji: it.emoji, checked: false };
+    });
+    saveItems(seeded);
+    return seeded;
+  }
+  function saveItems(items){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch(e){}
+  }
+
+  let items = loadItems();
+  let editMode = false;
+  let lastToggledId = null; // 直前にチェックしたアイテムだけポップアニメーションさせるための印
+
+  const itemGrid = document.getElementById("itemGrid");
+  const emptyNote = document.getElementById("emptyNote");
+  const openTodayBtn = document.getElementById("openTodayBtn");
+  const countBadge = document.getElementById("countBadge");
+  const editModeBtn = document.getElementById("editModeBtn");
+
+  function checkedCount(){
+    return items.filter(function(it){ return it.checked; }).length;
+  }
+
+  function renderMain(){
+    itemGrid.innerHTML = "";
+    emptyNote.classList.toggle("hidden", items.length > 0);
+
+    items.forEach(function(it){
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "item-btn" + (it.checked ? " checked" : "");
+      btn.innerHTML =
+        '<span class="emoji">' + it.emoji + '</span>' +
+        '<span class="name"></span>' +
+        '<span class="check-badge">✓</span>' +
+        (editMode ? '<span class="del-badge">✕</span>' : '');
+      btn.querySelector(".name").textContent = it.name; // XSS対策：テキストはtextContentで入れる
+      btn.addEventListener("click", function(){
+        if(editMode){
+          if(confirm('「' + it.name + '」を削除しますか？')){
+            items = items.filter(function(x){ return x.id !== it.id; });
+            saveItems(items);
+            renderMain();
+          }
+          return;
+        }
+        it.checked = !it.checked;
+        lastToggledId = it.checked ? it.id : null;
+        saveItems(items);
+        renderMain();
+      });
+      if(it.checked && it.id === lastToggledId){ btn.classList.add("pop"); }
+      itemGrid.appendChild(btn);
+    });
+
+    const n = checkedCount();
+    countBadge.textContent = n + "件";
+    openTodayBtn.disabled = n === 0;
+  }
+
+  editModeBtn.addEventListener("click", function(){
+    editMode = !editMode;
+    editModeBtn.textContent = editMode ? "✅ 編集をおわる" : "✏️ 編集する";
+    editModeBtn.classList.toggle("on", editMode);
+    renderMain();
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    items.forEach(function(it){ it.checked = false; });
+    saveItems(items);
+    renderMain();
+  });
+
+  const emojiInput = document.getElementById("emojiInput");
+  const nameInput = document.getElementById("nameInput");
+  document.getElementById("addBtn").addEventListener("click", function(){
+    const name = nameInput.value.trim();
+    if(!name) return;
+    const emoji = emojiInput.value.trim() || "🛒";
+    items.push({ id: uid(), name: name, emoji: emoji, checked: false });
+    saveItems(items);
+    nameInput.value = "";
+    emojiInput.value = "";
+    renderMain();
+  });
+  nameInput.addEventListener("keydown", function(e){
+    if(e.key === "Enter") document.getElementById("addBtn").click();
+  });
+
+  // ==== 今日のリスト画面 ====
+  const mainScreen = document.getElementById("mainScreen");
+  const todayScreen = document.getElementById("todayScreen");
+  const todayList = document.getElementById("todayList");
+  const celebrate = document.getElementById("celebrate");
+
+  function renderToday(){
+    todayList.innerHTML = "";
+    const checkedItems = items.filter(function(it){ return it.checked; });
+    celebrate.classList.toggle("hidden", checkedItems.length > 0);
+    todayList.classList.toggle("hidden", checkedItems.length === 0);
+
+    checkedItems.forEach(function(it){
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "today-row";
+      row.innerHTML =
+        '<span class="emoji">' + it.emoji + '</span>' +
+        '<span class="name"></span>' +
+        '<span class="hint">タップで完了</span>';
+      row.querySelector(".name").textContent = it.name;
+      row.addEventListener("click", function(){
+        it.checked = false;
+        saveItems(items);
+        renderToday();
+        renderMain();
+      });
+      todayList.appendChild(row);
+    });
+  }
+
+  openTodayBtn.addEventListener("click", function(){
+    renderToday();
+    mainScreen.classList.add("hidden");
+    todayScreen.classList.remove("hidden");
+  });
+  document.getElementById("backToMainBtn").addEventListener("click", function(){
+    todayScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  renderMain();
+})();
+</script>
+</body>
+</html>
