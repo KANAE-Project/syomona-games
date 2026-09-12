@@ -870,8 +870,9 @@
             if(typeof it.useCount !== "number") it.useCount = 0;
             if(typeof it.storeId === "undefined") it.storeId = it.categoryId || null;
             if(typeof it.departmentId === "undefined") it.departmentId = null;
-            if(typeof it.price !== "number") it.price = 0; // 予定単価（「💰値段を設定する」画面で編集）
+            if(typeof it.price !== "number") it.price = 0; // 予定単価（「💰値段を設定する」画面で編集、次回以降のデフォルト）
             if(typeof it.actualPrice !== "number") it.actualPrice = null; // 実際に払った金額（カゴに入れる時に上書き可、未設定ならpriceを使う）
+            if(typeof it.todayPlannedPrice !== "number") it.todayPlannedPrice = null; // 今回の買い物での予定額（「今日必要」にした時点のpriceを固定でスナップショット。実績確定後にpriceを更新しても今回の予定合計は動かないようにするため）
             delete it.categoryId;
           });
           saveItems(parsed); // 移行結果をすぐ保存し、次回以降は同じ移行処理を繰り返さないようにする
@@ -881,7 +882,7 @@
     }catch(e){}
     // 初回だけ、よく使う定番アイテムを仮でいくつか入れておく（自由に編集・削除してOK）
     const seeded = DEFAULT_ITEMS.map(function(it){
-      return { id: uid(), name: it.name, emoji: it.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null };
+      return { id: uid(), name: it.name, emoji: it.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null, todayPlannedPrice: null };
     });
     saveItems(seeded);
     return seeded;
@@ -1027,8 +1028,14 @@
         return;
       }
       it.checked = !it.checked;
-      if(it.checked){ it.useCount = (it.useCount || 0) + 1; }
-      else { it.inCart = false; } // 「今日必要」から外したら、カゴ状態もリセットしておく
+      if(it.checked){
+        it.useCount = (it.useCount || 0) + 1;
+        it.todayPlannedPrice = it.price || 0; // 今回の買い物用に予定額をスナップショット（後でpriceを更新しても今回の合計は動かない）
+        it.actualPrice = null; // 前回の実績は持ち越さない
+      } else {
+        it.inCart = false; // 「今日必要」から外したら、カゴ状態もリセットしておく
+        it.todayPlannedPrice = null;
+      }
       lastToggledId = it.checked ? it.id : null;
       saveItems(items);
       renderMain();
@@ -1130,7 +1137,7 @@
     const name = nameInput.value.trim();
     if(!name) return;
     const emoji = emojiInput.value.trim() || "🛒";
-    items.push({ id: uid(), name: name, emoji: emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null });
+    items.push({ id: uid(), name: name, emoji: emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null, todayPlannedPrice: null });
     saveItems(items);
     nameInput.value = "";
     emojiInput.value = "";
@@ -1199,7 +1206,8 @@
     row.querySelector(".name").textContent = it.name;
 
     const priceBadge = row.querySelector(".price-tap-badge");
-    const currentPrice = inCart ? (it.actualPrice != null ? it.actualPrice : (it.price || 0)) : (it.price || 0);
+    const todayPlanned = it.todayPlannedPrice != null ? it.todayPlannedPrice : (it.price || 0); // 今回の買い物用の予定額（スナップショット）
+    const currentPrice = inCart ? (it.actualPrice != null ? it.actualPrice : todayPlanned) : todayPlanned;
     priceBadge.textContent = "¥" + currentPrice.toLocaleString();
     priceBadge.addEventListener("click", function(e){
       e.stopPropagation(); // 親のタップ（カゴへ移動/戻す）を誘発しないように
@@ -1209,13 +1217,13 @@
       if(isNaN(v) || v < 0) return;
       if(inCart){
         it.actualPrice = v;
-        const plannedPrice = it.price || 0;
-        if(v !== plannedPrice){
-          const ok = confirm("次回からの予定価格も¥" + v.toLocaleString() + "に更新しますか？\n（現在の予定：¥" + plannedPrice.toLocaleString() + "）");
-          if(ok){ it.price = v; }
+        if(v !== todayPlanned){
+          const ok = confirm("次回からの予定価格も¥" + v.toLocaleString() + "に更新しますか？\n（今回の予定：¥" + todayPlanned.toLocaleString() + "）");
+          if(ok){ it.price = v; } // 次回以降のデフォルトのみ更新。今回の予定合計（todayPlannedPrice）は変えない
         }
       } else {
-        it.price = v;
+        it.price = v; // まだ買っていない段階の「予定の金額」編集は、次回以降のデフォルトにもそのまま反映する
+        it.todayPlannedPrice = v; // 今回の予定合計にも即反映
       }
       saveItems(items);
       renderToday();
@@ -1281,9 +1289,11 @@
     cartSection.classList.toggle("hidden", cartItems.length === 0);
     celebrate.classList.toggle("hidden", !(checkedItems.length > 0 && todoItems.length === 0));
 
-    // 予定合計＝今日必要な全アイテムのprice合計。実績合計＝カゴに入れた分のactualPrice（未設定ならprice）合計
-    const plannedTotal = checkedItems.reduce(function(sum, it){ return sum + (it.price || 0); }, 0);
-    const actualTotal = cartItems.reduce(function(sum, it){ return sum + (it.actualPrice != null ? it.actualPrice : (it.price || 0)); }, 0);
+    // 予定合計＝今日必要な全アイテムのtodayPlannedPrice（「今日必要」にした時点のスナップショット）合計。
+    // 実績確定後にprice（次回以降のデフォルト）を更新しても、今回の予定合計はここでは動かない。
+    // 実績合計＝カゴに入れた分のactualPrice（未設定ならtodayPlannedPrice）合計
+    const plannedTotal = checkedItems.reduce(function(sum, it){ return sum + (it.todayPlannedPrice != null ? it.todayPlannedPrice : (it.price || 0)); }, 0);
+    const actualTotal = cartItems.reduce(function(sum, it){ return sum + (it.actualPrice != null ? it.actualPrice : (it.todayPlannedPrice != null ? it.todayPlannedPrice : (it.price || 0))); }, 0);
     todayTotalBar.classList.toggle("hidden", checkedItems.length === 0);
     if(checkedItems.length > 0){
       todayTotalBar.innerHTML =
@@ -1333,7 +1343,7 @@
           if(hasItemNamed(c.name)){
             items = items.filter(function(it){ return it.name.toLowerCase() !== c.name.toLowerCase(); });
           } else {
-            items.push({ id: uid(), name: c.name, emoji: c.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null });
+            items.push({ id: uid(), name: c.name, emoji: c.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null, todayPlannedPrice: null });
           }
           saveItems(items);
           renderCandidates();
