@@ -292,7 +292,17 @@
   #todayScreen .today-header{ text-align:center; margin-bottom:16px; }
   #todayScreen .today-header h2{ font-size:1.1rem; margin:0 0 4px; }
   #todayScreen .today-header p{ font-size:.78rem; opacity:.65; margin:0; }
-  .today-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+  .today-list{ display:flex; flex-direction:column; gap:14px; margin-bottom:18px; }
+  .store-frame{
+    border:2px solid rgba(31,58,52,.15);
+    border-radius:16px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .store-frame-label{ display:flex; align-items:center; font-size:.78rem; font-weight:900; opacity:.8; }
+  .store-frame-label.muted{ opacity:.5; }
   .today-row{
     display:flex;
     align-items:center;
@@ -874,6 +884,10 @@
     const c = hexToRgb(hex);
     return "rgb(" + Math.round(c.r * (1 - amount)) + "," + Math.round(c.g * (1 - amount)) + "," + Math.round(c.b * (1 - amount)) + ")";
   }
+  function hexToRgba(hex, alpha){
+    const c = hexToRgb(hex);
+    return "rgba(" + c.r + "," + c.g + "," + c.b + "," + alpha + ")";
+  }
   // 選んだ色の明るさに応じて、文字色を白/濃い緑のどちらにすれば読みやすいか判定する
   function readableTextColor(hex){
     const c = hexToRgb(hex);
@@ -1124,6 +1138,40 @@
     return list.slice().sort(hierarchyCompare);
   }
 
+  // お店ごとに、そのお店の色の枠で囲んでグループ表示する（お店を使っていない時は今まで通りフラットに並べる）
+  function renderTodayGrouped(container, list, inCart){
+    if(stores.length === 0){
+      list.forEach(function(it){ container.appendChild(makeTodayRow(it, inCart)); });
+      return;
+    }
+    const groups = stores.concat([null]); // null = お店未割り当て
+    groups.forEach(function(store){
+      const storeId = store ? store.id : null;
+      const groupItems = list.filter(function(it){ return (it.storeId || null) === storeId; });
+      if(groupItems.length === 0) return;
+
+      const frame = document.createElement("div");
+      frame.className = "store-frame";
+      const label = document.createElement("div");
+      label.className = "store-frame-label";
+      if(store){
+        frame.style.borderColor = store.color || "#ff8a65";
+        frame.style.background = hexToRgba(store.color || "#ff8a65", 0.08);
+        const dot = document.createElement("span");
+        dot.className = "store-dot";
+        dot.style.background = store.color || "#ff8a65";
+        label.appendChild(dot);
+        label.appendChild(document.createTextNode(store.name));
+      } else {
+        label.classList.add("muted");
+        label.textContent = "未割り当て";
+      }
+      frame.appendChild(label);
+      groupItems.forEach(function(it){ frame.appendChild(makeTodayRow(it, inCart)); });
+      container.appendChild(frame);
+    });
+  }
+
   function renderToday(){
     todoList.innerHTML = "";
     cartList.innerHTML = "";
@@ -1135,8 +1183,8 @@
     cartSection.classList.toggle("hidden", cartItems.length === 0);
     celebrate.classList.toggle("hidden", !(checkedItems.length > 0 && todoItems.length === 0));
 
-    todoItems.forEach(function(it){ todoList.appendChild(makeTodayRow(it, false)); });
-    cartItems.forEach(function(it){ cartList.appendChild(makeTodayRow(it, true)); });
+    renderTodayGrouped(todoList, todoItems, false);
+    renderTodayGrouped(cartList, cartItems, true);
   }
 
   openTodayBtn.addEventListener("click", function(){
