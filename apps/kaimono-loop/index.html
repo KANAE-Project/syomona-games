@@ -1207,7 +1207,16 @@
       if(input === null) return;
       const v = parseInt(input, 10);
       if(isNaN(v) || v < 0) return;
-      if(inCart){ it.actualPrice = v; } else { it.price = v; }
+      if(inCart){
+        it.actualPrice = v;
+        const plannedPrice = it.price || 0;
+        if(v !== plannedPrice){
+          const ok = confirm("次回からの予定価格も¥" + v.toLocaleString() + "に更新しますか？\n（現在の予定：¥" + plannedPrice.toLocaleString() + "）");
+          if(ok){ it.price = v; }
+        }
+      } else {
+        it.price = v;
+      }
       saveItems(items);
       renderToday();
     });
