@@ -237,8 +237,8 @@
   }
   .today-total-bar{
     display:flex;
-    justify-content:space-between;
-    align-items:center;
+    flex-direction:column;
+    gap:6px;
     background:rgba(201,152,46,.12);
     border:2px solid rgba(201,152,46,.35);
     border-radius:12px;
@@ -248,7 +248,21 @@
     font-size:.9rem;
     color:#8a6a1f;
   }
+  .today-total-bar .total-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
   .today-total-bar .amount{ font-size:1.05rem; }
+  .total-diff{
+    text-align:center;
+    font-size:.85rem;
+    padding-top:4px;
+    border-top:1px dashed rgba(201,152,46,.35);
+  }
+  .total-diff.cheaper{ color:#2e7d4f; }
+  .total-diff.pricier{ color:#c0392b; }
+  .total-diff.even{ color:#8a6a1f; }
   .price-tap-badge{
     font-size:.72rem;
     font-weight:900;
@@ -1296,9 +1310,25 @@
     const actualTotal = cartItems.reduce(function(sum, it){ return sum + (it.actualPrice != null ? it.actualPrice : (it.todayPlannedPrice != null ? it.todayPlannedPrice : (it.price || 0))); }, 0);
     todayTotalBar.classList.toggle("hidden", checkedItems.length === 0);
     if(checkedItems.length > 0){
+      let diffHtml = "";
+      if(cartItems.length > 0){
+        // 差額は「カゴに入っている分の予定額」と「その実績額」を比べる（まだ買っていないtodoItemsの予定は含めない）
+        const cartPlannedTotal = cartItems.reduce(function(sum, it){ return sum + (it.todayPlannedPrice != null ? it.todayPlannedPrice : (it.price || 0)); }, 0);
+        const diff = actualTotal - cartPlannedTotal;
+        if(diff < 0){
+          diffHtml = '<div class="total-diff cheaper">🎉 予定より¥' + Math.abs(diff).toLocaleString() + '安かった！</div>';
+        } else if(diff > 0){
+          diffHtml = '<div class="total-diff pricier">😅 予定より¥' + diff.toLocaleString() + '高かった！</div>';
+        } else {
+          diffHtml = '<div class="total-diff even">🙌 予定通り！</div>';
+        }
+      }
       todayTotalBar.innerHTML =
-        '<span class="total-group">予定合計 <span class="amount">¥' + plannedTotal.toLocaleString() + '</span></span>' +
-        (cartItems.length > 0 ? '<span class="total-group">実績 <span class="amount">¥' + actualTotal.toLocaleString() + '</span></span>' : '');
+        '<div class="total-row">' +
+          '<span class="total-group">予定合計 <span class="amount">¥' + plannedTotal.toLocaleString() + '</span></span>' +
+          (cartItems.length > 0 ? '<span class="total-group">実績 <span class="amount">¥' + actualTotal.toLocaleString() + '</span></span>' : '') +
+        '</div>' +
+        diffHtml;
     }
 
     renderTodayGrouped(todoList, todoItems, false);
