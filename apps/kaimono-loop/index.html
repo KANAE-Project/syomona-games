@@ -164,17 +164,47 @@
     width:100%;
     font-family:inherit;
     cursor:pointer;
-    border:2px dashed rgba(31,58,52,.3);
+    border:none;
     border-radius:12px;
-    background:rgba(255,255,255,.5);
-    color:var(--ink);
-    padding:10px 8px;
-    font-size:.85rem;
-    font-weight:700;
+    background:var(--accent);
+    color:#fff;
+    padding:11px 8px;
+    font-size:.88rem;
+    font-weight:900;
+    box-shadow:0 4px 0 var(--accent-dark);
     margin-bottom:14px;
-    transition:transform .12s ease;
+    transition:transform .15s ease;
   }
-  .candidate-open-btn:active{ transform:scale(.97); }
+  .candidate-open-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+
+  .organize-open-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    background:var(--accent2);
+    color:#fff;
+    padding:11px 8px;
+    font-size:.88rem;
+    font-weight:900;
+    box-shadow:0 4px 0 var(--accent2-dark);
+    margin-bottom:14px;
+    transition:transform .15s ease;
+  }
+  .organize-open-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2-dark); }
+  .organize-open-btn .premium-tag{
+    background:rgba(255,255,255,.85);
+    color:var(--accent2-dark);
+    font-size:.68rem;
+    font-weight:900;
+    padding:2px 8px;
+    border-radius:999px;
+  }
 
   .add-form-wrap{ position:relative; margin-bottom:14px; }
   .add-form{
@@ -310,6 +340,83 @@
     color:#fff;
   }
   .candidate-chip.added::after{ content:"✓"; margin-left:2px; }
+
+  /* ==== 売り場順に整理する 画面 ==== */
+  .category-block{
+    margin-bottom:16px;
+    border:2px solid rgba(31,58,52,.12);
+    border-radius:14px;
+    overflow:hidden;
+    background:rgba(255,255,255,.5);
+  }
+  .category-block-header{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:rgba(31,58,52,.07);
+    padding:8px 10px;
+  }
+  .category-block-header .category-name{ flex:1; font-weight:900; font-size:.9rem; }
+  .category-block-header.uncategorized .category-name{ opacity:.6; }
+  .mini-btn{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    background:rgba(255,255,255,.85);
+    color:var(--ink);
+    width:28px; height:28px;
+    font-size:.75rem;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .12s ease;
+  }
+  .mini-btn:active{ transform:scale(.9); }
+  .mini-btn:disabled{ opacity:.3; cursor:default; }
+  .mini-btn.danger{ background:#e74c3c; color:#fff; }
+  .organize-item-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 10px;
+    border-top:1px solid rgba(31,58,52,.08);
+    font-size:.82rem;
+  }
+  .organize-item-row .emoji{ font-size:1.2rem; }
+  .organize-item-row .name{ flex:1; font-weight:700; word-break:break-word; }
+  .organize-item-row .item-controls{ display:flex; gap:4px; align-items:center; flex:none; }
+  .organize-item-row select{
+    font-family:inherit;
+    font-size:.72rem;
+    border:2px solid rgba(31,58,52,.15);
+    border-radius:8px;
+    padding:4px 6px;
+    background:#fff;
+    color:var(--ink);
+    max-width:88px;
+  }
+  .add-category-form{ display:flex; gap:8px; margin-bottom:14px; }
+  .add-category-form input{
+    flex:1;
+    font-family:inherit;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:.9rem;
+    background:#fff;
+  }
+  .add-category-form button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    padding:0 16px;
+    font-size:.85rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent2);
+    flex:none;
+  }
+  .add-category-form button:active{ transform:scale(.96); }
   .celebrate{
     text-align:center;
     padding:40px 16px;
@@ -318,30 +425,37 @@
   .celebrate p{ font-size:.95rem; font-weight:700; opacity:.8; }
   .back-inline{
     display:block;
+    width:100%;
     text-align:center;
-    background:none;
+    background:var(--accent);
     border:none;
+    border-radius:12px;
     font-family:inherit;
     cursor:pointer;
-    color:var(--accent-dark);
+    color:#fff;
     font-weight:900;
     font-size:.9rem;
-    padding:8px;
-    margin:0 auto 4px;
+    padding:11px 8px;
+    margin:4px auto 0;
+    box-shadow:0 4px 0 var(--accent-dark);
+    transition:transform .15s ease;
   }
+  .back-inline:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
 
   .back-link{
     display:inline-block; font-size:.8rem; font-weight:700;
-    color:var(--ink); opacity:.65; text-decoration:none; margin-bottom:10px;
+    color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:10px;
+    padding:4px 14px; border:2px dashed rgba(31,58,52,.35); border-radius:999px;
   }
-  .back-link:hover{ opacity:1; }
+  .back-link:hover{ opacity:1; border-color:rgba(31,58,52,.6); }
   .back-link-btn{
-    display:block; background:var(--accent); color:#fff;
-    font-size:1.02rem; font-weight:900; text-decoration:none; text-align:center;
-    padding:13px 16px; border-radius:14px; margin-top:20px;
-    box-shadow:0 4px 0 var(--accent-dark);
+    display:block; background:none; color:var(--ink);
+    font-size:1rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:12px 16px; border-radius:14px; margin-top:20px;
+    border:2px dashed rgba(31,58,52,.35);
+    transition:transform .15s ease, border-color .15s ease;
   }
-  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+  .back-link-btn:active{ transform:scale(.98); border-color:rgba(31,58,52,.6); }
 
   .privacy-note{
     font-size:.68rem;
@@ -370,11 +484,12 @@
 
       <div class="section-label">いつもの買い物（タップで今日必要なものに）</div>
       <input type="text" id="searchInput" class="search-input hidden" placeholder="🔍 名前で探す">
-      <div id="itemGrid" class="item-grid"></div>
+      <div id="itemGrid"></div>
       <div id="emptyNote" class="empty-note hidden">まだ何も登録されていません。下から追加してね</div>
       <div id="noMatchNote" class="empty-note hidden">見つかりませんでした</div>
 
       <button type="button" id="openCandidateBtn" class="candidate-open-btn">📋 候補から選んで追加</button>
+      <button type="button" id="openOrganizeBtn" class="organize-open-btn">🗂 売り場順に整理する<span class="premium-tag">✨プレミアム</span></button>
 
       <div class="add-form-wrap">
         <div class="add-form">
@@ -399,6 +514,20 @@
       </div>
       <div id="candidateGroups"></div>
       <button type="button" id="backFromCandidateBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== 売り場順に整理する 画面（プレミアム機能） ==== -->
+    <div id="organizeScreen" class="hidden">
+      <div class="today-header">
+        <h2>🗂 売り場順に整理する</h2>
+        <p>カテゴリを作って、お店を歩く順に並べ替えよう</p>
+      </div>
+      <div id="categoryBlocks"></div>
+      <div class="add-category-form">
+        <input type="text" id="newCategoryInput" placeholder="カテゴリ名（例：スーパー）" maxlength="16">
+        <button type="button" id="addCategoryBtn">＋ 追加</button>
+      </div>
+      <button type="button" id="backFromOrganizeBtn" class="back-inline">← 一覧に戻る</button>
     </div>
 
     <!-- ==== 今日のリスト画面（買い物中用） ==== -->
@@ -489,10 +618,11 @@
       if(raw){
         const parsed = JSON.parse(raw);
         if(Array.isArray(parsed)){
-          // 旧バージョン（inCart / useCount未対応）のデータを読み込んだ時の移行措置
+          // 旧バージョン（inCart / useCount / categoryId未対応）のデータを読み込んだ時の移行措置
           parsed.forEach(function(it){
             if(typeof it.inCart !== "boolean") it.inCart = false;
             if(typeof it.useCount !== "number") it.useCount = 0;
+            if(typeof it.categoryId === "undefined") it.categoryId = null;
           });
           return parsed;
         }
@@ -500,7 +630,7 @@
     }catch(e){}
     // 初回だけ、よく使う定番アイテムを仮でいくつか入れておく（自由に編集・削除してOK）
     const seeded = DEFAULT_ITEMS.map(function(it){
-      return { id: uid(), name: it.name, emoji: it.emoji, checked: false, inCart: false, useCount: 0 };
+      return { id: uid(), name: it.name, emoji: it.emoji, checked: false, inCart: false, useCount: 0, categoryId: null };
     });
     saveItems(seeded);
     return seeded;
@@ -509,7 +639,27 @@
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch(e){}
   }
 
+  // ==== カテゴリ（売り場順に整理する、プレミアム機能） ====
+  const CAT_STORAGE_KEY = "kaimono_loop_categories_v1";
+  function loadCategories(){
+    try{
+      const raw = localStorage.getItem(CAT_STORAGE_KEY);
+      if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+    }catch(e){}
+    return [];
+  }
+  function saveCategories(cats){
+    try{ localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(cats)); }catch(e){}
+  }
+  // カテゴリの並び順における位置を返す（未分類は常に一番最後）。renderMain/renderTodayの並び替えで共用
+  function categoryRank(catId){
+    if(!catId) return categories.length;
+    const idx = categories.findIndex(function(c){ return c.id === catId; });
+    return idx === -1 ? categories.length : idx;
+  }
+
   let items = loadItems();
+  let categories = loadCategories();
   let editMode = false;
   let lastToggledId = null; // 直前にチェックしたアイテムだけポップアニメーションさせるための印
 
@@ -528,49 +678,75 @@
     return items.filter(function(it){ return it.checked; }).length;
   }
 
+  function createItemBtn(it){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "item-btn" + (it.checked ? " checked" : "");
+    btn.innerHTML =
+      '<span class="emoji">' + it.emoji + '</span>' +
+      '<span class="name"></span>' +
+      '<span class="check-badge">✓</span>' +
+      (editMode ? '<span class="del-badge">✕</span>' : '');
+    btn.querySelector(".name").textContent = it.name; // XSS対策：テキストはtextContentで入れる
+    btn.addEventListener("click", function(){
+      if(editMode){
+        if(confirm('「' + it.name + '」を削除しますか？')){
+          items = items.filter(function(x){ return x.id !== it.id; });
+          saveItems(items);
+          renderMain();
+        }
+        return;
+      }
+      it.checked = !it.checked;
+      if(it.checked){ it.useCount = (it.useCount || 0) + 1; }
+      else { it.inCart = false; } // 「今日必要」から外したら、カゴ状態もリセットしておく
+      lastToggledId = it.checked ? it.id : null;
+      saveItems(items);
+      renderMain();
+    });
+    if(it.checked && it.id === lastToggledId){ btn.classList.add("pop"); }
+    return btn;
+  }
+
   function renderMain(){
     itemGrid.innerHTML = "";
     searchInput.classList.toggle("hidden", items.length <= SEARCH_THRESHOLD);
 
     const query = searchInput.value.trim().toLowerCase();
-    // よく「今日必要」にした（＝よく買う）ものほど上に来るよう並び替える。件数が同じなら登録順を保つ（安定ソート）
-    const sorted = items.slice().sort(function(a, b){ return (b.useCount || 0) - (a.useCount || 0); });
+    const useCategories = categories.length > 0;
+    // カテゴリを使っている時は「売り場順に整理する」で決めた並び（categoryRank）を優先。
+    // 使っていない時は、よく「今日必要」にした（＝よく買う）ものほど上に来るよう自動で並べる
+    const base = useCategories
+      ? items.slice().sort(function(a, b){ return categoryRank(a.categoryId) - categoryRank(b.categoryId); })
+      : items.slice().sort(function(a, b){ return (b.useCount || 0) - (a.useCount || 0); });
     const visible = query
-      ? sorted.filter(function(it){ return it.name.toLowerCase().indexOf(query) !== -1; })
-      : sorted;
+      ? base.filter(function(it){ return it.name.toLowerCase().indexOf(query) !== -1; })
+      : base;
 
     emptyNote.classList.toggle("hidden", items.length > 0);
     noMatchNote.classList.toggle("hidden", !(items.length > 0 && query && visible.length === 0));
 
-    visible.forEach(function(it){
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "item-btn" + (it.checked ? " checked" : "");
-      btn.innerHTML =
-        '<span class="emoji">' + it.emoji + '</span>' +
-        '<span class="name"></span>' +
-        '<span class="check-badge">✓</span>' +
-        (editMode ? '<span class="del-badge">✕</span>' : '');
-      btn.querySelector(".name").textContent = it.name; // XSS対策：テキストはtextContentで入れる
-      btn.addEventListener("click", function(){
-        if(editMode){
-          if(confirm('「' + it.name + '」を削除しますか？')){
-            items = items.filter(function(x){ return x.id !== it.id; });
-            saveItems(items);
-            renderMain();
-          }
-          return;
-        }
-        it.checked = !it.checked;
-        if(it.checked){ it.useCount = (it.useCount || 0) + 1; }
-        else { it.inCart = false; } // 「今日必要」から外したら、カゴ状態もリセットしておく
-        lastToggledId = it.checked ? it.id : null;
-        saveItems(items);
-        renderMain();
+    if(useCategories){
+      const groupIds = categories.map(function(c){ return c.id; }).concat([null]);
+      groupIds.forEach(function(catId){
+        const groupItems = visible.filter(function(it){ return (it.categoryId || null) === catId; });
+        if(groupItems.length === 0) return;
+        const label = document.createElement("div");
+        label.className = "section-label";
+        const cat = categories.find(function(c){ return c.id === catId; });
+        label.textContent = cat ? cat.name : "未分類";
+        itemGrid.appendChild(label);
+        const grid = document.createElement("div");
+        grid.className = "item-grid";
+        groupItems.forEach(function(it){ grid.appendChild(createItemBtn(it)); });
+        itemGrid.appendChild(grid);
       });
-      if(it.checked && it.id === lastToggledId){ btn.classList.add("pop"); }
-      itemGrid.appendChild(btn);
-    });
+    } else {
+      const grid = document.createElement("div");
+      grid.className = "item-grid";
+      visible.forEach(function(it){ grid.appendChild(createItemBtn(it)); });
+      itemGrid.appendChild(grid);
+    }
 
     const n = checkedCount();
     countBadge.textContent = n + "件";
@@ -605,7 +781,7 @@
     const name = nameInput.value.trim();
     if(!name) return;
     const emoji = emojiInput.value.trim() || "🛒";
-    items.push({ id: uid(), name: name, emoji: emoji, checked: false, inCart: false, useCount: 0 });
+    items.push({ id: uid(), name: name, emoji: emoji, checked: false, inCart: false, useCount: 0, categoryId: null });
     saveItems(items);
     nameInput.value = "";
     emojiInput.value = "";
@@ -679,12 +855,18 @@
     return row;
   }
 
+  // カテゴリを使っている時は、お店を歩く順（売り場順に整理するで決めた順）に並べる
+  function sortByCategoryIfNeeded(list){
+    if(categories.length === 0) return list;
+    return list.slice().sort(function(a, b){ return categoryRank(a.categoryId) - categoryRank(b.categoryId); });
+  }
+
   function renderToday(){
     todoList.innerHTML = "";
     cartList.innerHTML = "";
     const checkedItems = items.filter(function(it){ return it.checked; });
-    const todoItems = checkedItems.filter(function(it){ return !it.inCart; });
-    const cartItems = checkedItems.filter(function(it){ return it.inCart; });
+    const todoItems = sortByCategoryIfNeeded(checkedItems.filter(function(it){ return !it.inCart; }));
+    const cartItems = sortByCategoryIfNeeded(checkedItems.filter(function(it){ return it.inCart; }));
 
     todoSection.classList.toggle("hidden", todoItems.length === 0);
     cartSection.classList.toggle("hidden", cartItems.length === 0);
@@ -732,7 +914,7 @@
           if(hasItemNamed(c.name)){
             items = items.filter(function(it){ return it.name.toLowerCase() !== c.name.toLowerCase(); });
           } else {
-            items.push({ id: uid(), name: c.name, emoji: c.emoji, checked: false, inCart: false, useCount: 0 });
+            items.push({ id: uid(), name: c.name, emoji: c.emoji, checked: false, inCart: false, useCount: 0, categoryId: null });
           }
           saveItems(items);
           renderCandidates();
@@ -752,6 +934,176 @@
   });
   document.getElementById("backFromCandidateBtn").addEventListener("click", function(){
     candidateScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  // ==== 売り場順に整理する 画面（プレミアム機能。現時点では合言葉ロックは未実装、機能検証を優先） ====
+  const organizeScreen = document.getElementById("organizeScreen");
+  const categoryBlocks = document.getElementById("categoryBlocks");
+  const newCategoryInput = document.getElementById("newCategoryInput");
+
+  function itemsInCategory(catId){
+    return items.filter(function(it){ return (it.categoryId || null) === catId; });
+  }
+
+  // 同じカテゴリ内の隣どうしでitems配列上の位置を入れ替える（表示順=配列順のため）
+  function moveItemInCategory(item, dir){
+    const list = itemsInCategory(item.categoryId || null);
+    const idx = list.indexOf(item);
+    const swapIdx = idx + dir;
+    if(swapIdx < 0 || swapIdx >= list.length) return;
+    const other = list[swapIdx];
+    const i1 = items.indexOf(item), i2 = items.indexOf(other);
+    items[i1] = other; items[i2] = item;
+    saveItems(items);
+  }
+
+  function moveCategory(cat, dir){
+    const idx = categories.indexOf(cat);
+    const swapIdx = idx + dir;
+    if(swapIdx < 0 || swapIdx >= categories.length) return;
+    const tmp = categories[swapIdx];
+    categories[swapIdx] = categories[idx];
+    categories[idx] = tmp;
+    saveCategories(categories);
+  }
+
+  function buildCategorySelect(currentId){
+    const sel = document.createElement("select");
+    const noneOpt = document.createElement("option");
+    noneOpt.value = "";
+    noneOpt.textContent = "未分類";
+    if(!currentId) noneOpt.selected = true;
+    sel.appendChild(noneOpt);
+    categories.forEach(function(c){
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.name;
+      if(currentId === c.id) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    return sel;
+  }
+
+  function renderOrganizeItemRow(it){
+    const row = document.createElement("div");
+    row.className = "organize-item-row";
+    row.innerHTML = '<span class="emoji">' + it.emoji + '</span><span class="name"></span>';
+    row.querySelector(".name").textContent = it.name;
+
+    const controls = document.createElement("div");
+    controls.className = "item-controls";
+
+    const upBtn = document.createElement("button");
+    upBtn.type = "button"; upBtn.className = "mini-btn"; upBtn.textContent = "▲";
+    upBtn.addEventListener("click", function(){ moveItemInCategory(it, -1); renderOrganize(); renderMain(); });
+
+    const downBtn = document.createElement("button");
+    downBtn.type = "button"; downBtn.className = "mini-btn"; downBtn.textContent = "▼";
+    downBtn.addEventListener("click", function(){ moveItemInCategory(it, 1); renderOrganize(); renderMain(); });
+
+    const sel = buildCategorySelect(it.categoryId || null);
+    sel.addEventListener("change", function(){
+      it.categoryId = sel.value || null;
+      saveItems(items);
+      renderOrganize();
+      renderMain();
+    });
+
+    controls.appendChild(upBtn);
+    controls.appendChild(downBtn);
+    controls.appendChild(sel);
+    row.appendChild(controls);
+    return row;
+  }
+
+  function renderOrganize(){
+    categoryBlocks.innerHTML = "";
+
+    categories.forEach(function(cat, idx){
+      const block = document.createElement("div");
+      block.className = "category-block";
+
+      const header = document.createElement("div");
+      header.className = "category-block-header";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "category-name";
+      nameSpan.textContent = cat.name;
+      header.appendChild(nameSpan);
+
+      const upBtn = document.createElement("button");
+      upBtn.type = "button"; upBtn.className = "mini-btn"; upBtn.textContent = "▲";
+      upBtn.disabled = idx === 0;
+      upBtn.addEventListener("click", function(){ moveCategory(cat, -1); renderOrganize(); renderMain(); });
+
+      const downBtn = document.createElement("button");
+      downBtn.type = "button"; downBtn.className = "mini-btn"; downBtn.textContent = "▼";
+      downBtn.disabled = idx === categories.length - 1;
+      downBtn.addEventListener("click", function(){ moveCategory(cat, 1); renderOrganize(); renderMain(); });
+
+      const delBtn = document.createElement("button");
+      delBtn.type = "button"; delBtn.className = "mini-btn danger"; delBtn.textContent = "✕";
+      delBtn.addEventListener("click", function(){
+        if(!confirm('「' + cat.name + '」を削除しますか？（中のアイテムは未分類に戻ります）')) return;
+        categories = categories.filter(function(c){ return c.id !== cat.id; });
+        items.forEach(function(it){ if(it.categoryId === cat.id) it.categoryId = null; });
+        saveCategories(categories);
+        saveItems(items);
+        renderOrganize();
+        renderMain();
+      });
+
+      header.appendChild(upBtn);
+      header.appendChild(downBtn);
+      header.appendChild(delBtn);
+      block.appendChild(header);
+
+      itemsInCategory(cat.id).forEach(function(it){ block.appendChild(renderOrganizeItemRow(it)); });
+      categoryBlocks.appendChild(block);
+    });
+
+    // 未分類ブロックは常に表示（カテゴリが1つも無い時の案内も兼ねる）
+    const uncatItems = itemsInCategory(null);
+    const uncatBlock = document.createElement("div");
+    uncatBlock.className = "category-block";
+    const uncatHeader = document.createElement("div");
+    uncatHeader.className = "category-block-header uncategorized";
+    uncatHeader.innerHTML = '<span class="category-name">未分類</span>';
+    uncatBlock.appendChild(uncatHeader);
+    if(uncatItems.length === 0){
+      const note = document.createElement("div");
+      note.className = "organize-item-row";
+      note.textContent = categories.length === 0
+        ? "下でカテゴリを作ると、ここでアイテムを振り分けできます"
+        : "未分類のアイテムはありません";
+      uncatBlock.appendChild(note);
+    } else {
+      uncatItems.forEach(function(it){ uncatBlock.appendChild(renderOrganizeItemRow(it)); });
+    }
+    categoryBlocks.appendChild(uncatBlock);
+  }
+
+  document.getElementById("addCategoryBtn").addEventListener("click", function(){
+    const name = newCategoryInput.value.trim();
+    if(!name) return;
+    categories.push({ id: uid(), name: name });
+    saveCategories(categories);
+    newCategoryInput.value = "";
+    renderOrganize();
+    renderMain();
+  });
+  newCategoryInput.addEventListener("keydown", function(e){
+    if(e.key === "Enter") document.getElementById("addCategoryBtn").click();
+  });
+
+  document.getElementById("openOrganizeBtn").addEventListener("click", function(){
+    renderOrganize();
+    mainScreen.classList.add("hidden");
+    organizeScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromOrganizeBtn").addEventListener("click", function(){
+    organizeScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
     renderMain();
   });
