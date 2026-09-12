@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ループする買い物リスト｜地味に便利ツールズ</title>
+<meta name="description" content="いつもの買い物をボタン化。出かける前にタップするだけで今日のリストが完成する、地味に便利な買い物リストアプリ">
+<style>
+  :root{
+    --bg1:#eafaf6;
+    --bg2:#d3f3ea;
+    --ink:#1f3a34;
+    --accent:#2bb695;
+    --accent-dark:#1f8f74;
+    --accent2:#ff8a65;
+    --accent2-dark:#e35f3a;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.4rem; margin:0 0 4px; }
+  .tagline{ text-align:center; font-size:.78rem; font-weight:900; color:var(--accent-dark); background:rgba(43,182,149,.12); display:inline-block; padding:3px 12px; border-radius:999px; margin:0 auto 8px; }
+  .tagline-wrap{ text-align:center; margin-bottom:6px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:18px; }
+  .stage{
+    background:rgba(255,255,255,.55);
+    border-radius:22px;
+    padding:20px 16px 24px;
+    box-shadow:0 8px 24px rgba(20,80,60,.12);
+  }
+  .hidden{ display:none !important; }
+
+  .today-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:1.02rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent2);
+    box-shadow:0 4px 0 var(--accent2-dark);
+    margin-bottom:18px;
+    transition:transform .15s ease;
+  }
+  .today-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2-dark); }
+  .today-btn .count-badge{
+    background:rgba(255,255,255,.85);
+    color:var(--accent2-dark);
+    font-size:.85rem;
+    font-weight:900;
+    padding:2px 10px;
+    border-radius:999px;
+  }
+  .today-btn:disabled{ opacity:.5; cursor:default; }
+
+  .section-label{
+    font-size:.8rem;
+    font-weight:900;
+    opacity:.65;
+    margin:0 2px 8px;
+  }
+  .section-sublabel{
+    font-size:.72rem;
+    font-weight:700;
+    opacity:.55;
+    margin:0 2px 6px 10px;
+  }
+
+  .search-input{
+    display:block;
+    width:100%;
+    font-family:inherit;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:.9rem;
+    background:#fff;
+    margin-bottom:10px;
+  }
+
+  .item-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .item-btn{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    font-family:inherit;
+    cursor:pointer;
+    border:3px solid rgba(31,58,52,.12);
+    border-radius:16px;
+    background:var(--card);
+    padding:14px 8px 12px;
+    min-height:88px;
+    transition:transform .12s ease, background .15s ease, border-color .15s ease;
+  }
+  .item-btn:active{ transform:scale(.95); }
+  .item-btn .emoji{ font-size:1.9rem; line-height:1; }
+  .item-btn .name{ font-size:.82rem; font-weight:700; text-align:center; word-break:break-word; line-height:1.3; }
+  .item-btn.checked{
+    background:var(--accent);
+    border-color:var(--accent-dark);
+    color:#fff;
+  }
+  .item-btn.checked .name{ color:#fff; }
+  .item-btn .check-badge{
+    position:absolute;
+    top:-8px; right:-8px;
+    width:26px; height:26px;
+    border-radius:50%;
+    background:var(--accent2);
+    color:#fff;
+    font-size:.85rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+    opacity:0;
+    transform:scale(.4);
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .item-btn.checked .check-badge{ opacity:1; transform:scale(1); }
+  .item-btn.pop .check-badge{ animation:badgePop .35s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes badgePop{
+    0%{ transform:scale(.3) rotate(-15deg); }
+    60%{ transform:scale(1.25) rotate(6deg); }
+    100%{ transform:scale(1) rotate(0deg); }
+  }
+  .item-btn .del-badge{
+    position:absolute;
+    top:-8px; left:-8px;
+    width:24px; height:24px;
+    border-radius:50%;
+    background:#e74c3c;
+    color:#fff;
+    font-size:.8rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+  }
+  .empty-note{
+    text-align:center;
+    font-size:.82rem;
+    opacity:.6;
+    padding:20px 10px;
+  }
+
+  .candidate-open-btn{
+    display:block;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    background:var(--accent);
+    color:#fff;
+    padding:11px 8px;
+    font-size:.88rem;
+    font-weight:900;
+    box-shadow:0 4px 0 var(--accent-dark);
+    margin-bottom:14px;
+    transition:transform .15s ease;
+  }
+  .candidate-open-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+
+  .organize-open-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    background:var(--accent2);
+    color:#fff;
+    padding:11px 8px;
+    font-size:.88rem;
+    font-weight:900;
+    box-shadow:0 4px 0 var(--accent2-dark);
+    margin-bottom:14px;
+    transition:transform .15s ease;
+  }
+  .organize-open-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2-dark); }
+  .organize-open-btn .premium-tag{
+    background:rgba(255,255,255,.85);
+    color:var(--accent2-dark);
+    font-size:.68rem;
+    font-weight:900;
+    padding:2px 8px;
+    border-radius:999px;
+  }
+  .price-open-btn{ background:#c9982e; box-shadow:0 4px 0 #a17820; }
+  .price-open-btn .premium-tag{ color:#a17820; }
+
+  /* ==== 値段を設定する 画面 ==== */
+  .price-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 2px;
+    border-bottom:1px solid rgba(31,58,52,.1);
+  }
+  .price-row .emoji{ font-size:1.3rem; }
+  .price-row .name{ flex:1; font-weight:700; font-size:.88rem; }
+  .price-row .yen-mark{ font-size:.85rem; opacity:.6; }
+  .price-row input[type=number]{
+    width:80px;
+    font-family:inherit;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:10px;
+    padding:7px 8px;
+    font-size:.9rem;
+    text-align:right;
+    background:#fff;
+  }
+  .today-total-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:rgba(201,152,46,.12);
+    border:2px solid rgba(201,152,46,.35);
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:16px;
+    font-weight:900;
+    font-size:.9rem;
+    color:#8a6a1f;
+  }
+  .today-total-bar .amount{ font-size:1.05rem; }
+  .price-tap-badge{
+    font-size:.72rem;
+    font-weight:900;
+    color:#a17820;
+    background:rgba(201,152,46,.15);
+    border-radius:999px;
+    padding:2px 9px;
+    flex:none;
+  }
+
+  .add-form-wrap{ position:relative; margin-bottom:14px; }
+  .add-form{
+    display:flex;
+    gap:8px;
+  }
+  .suggest-box{
+    position:absolute;
+    left:64px; right:0; top:calc(100% + 4px);
+    background:#fff;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    overflow:hidden;
+    z-index:5;
+    box-shadow:0 6px 16px rgba(20,80,60,.15);
+  }
+  .suggest-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    text-align:left;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    background:#fff;
+    padding:9px 12px;
+    font-size:.88rem;
+    color:var(--ink);
+  }
+  .suggest-item:active{ background:rgba(43,182,149,.15); }
+  .suggest-item + .suggest-item{ border-top:1px solid rgba(31,58,52,.08); }
+  .add-form input[type=text]{
+    font-family:inherit;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:.95rem;
+    background:#fff;
+  }
+  .add-form .emoji-input{ width:56px; text-align:center; flex:none; }
+  .add-form .name-input{ flex:1; min-width:0; }
+  .add-form button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    padding:0 16px;
+    font-size:.9rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent);
+    flex:none;
+  }
+  .add-form button:active{ transform:scale(.96); }
+
+  .tool-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .tool-btn{
+    flex:1;
+    font-family:inherit;
+    cursor:pointer;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    background:rgba(255,255,255,.7);
+    color:var(--ink);
+    padding:10px 8px;
+    font-size:.8rem;
+    font-weight:700;
+    transition:transform .12s ease, background .15s ease;
+  }
+  .tool-btn:active{ transform:scale(.96); }
+  .tool-btn.on{ background:var(--ink); color:#fff; }
+
+  /* ==== 「今日のリスト」画面（買い物中に見る用） ==== */
+  #todayScreen .today-header{ text-align:center; margin-bottom:16px; }
+  #todayScreen .today-header h2{ font-size:1.1rem; margin:0 0 4px; }
+  #todayScreen .today-header p{ font-size:.78rem; opacity:.65; margin:0; }
+  .today-list{ display:flex; flex-direction:column; gap:14px; margin-bottom:18px; }
+  .store-frame{
+    border:2px solid rgba(31,58,52,.15);
+    border-radius:16px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .store-frame-label{ display:flex; align-items:center; font-size:.78rem; font-weight:900; opacity:.8; }
+  .store-frame-label.muted{ opacity:.5; }
+  .today-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--card);
+    border:2px solid rgba(31,58,52,.1);
+    border-radius:14px;
+    padding:12px 14px;
+    cursor:pointer;
+    font-family:inherit;
+    text-align:left;
+    width:100%;
+    transition:transform .12s ease;
+  }
+  .today-row:active{ transform:scale(.98); }
+  .today-row .emoji{ font-size:1.5rem; }
+  .today-row .name{ font-size:1rem; font-weight:700; flex:1; }
+  .today-row .hint{ font-size:.7rem; opacity:.5; }
+  .today-row.in-cart{
+    background:rgba(31,58,52,.06);
+    border-color:rgba(31,58,52,.06);
+  }
+  .today-row.in-cart .emoji{ filter:grayscale(1); opacity:.6; }
+  .today-row.in-cart .name{ opacity:.5; text-decoration:line-through; }
+  #todoSection{ margin-bottom:20px; }
+  #cartSection{ margin-top:24px; padding-top:20px; border-top:3px solid rgba(31,58,52,.25); }
+  #todoSection > .section-label,
+  #cartSection > .section-label{
+    font-size:1.1rem;
+    font-weight:900;
+    opacity:1;
+    color:var(--ink);
+    margin:0 2px 14px;
+  }
+
+  /* ==== 候補から選んで追加 画面 ==== */
+  .candidate-group{ margin-bottom:18px; }
+  .candidate-group-label{ font-size:.85rem; font-weight:900; opacity:.7; margin-bottom:8px; }
+  .candidate-chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .candidate-chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:inherit;
+    cursor:pointer;
+    border:2px solid rgba(31,58,52,.15);
+    border-radius:999px;
+    background:#fff;
+    padding:7px 14px 7px 10px;
+    font-size:.82rem;
+    font-weight:700;
+    color:var(--ink);
+    transition:transform .12s ease, background .15s ease, border-color .15s ease;
+  }
+  .candidate-chip:active{ transform:scale(.95); }
+  .candidate-chip .emoji{ font-size:1.05rem; }
+  .candidate-chip.added{
+    background:var(--accent);
+    border-color:var(--accent-dark);
+    color:#fff;
+  }
+  .candidate-chip.added::after{ content:"✓"; margin-left:2px; }
+
+  /* ==== 売り場順に整理する 画面：円にドラッグして放り込む方式 ==== */
+  .mini-btn{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    background:rgba(255,255,255,.85);
+    color:var(--ink);
+    width:26px; height:26px;
+    font-size:.7rem;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .12s ease;
+    flex:none;
+  }
+  .mini-btn:active{ transform:scale(.9); }
+  .mini-btn.danger{ background:#e74c3c; color:#fff; }
+
+  /* ==== お店・売り場の管理（並び替え・追加・削除） ==== */
+  .store-manage-row{
+    border:2px solid rgba(31,58,52,.12);
+    border-radius:14px;
+    padding:10px 12px;
+    margin-bottom:10px;
+    background:rgba(255,255,255,.5);
+  }
+  .store-manage-top{ display:flex; align-items:center; gap:8px; }
+  .store-manage-name{ flex:1; font-weight:900; font-size:.88rem; }
+  .store-color-input{
+    -webkit-appearance:none; appearance:none;
+    width:26px; height:26px;
+    border:2px solid rgba(31,58,52,.2);
+    border-radius:50%;
+    padding:0;
+    background:none;
+    cursor:pointer;
+    flex:none;
+  }
+  .store-color-input::-webkit-color-swatch-wrapper{ padding:0; border-radius:50%; }
+  .store-color-input::-webkit-color-swatch{ border:none; border-radius:50%; }
+  .store-color-input::-moz-color-swatch{ border:none; border-radius:50%; }
+  .store-dot{
+    display:inline-block;
+    width:9px; height:9px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+  }
+  .dept-manage-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .dept-manage-chip{
+    display:inline-flex; align-items:center; gap:5px;
+    border:2px solid rgba(31,58,52,.15);
+    border-radius:999px;
+    background:#fff;
+    padding:4px 6px 4px 10px;
+    font-size:.72rem;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .dept-del-btn{
+    font-family:inherit; cursor:pointer; border:none; border-radius:50%;
+    background:rgba(231,76,60,.15); color:#e74c3c;
+    width:18px; height:18px; font-size:.6rem;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .dept-add-chip{
+    font-family:inherit; cursor:pointer;
+    border:2px dashed rgba(31,58,52,.3);
+    border-radius:999px;
+    background:none;
+    color:var(--ink);
+    padding:4px 12px;
+    font-size:.72rem;
+    font-weight:700;
+  }
+  .bucket-add-btn{
+    display:block;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:2px dashed rgba(31,58,52,.3);
+    border-radius:12px;
+    background:none;
+    color:var(--ink);
+    padding:11px 8px;
+    font-size:.85rem;
+    font-weight:700;
+    margin-bottom:14px;
+  }
+  .bucket-add-btn:active{ transform:scale(.98); }
+
+  /* ==== アイテムごとにお店・売り場をボタンで選ぶ ==== */
+  .assign-row{
+    border-bottom:1px solid rgba(31,58,52,.1);
+    padding:10px 2px;
+  }
+  .assign-item-label{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:.88rem; margin-bottom:8px; }
+  .assign-item-label .emoji{ font-size:1.2rem; }
+  .assign-btn-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .assign-btn-row.dept{ margin-top:6px; padding-left:14px; }
+  .assign-btn{
+    font-family:inherit;
+    cursor:pointer;
+    border:2px solid rgba(31,58,52,.2);
+    border-radius:999px;
+    background:#fff;
+    color:var(--ink);
+    padding:6px 14px;
+    font-size:.78rem;
+    font-weight:700;
+    transition:transform .1s ease, background .15s ease, border-color .15s ease;
+  }
+  .assign-btn:active{ transform:scale(.95); }
+  .assign-btn.selected{ background:var(--accent2); border-color:var(--accent2-dark); color:#fff; }
+  .assign-btn.small{ padding:4px 11px; font-size:.72rem; }
+  .assign-btn.small.selected{ background:var(--accent); border-color:var(--accent-dark); }
+  .celebrate{
+    text-align:center;
+    padding:40px 16px;
+  }
+  .celebrate .big{ font-size:2.6rem; margin-bottom:10px; }
+  .celebrate p{ font-size:.95rem; font-weight:700; opacity:.8; }
+  .back-inline{
+    display:block;
+    width:100%;
+    text-align:center;
+    background:var(--accent);
+    border:none;
+    border-radius:12px;
+    font-family:inherit;
+    cursor:pointer;
+    color:#fff;
+    font-weight:900;
+    font-size:.9rem;
+    padding:11px 8px;
+    margin:4px auto 0;
+    box-shadow:0 4px 0 var(--accent-dark);
+    transition:transform .15s ease;
+  }
+  .back-inline:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+
+  .back-link{
+    display:inline-block; font-size:.8rem; font-weight:700;
+    color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:10px;
+    padding:4px 14px; border:2px dashed rgba(31,58,52,.35); border-radius:999px;
+  }
+  .back-link:hover{ opacity:1; border-color:rgba(31,58,52,.6); }
+  .back-link-btn{
+    display:block; background:none; color:var(--ink);
+    font-size:1rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:12px 16px; border-radius:14px; margin-top:20px;
+    border:2px dashed rgba(31,58,52,.35);
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .back-link-btn:active{ transform:scale(.98); border-color:rgba(31,58,52,.6); }
+
+  .privacy-note{
+    font-size:.68rem;
+    opacity:.55;
+    text-align:center;
+    margin:16px auto 0;
+    max-width:340px;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../" class="back-link">← ジミベン トップに戻る</a>
+  <h1>ループする買い物リスト</h1>
+  <div class="tagline-wrap"><span class="tagline">地味に便利ツールズ</span></div>
+  <div class="sub">いつもの買い物をタップするだけ。今日のリストがすぐできる</div>
+
+  <div class="stage">
+
+    <!-- ==== メイン画面：登録済みアイテム一覧 ==== -->
+    <div id="mainScreen">
+      <button type="button" id="openTodayBtn" class="today-btn" disabled>
+        🛒 今日のリストを見る <span class="count-badge" id="countBadge">0件</span>
+      </button>
+
+      <div class="section-label">いつもの買い物（タップで今日必要なものに）</div>
+      <input type="text" id="searchInput" class="search-input hidden" placeholder="🔍 名前で探す">
+      <div id="itemGrid"></div>
+      <div id="emptyNote" class="empty-note hidden">まだ何も登録されていません。下から追加してね</div>
+      <div id="noMatchNote" class="empty-note hidden">見つかりませんでした</div>
+
+      <button type="button" id="openCandidateBtn" class="candidate-open-btn">📋 候補から選んで追加</button>
+      <button type="button" id="openOrganizeBtn" class="organize-open-btn">🗂 売り場順に整理する<span class="premium-tag">✨プレミアム</span></button>
+      <button type="button" id="openPriceBtn" class="organize-open-btn price-open-btn">💰 値段を設定する<span class="premium-tag">✨プレミアム</span></button>
+
+      <div class="add-form-wrap">
+        <div class="add-form">
+          <input type="text" id="emojiInput" class="emoji-input" placeholder="🛒" maxlength="4">
+          <input type="text" id="nameInput" class="name-input" placeholder="アイテム名（例：牛乳）" maxlength="20" autocomplete="off">
+          <button type="button" id="addBtn">追加</button>
+        </div>
+        <div id="suggestBox" class="suggest-box hidden"></div>
+      </div>
+
+      <div class="tool-row">
+        <button type="button" id="editModeBtn" class="tool-btn">✏️ 編集する</button>
+        <button type="button" id="resetBtn" class="tool-btn">🔄 チェックをリセット</button>
+      </div>
+    </div>
+
+    <!-- ==== 候補から選んで追加 画面 ==== -->
+    <div id="candidateScreen" class="hidden">
+      <div class="today-header">
+        <h2>📋 候補から選んで追加</h2>
+        <p>タップで登録・解除できるよ</p>
+      </div>
+      <div id="candidateGroups"></div>
+      <button type="button" id="backFromCandidateBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== 売り場順に整理する 画面（プレミアム機能）：ボタンで選ぶ方式 ==== -->
+    <div id="organizeScreen" class="hidden">
+      <div class="today-header">
+        <h2>🏪 お店・売り場で分ける</h2>
+        <p>アイテムごとに、ボタンでお店・売り場を選んでね</p>
+      </div>
+
+      <div class="section-label">お店・売り場を管理</div>
+      <div id="storeManageList"></div>
+      <button type="button" id="addStoreBtn" class="bucket-add-btn">＋ お店を追加</button>
+
+      <div class="section-label" style="margin-top:6px;">アイテムを割り当てる</div>
+      <div id="assignList"></div>
+      <div id="assignEmptyNote" class="empty-note hidden">まだアイテムが登録されていません</div>
+
+      <button type="button" id="backFromOrganizeBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== 値段を設定する 画面（プレミアム機能「こまかめ版」：品目ごとに単価） ==== -->
+    <div id="priceScreen" class="hidden">
+      <div class="today-header">
+        <h2>💰 値段を設定する</h2>
+        <p>だいたいの単価を入れておくと、今日の合計が分かるよ</p>
+      </div>
+      <div id="priceList"></div>
+      <div id="priceEmptyNote" class="empty-note hidden">まだアイテムが登録されていません</div>
+      <button type="button" id="backFromPriceBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== 今日のリスト画面（買い物中用） ==== -->
+    <div id="todayScreen" class="hidden">
+      <div class="today-header">
+        <h2>🛒 今日のリスト</h2>
+        <p>買ったらタップでカゴに移そう。値段の¥をタップすると金額を編集できるよ</p>
+      </div>
+
+      <div id="todayTotalBar" class="today-total-bar hidden"></div>
+
+      <div id="todoSection">
+        <div class="section-label">まだ買うもの</div>
+        <div id="todoList" class="today-list"></div>
+      </div>
+
+      <div id="cartSection" class="hidden">
+        <div class="section-label">🧺 カゴに入れたもの</div>
+        <div id="cartList" class="today-list"></div>
+      </div>
+
+      <div id="celebrate" class="celebrate hidden">
+        <div class="big">🎉</div>
+        <p>全部カゴに入った！お疲れさまでした</p>
+      </div>
+      <button type="button" id="backToMainBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+  </div>
+
+  <div class="privacy-note">※ 登録した買い物リストはこの端末（ブラウザ）の中だけに保存されます。サーバーには送信・保存されません。</div>
+
+  <a href="../" class="back-link-btn">← ジミベン トップに戻る</a>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = "kaimono_loop_items_v1";
+
+  const DEFAULT_ITEMS = [
+    { name:"牛乳", emoji:"🥛" },
+    { name:"卵", emoji:"🥚" },
+    { name:"食パン", emoji:"🍞" },
+    { name:"お米", emoji:"🍚" },
+    { name:"トイレットペーパー", emoji:"🧻" },
+    { name:"洗剤", emoji:"🧴" }
+  ];
+
+  // ==== 「候補から選んで追加」＆ 入力サジェスト共通の候補辞書 ====
+  // ここでのグループ分けはあくまで候補を探しやすくするための一時的な見せ方であり、
+  // 登録後のリスト自体を常時カテゴリ分けする機能（有料化検討中）とは別物。
+  const CANDIDATE_GROUPS = [
+    { label:"🥬 野菜", items:[
+      { name:"野菜", emoji:"🥬" }, { name:"にんじん", emoji:"🥕" }, { name:"じゃがいも", emoji:"🥔" },
+      { name:"玉ねぎ", emoji:"🧅" }, { name:"トマト", emoji:"🍅" }, { name:"きゅうり", emoji:"🥒" },
+      { name:"ほうれん草", emoji:"🥬" }, { name:"小松菜", emoji:"🥬" }, { name:"チンゲン菜", emoji:"🥬" },
+      { name:"白菜", emoji:"🥬" }, { name:"キャベツ", emoji:"🥬" }, { name:"レタス", emoji:"🥬" },
+      { name:"サニーレタス", emoji:"🥬" }, { name:"水菜", emoji:"🥬" }, { name:"長ねぎ", emoji:"🧅" },
+      { name:"大根", emoji:"🥕" }, { name:"ごぼう", emoji:"🥕" }, { name:"れんこん", emoji:"🥕" },
+      { name:"さつまいも", emoji:"🍠" }, { name:"かぼちゃ", emoji:"🎃" }, { name:"なす", emoji:"🍆" },
+      { name:"ピーマン", emoji:"🫑" }, { name:"パプリカ", emoji:"🫑" }, { name:"ミニトマト", emoji:"🍅" },
+      { name:"ブロッコリー", emoji:"🥦" }, { name:"もやし", emoji:"🌱" }, { name:"アスパラガス", emoji:"🌱" },
+      { name:"にんにく", emoji:"🧄" }, { name:"しょうが", emoji:"🫚" }
+    ]},
+    { label:"🍄 きのこ", items:[
+      { name:"えのき", emoji:"🍄" }, { name:"しめじ", emoji:"🍄" }, { name:"エリンギ", emoji:"🍄" },
+      { name:"しいたけ", emoji:"🍄" }, { name:"まいたけ", emoji:"🍄" }, { name:"なめこ", emoji:"🍄" }
+    ]},
+    { label:"🍎 果物", items:[
+      { name:"バナナ", emoji:"🍌" }, { name:"りんご", emoji:"🍎" }, { name:"みかん", emoji:"🍊" },
+      { name:"オレンジ", emoji:"🍊" }, { name:"キウイ", emoji:"🥝" }, { name:"ぶどう", emoji:"🍇" },
+      { name:"梨", emoji:"🍐" }, { name:"桃", emoji:"🍑" }, { name:"いちご", emoji:"🍓" }
+    ]},
+    { label:"🥩 肉", items:[
+      { name:"お肉", emoji:"🥩" }, { name:"鶏肉", emoji:"🍗" },
+      { name:"鶏もも肉", emoji:"🍗" }, { name:"鶏むね肉", emoji:"🍗" }, { name:"鶏ささみ", emoji:"🍗" },
+      { name:"豚こま切れ", emoji:"🥩" }, { name:"豚バラ肉", emoji:"🥓" }, { name:"豚ロース", emoji:"🥩" },
+      { name:"牛こま切れ", emoji:"🥩" }, { name:"牛薄切り肉", emoji:"🥩" }, { name:"合いびき肉", emoji:"🥩" },
+      { name:"豚ひき肉", emoji:"🥩" }, { name:"鶏ひき肉", emoji:"🍗" }, { name:"ベーコン", emoji:"🥓" },
+      { name:"ハム", emoji:"🍖" }, { name:"ウインナー", emoji:"🌭" }
+    ]},
+    { label:"🐟 魚・海産物", items:[
+      { name:"魚", emoji:"🐟" }, { name:"鮭", emoji:"🐟" }, { name:"さば", emoji:"🐟" }, { name:"ぶり", emoji:"🐟" },
+      { name:"たら", emoji:"🐟" }, { name:"あじ", emoji:"🐟" }, { name:"まぐろ", emoji:"🐟" },
+      { name:"かつお", emoji:"🐟" }, { name:"えび", emoji:"🍤" }, { name:"いか", emoji:"🦑" },
+      { name:"あさり", emoji:"🦪" }, { name:"しらす", emoji:"🐟" }, { name:"ツナ缶", emoji:"🥫" },
+      { name:"さば缶", emoji:"🥫" }
+    ]},
+    { label:"🥛 卵・乳製品", items:[
+      { name:"卵", emoji:"🥚" }, { name:"牛乳", emoji:"🥛" }, { name:"チーズ", emoji:"🧀" }, { name:"バター", emoji:"🧈" },
+      { name:"豆乳", emoji:"🥛" }, { name:"ヨーグルト", emoji:"🥣" },
+      { name:"スライスチーズ", emoji:"🧀" }, { name:"生クリーム", emoji:"🥛" }
+    ]},
+    { label:"🧈 豆腐・大豆製品", items:[
+      { name:"木綿豆腐", emoji:"⬜" }, { name:"絹ごし豆腐", emoji:"⬜" }, { name:"厚揚げ", emoji:"🟫" },
+      { name:"油揚げ", emoji:"🟫" }, { name:"納豆", emoji:"🫘" }, { name:"味噌", emoji:"🍲" }
+    ]},
+    { label:"🍚 主食", items:[
+      { name:"米", emoji:"🍚" }, { name:"食パン", emoji:"🍞" },
+      { name:"ロールパン", emoji:"🥐" }, { name:"うどん", emoji:"🍜" }, { name:"そば", emoji:"🍜" },
+      { name:"中華麺", emoji:"🍜" }, { name:"冷凍うどん", emoji:"🍜" }, { name:"パスタソース", emoji:"🍝" }
+    ]},
+    { label:"🥫 乾物・常備食品", items:[
+      { name:"のり", emoji:"🍙" }, { name:"ふりかけ", emoji:"🍚" }, { name:"ごま", emoji:"⚪" },
+      { name:"乾燥わかめ", emoji:"🌊" }, { name:"春雨", emoji:"🍜" }, { name:"かつお節", emoji:"🐟" },
+      { name:"切り干し大根", emoji:"🥕" }, { name:"高野豆腐", emoji:"⬜" }, { name:"コーン缶", emoji:"🌽" },
+      { name:"トマト缶", emoji:"🥫" }, { name:"カレー粉", emoji:"🍛" }, { name:"カレールー", emoji:"🍛" },
+      { name:"シチュールー", emoji:"🍲" }, { name:"小麦粉", emoji:"🌾" }, { name:"片栗粉", emoji:"🧂" },
+      { name:"パン粉", emoji:"🍞" }, { name:"乾燥パスタ", emoji:"🍝" }, { name:"乾麺", emoji:"🍜" }
+    ]},
+    { label:"🥤 飲料", items:[
+      { name:"お茶", emoji:"🍵" }, { name:"コーヒー", emoji:"☕" }, { name:"ジュース", emoji:"🧃" },
+      { name:"水", emoji:"🚰" }, { name:"ビール", emoji:"🍺" }, { name:"ワイン", emoji:"🍷" },
+      { name:"緑茶", emoji:"🍵" }, { name:"麦茶", emoji:"🍵" }, { name:"スポーツドリンク", emoji:"🥤" },
+      { name:"炭酸水", emoji:"🥤" }, { name:"ティーバッグ", emoji:"🍵" }
+    ]},
+    { label:"🍬 お菓子", items:[
+      { name:"チョコレート", emoji:"🍫" }, { name:"クッキー", emoji:"🍪" }, { name:"ガム", emoji:"🍬" },
+      { name:"ナッツ", emoji:"🥜" }, { name:"クラッカー", emoji:"🍘" }, { name:"プリン", emoji:"🍮" },
+      { name:"ゼリー", emoji:"🍮" }
+    ]},
+    { label:"🧻 日用品", items:[
+      { name:"トイレットペーパー", emoji:"🧻" }, { name:"ティッシュ", emoji:"🧻" },
+      { name:"洗剤", emoji:"🧴" }, { name:"シャンプー", emoji:"🧴" },
+      { name:"歯ブラシ", emoji:"🪥" }, { name:"ゴミ袋", emoji:"🗑️" }, { name:"ペット用品", emoji:"🐾" }
+    ]},
+    { label:"🧊 冷凍・レトルト", items:[
+      { name:"冷凍食品", emoji:"🧊" }, { name:"アイス", emoji:"🍨" }, { name:"餃子", emoji:"🥟" },
+      { name:"レトルトカレー", emoji:"🍛" }, { name:"パスタ", emoji:"🍝" },
+      { name:"冷凍ほうれん草", emoji:"🥬" }, { name:"冷凍ブロッコリー", emoji:"🥦" }, { name:"冷凍枝豆", emoji:"🫛" },
+      { name:"冷凍コーン", emoji:"🌽" }, { name:"冷凍ミックスベジタブル", emoji:"🥕" }, { name:"冷凍餃子", emoji:"🥟" },
+      { name:"冷凍唐揚げ", emoji:"🍗" }, { name:"冷凍チャーハン", emoji:"🍚" }, { name:"インスタント食品", emoji:"📦" }
+    ]},
+    { label:"🧂 調味料", items:[
+      { name:"塩", emoji:"🧂" }, { name:"油", emoji:"🫗" },
+      { name:"醤油", emoji:"🍶" }, { name:"砂糖", emoji:"🧂" }, { name:"こしょう", emoji:"🧂" },
+      { name:"料理酒", emoji:"🍶" }, { name:"みりん", emoji:"🍶" }, { name:"酢", emoji:"🍶" },
+      { name:"めんつゆ", emoji:"🍶" }, { name:"白だし", emoji:"🍶" }, { name:"ポン酢", emoji:"🍶" },
+      { name:"マヨネーズ", emoji:"🧴" }, { name:"ケチャップ", emoji:"🧴" }, { name:"ソース", emoji:"🧴" },
+      { name:"焼肉のたれ", emoji:"🍶" }, { name:"ドレッシング", emoji:"🧴" }, { name:"ごま油", emoji:"🫗" },
+      { name:"サラダ油", emoji:"🫗" }, { name:"オリーブオイル", emoji:"🫗" }, { name:"顆粒だし", emoji:"🧂" },
+      { name:"コンソメ", emoji:"🧂" }, { name:"鶏ガラスープの素", emoji:"🧂" }, { name:"わさび", emoji:"🧂" },
+      { name:"からし", emoji:"🧂" }, { name:"おろしにんにく", emoji:"🧄" }, { name:"おろししょうが", emoji:"🫚" }
+    ]},
+    { label:"🍽️ キッチン用品", items:[
+      { name:"ラップ", emoji:"🧻" }, { name:"アルミホイル", emoji:"🧻" }, { name:"クッキングシート", emoji:"🧻" },
+      { name:"キッチンペーパー", emoji:"🧻" }, { name:"食品保存袋", emoji:"📦" }, { name:"ジップ袋", emoji:"📦" },
+      { name:"保存容器", emoji:"📦" }, { name:"食器用洗剤", emoji:"🧴" }, { name:"食器用スポンジ", emoji:"🧽" },
+      { name:"排水口ネット", emoji:"🧽" }, { name:"三角コーナー用ネット", emoji:"🧽" }, { name:"台ふきん", emoji:"🧽" },
+      { name:"布巾", emoji:"🧽" }, { name:"食品用手袋", emoji:"🧤" }
+    ]},
+    { label:"🧺 洗濯用品", items:[
+      { name:"洗濯洗剤", emoji:"🧴" }, { name:"柔軟剤", emoji:"🧴" }, { name:"酸素系漂白剤", emoji:"🧴" },
+      { name:"洗濯槽クリーナー", emoji:"🧴" }, { name:"衣類用消臭剤", emoji:"🧴" }, { name:"洗濯ネット", emoji:"🧺" },
+      { name:"ハンガー", emoji:"👕" }, { name:"洗濯ばさみ", emoji:"📎" }
+    ]},
+    { label:"🧹 掃除用品", items:[
+      { name:"トイレ用洗剤", emoji:"🧴" }, { name:"お風呂用洗剤", emoji:"🧴" }, { name:"キッチン用洗剤", emoji:"🧴" },
+      { name:"浴室用カビ取り剤", emoji:"🧴" }, { name:"排水口クリーナー", emoji:"🧴" }, { name:"トイレ掃除シート", emoji:"🧻" },
+      { name:"フローリング掃除シート", emoji:"🧻" }, { name:"ウェットティッシュ", emoji:"🧻" }, { name:"雑巾", emoji:"🧽" },
+      { name:"スポンジ", emoji:"🧽" }, { name:"ゴム手袋", emoji:"🧤" }, { name:"掃除機用ゴミパック", emoji:"🧹" }
+    ]},
+    { label:"🧻 トイレ・衛生用品", items:[
+      { name:"ティッシュペーパー", emoji:"🧻" }, { name:"ハンドソープ", emoji:"🧴" }, { name:"ボディソープ", emoji:"🧴" },
+      { name:"コンディショナー", emoji:"🧴" }, { name:"洗顔料", emoji:"🧴" }, { name:"歯磨き粉", emoji:"🪥" },
+      { name:"デンタルフロス", emoji:"🪥" }, { name:"綿棒", emoji:"🧴" }, { name:"爪切り", emoji:"✂️" },
+      { name:"カミソリ", emoji:"🪒" }, { name:"シェービング剤", emoji:"🧴" }, { name:"消臭剤", emoji:"🧴" }
+    ]},
+    { label:"🛁 お風呂・洗面用品", items:[
+      { name:"入浴剤", emoji:"🛁" }, { name:"洗顔用タオル", emoji:"🧻" }, { name:"バスタオル", emoji:"🧻" },
+      { name:"フェイスタオル", emoji:"🧻" }
+    ]},
+    { label:"🧻 紙・生活用品", items:[
+      { name:"電池", emoji:"🔋" }, { name:"電球", emoji:"💡" }, { name:"殺虫剤", emoji:"🦟" },
+      { name:"除湿剤", emoji:"💧" }, { name:"防虫剤", emoji:"🦟" }
+    ]},
+    { label:"🩹 医薬品・救急用品", items:[
+      { name:"絆創膏", emoji:"🩹" }, { name:"消毒液", emoji:"🧴" }, { name:"ガーゼ", emoji:"🩹" },
+      { name:"湿布", emoji:"🩹" }, { name:"常備薬", emoji:"💊" }, { name:"体温計", emoji:"🌡️" },
+      { name:"マスク", emoji:"😷" }, { name:"冷却シート", emoji:"🧊" }
+    ]},
+    { label:"👕 衣類用品", items:[
+      { name:"衣類用漂白剤", emoji:"🧴" }, { name:"靴用消臭剤", emoji:"👟" }, { name:"靴下", emoji:"🧦" },
+      { name:"下着", emoji:"🩲" }, { name:"タオル", emoji:"🧻" }
+    ]},
+    { label:"🎒 外出用品", items:[
+      { name:"ポケットティッシュ", emoji:"🧻" }, { name:"折りたたみ傘", emoji:"🌂" },
+      { name:"エコバッグ", emoji:"👜" }, { name:"モバイルバッテリー", emoji:"🔋" }
+    ]},
+    { label:"🆘 防災・非常用品", items:[
+      { name:"飲料水", emoji:"🚰" }, { name:"非常食", emoji:"🥫" }, { name:"レトルトご飯", emoji:"🍚" },
+      { name:"レトルト食品", emoji:"📦" }, { name:"カップ麺", emoji:"🍜" }, { name:"缶詰", emoji:"🥫" },
+      { name:"懐中電灯", emoji:"🔦" }, { name:"乾電池", emoji:"🔋" }, { name:"ラジオ", emoji:"📻" },
+      { name:"簡易トイレ", emoji:"🚽" }, { name:"救急セット", emoji:"🩹" }
+    ]}
+  ];
+  const ALL_CANDIDATES = CANDIDATE_GROUPS.reduce(function(acc, g){ return acc.concat(g.items); }, []);
+
+  function uid(){
+    return "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function loadItems(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)){
+          // 旧バージョン（inCart / useCount / storeId・departmentId未対応）のデータを読み込んだ時の移行措置。
+          // さらに古い単層カテゴリ版（categoryId）は、これをそのままstoreIdとして引き継ぐ
+          parsed.forEach(function(it){
+            if(typeof it.inCart !== "boolean") it.inCart = false;
+            if(typeof it.useCount !== "number") it.useCount = 0;
+            if(typeof it.storeId === "undefined") it.storeId = it.categoryId || null;
+            if(typeof it.departmentId === "undefined") it.departmentId = null;
+            if(typeof it.price !== "number") it.price = 0; // 予定単価（「💰値段を設定する」画面で編集）
+            if(typeof it.actualPrice !== "number") it.actualPrice = null; // 実際に払った金額（カゴに入れる時に上書き可、未設定ならpriceを使う）
+            delete it.categoryId;
+          });
+          saveItems(parsed); // 移行結果をすぐ保存し、次回以降は同じ移行処理を繰り返さないようにする
+          return parsed;
+        }
+      }
+    }catch(e){}
+    // 初回だけ、よく使う定番アイテムを仮でいくつか入れておく（自由に編集・削除してOK）
+    const seeded = DEFAULT_ITEMS.map(function(it){
+      return { id: uid(), name: it.name, emoji: it.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null };
+    });
+    saveItems(seeded);
+    return seeded;
+  }
+  function saveItems(items){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch(e){}
+  }
+
+  // ==== お店・売り場（売り場順に整理する、プレミアム機能） ====
+  // 2階層構造：お店（スーパー／ドラッグストア等、自由に追加可）＞売り場（お店ごとに違う内訳、自由に追加可）
+  const STORE_STORAGE_KEY = "kaimono_loop_stores_v1";
+  const OLD_CAT_STORAGE_KEY = "kaimono_loop_categories_v1"; // 単層カテゴリ版（1つ前のバージョン）からの移行用
+  const DEFAULT_STORES = [
+    { name:"スーパー", color:"#ff8a65", departments:["野菜","肉","魚","惣菜","お菓子","ドリンク","パン"] },
+    { name:"ドラッグストア", color:"#7c9eff", departments:["薬","洗濯","キッチン","お風呂","お菓子","ドリンク","パン"] },
+    { name:"100均", color:"#4caf50", departments:[] }
+  ];
+  // お店ごとの色が未設定の時（旧データ・追加時）に順番に割り当てる予備パレット
+  const STORE_COLOR_PALETTE = ["#ff8a65","#7c9eff","#4caf50","#f6c344","#e57ae5","#4fc3c0","#ff6b81","#9b8cf2"];
+  function nextStoreColor(){
+    return STORE_COLOR_PALETTE[stores.length % STORE_COLOR_PALETTE.length];
+  }
+  function loadStores(){
+    try{
+      const raw = localStorage.getItem(STORE_STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)){
+          // 旧バージョン（色未対応）のデータを読み込んだ時の移行措置：順番に予備パレットの色を割り当てる
+          let changed = false;
+          parsed.forEach(function(s, idx){
+            if(!s.color){ s.color = STORE_COLOR_PALETTE[idx % STORE_COLOR_PALETTE.length]; changed = true; }
+          });
+          if(changed) saveStores(parsed);
+          return parsed;
+        }
+      }
+    }catch(e){}
+    // 1つ前のバージョン（単層カテゴリ）が残っていれば、店として引き継ぐ（売り場は空の状態から）
+    try{
+      const oldRaw = localStorage.getItem(OLD_CAT_STORAGE_KEY);
+      if(oldRaw){
+        const oldCats = JSON.parse(oldRaw);
+        if(Array.isArray(oldCats) && oldCats.length){
+          const migrated = oldCats.map(function(c, idx){
+            return { id: c.id, name: c.name, color: STORE_COLOR_PALETTE[idx % STORE_COLOR_PALETTE.length], departments: [] };
+          });
+          saveStores(migrated);
+          try{ localStorage.removeItem(OLD_CAT_STORAGE_KEY); }catch(e2){}
+          return migrated;
+        }
+      }
+    }catch(e){}
+    // 完全新規なら、定番の3店舗を売り場・色付きで仮登録しておく（自由に編集・削除可）
+    const seeded = DEFAULT_STORES.map(function(s){
+      return { id: uid(), name: s.name, color: s.color, departments: s.departments.map(function(d){ return { id: uid(), name: d }; }) };
+    });
+    saveStores(seeded);
+    return seeded;
+  }
+  function saveStores(list){
+    try{ localStorage.setItem(STORE_STORAGE_KEY, JSON.stringify(list)); }catch(e){}
+  }
+  // ==== 色まわりのちいさなユーティリティ（ユーザーが選んだ任意の色に対応するため） ====
+  function hexToRgb(hex){
+    let h = hex.replace("#", "");
+    if(h.length === 3) h = h.split("").map(function(c){ return c + c; }).join("");
+    const num = parseInt(h, 16);
+    return { r:(num >> 16) & 255, g:(num >> 8) & 255, b:num & 255 };
+  }
+  function darkenColor(hex, amount){
+    const c = hexToRgb(hex);
+    return "rgb(" + Math.round(c.r * (1 - amount)) + "," + Math.round(c.g * (1 - amount)) + "," + Math.round(c.b * (1 - amount)) + ")";
+  }
+  function hexToRgba(hex, alpha){
+    const c = hexToRgb(hex);
+    return "rgba(" + c.r + "," + c.g + "," + c.b + "," + alpha + ")";
+  }
+  // 選んだ色の明るさに応じて、文字色を白/濃い緑のどちらにすれば読みやすいか判定する
+  function readableTextColor(hex){
+    const c = hexToRgb(hex);
+    const luminance = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
+    return luminance > 0.62 ? "#1f3a34" : "#ffffff";
+  }
+  // お店の並び順における位置（未割り当ては常に一番最後）
+  function storeRank(storeId){
+    if(!storeId) return stores.length;
+    const idx = stores.findIndex(function(s){ return s.id === storeId; });
+    return idx === -1 ? stores.length : idx;
+  }
+  // 指定の店の中での売り場の並び順における位置（店未定・売り場未定は一番最後）
+  function departmentRank(storeId, deptId){
+    const store = stores.find(function(s){ return s.id === storeId; });
+    if(!store) return 0;
+    if(!deptId) return store.departments.length;
+    const idx = store.departments.findIndex(function(d){ return d.id === deptId; });
+    return idx === -1 ? store.departments.length : idx;
+  }
+  // 店→売り場の順で比較する、renderMain/renderTodayの並び替え共通ロジック
+  function hierarchyCompare(a, b){
+    const sr = storeRank(a.storeId) - storeRank(b.storeId);
+    if(sr !== 0) return sr;
+    return departmentRank(a.storeId, a.departmentId) - departmentRank(b.storeId, b.departmentId);
+  }
+
+  let items = loadItems();
+  let stores = loadStores();
+  let editMode = false;
+  let lastToggledId = null; // 直前にチェックしたアイテムだけポップアニメーションさせるための印
+
+  const itemGrid = document.getElementById("itemGrid");
+  const emptyNote = document.getElementById("emptyNote");
+  const noMatchNote = document.getElementById("noMatchNote");
+  const searchInput = document.getElementById("searchInput");
+  const openTodayBtn = document.getElementById("openTodayBtn");
+  const countBadge = document.getElementById("countBadge");
+  const editModeBtn = document.getElementById("editModeBtn");
+
+  // リストが増えてきた時だけ検索ボックスを出す（少ない件数の時は邪魔になるだけなので隠す）
+  const SEARCH_THRESHOLD = 8;
+
+  function checkedCount(){
+    return items.filter(function(it){ return it.checked; }).length;
+  }
+
+  function createItemBtn(it){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "item-btn" + (it.checked ? " checked" : "");
+    btn.innerHTML =
+      '<span class="emoji">' + it.emoji + '</span>' +
+      '<span class="name"></span>' +
+      '<span class="check-badge">✓</span>' +
+      (editMode ? '<span class="del-badge">✕</span>' : '');
+    btn.querySelector(".name").textContent = it.name; // XSS対策：テキストはtextContentで入れる
+    btn.addEventListener("click", function(){
+      if(editMode){
+        if(confirm('「' + it.name + '」を削除しますか？')){
+          items = items.filter(function(x){ return x.id !== it.id; });
+          saveItems(items);
+          renderMain();
+        }
+        return;
+      }
+      it.checked = !it.checked;
+      if(it.checked){ it.useCount = (it.useCount || 0) + 1; }
+      else { it.inCart = false; } // 「今日必要」から外したら、カゴ状態もリセットしておく
+      lastToggledId = it.checked ? it.id : null;
+      saveItems(items);
+      renderMain();
+    });
+    if(it.checked && it.id === lastToggledId){ btn.classList.add("pop"); }
+    return btn;
+  }
+
+  function renderMain(){
+    itemGrid.innerHTML = "";
+    searchInput.classList.toggle("hidden", items.length <= SEARCH_THRESHOLD);
+
+    const query = searchInput.value.trim().toLowerCase();
+    const useStores = stores.length > 0;
+    // お店を使っている時は「お店・売り場で分ける」で決めた売り場順（hierarchyCompare）を優先。
+    // 使っていない時は、よく「今日必要」にした（＝よく買う）ものほど上に来るよう自動で並べる
+    const base = useStores
+      ? items.slice().sort(hierarchyCompare)
+      : items.slice().sort(function(a, b){ return (b.useCount || 0) - (a.useCount || 0); });
+    const visible = query
+      ? base.filter(function(it){ return it.name.toLowerCase().indexOf(query) !== -1; })
+      : base;
+
+    emptyNote.classList.toggle("hidden", items.length > 0);
+    noMatchNote.classList.toggle("hidden", !(items.length > 0 && query && visible.length === 0));
+
+    function appendGrid(list){
+      const grid = document.createElement("div");
+      grid.className = "item-grid";
+      list.forEach(function(it){ grid.appendChild(createItemBtn(it)); });
+      itemGrid.appendChild(grid);
+    }
+
+    if(useStores){
+      const storeGroups = stores.concat([null]); // null = お店未割り当て
+      storeGroups.forEach(function(store){
+        const storeId = store ? store.id : null;
+        const storeItems = visible.filter(function(it){ return (it.storeId || null) === storeId; });
+        if(storeItems.length === 0) return;
+        const label = document.createElement("div");
+        label.className = "section-label";
+        if(store){
+          const dot = document.createElement("span");
+          dot.className = "store-dot";
+          dot.style.background = store.color || "#ff8a65";
+          label.appendChild(dot);
+        }
+        label.appendChild(document.createTextNode(store ? store.name : "未割り当て"));
+        itemGrid.appendChild(label);
+
+        const deptGroups = (store ? store.departments : []).concat([null]); // null = 売り場未割り当て
+        deptGroups.forEach(function(dept){
+          const deptId = dept ? dept.id : null;
+          const deptItems = storeItems.filter(function(it){ return (it.departmentId || null) === deptId; });
+          if(deptItems.length === 0) return;
+          if(store && store.departments.length > 0){
+            const sub = document.createElement("div");
+            sub.className = "section-sublabel";
+            sub.textContent = dept ? dept.name : "その他";
+            itemGrid.appendChild(sub);
+          }
+          appendGrid(deptItems);
+        });
+      });
+    } else {
+      appendGrid(visible);
+    }
+
+    const n = checkedCount();
+    countBadge.textContent = n + "件";
+    openTodayBtn.disabled = n === 0;
+  }
+
+  searchInput.addEventListener("input", renderMain);
+
+  editModeBtn.addEventListener("click", function(){
+    editMode = !editMode;
+    editModeBtn.textContent = editMode ? "✅ 編集をおわる" : "✏️ 編集する";
+    editModeBtn.classList.toggle("on", editMode);
+    renderMain();
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    items.forEach(function(it){ it.checked = false; it.inCart = false; });
+    saveItems(items);
+    renderMain();
+  });
+
+  const emojiInput = document.getElementById("emojiInput");
+  const nameInput = document.getElementById("nameInput");
+  const suggestBox = document.getElementById("suggestBox");
+
+  function hasItemNamed(name){
+    const n = name.trim().toLowerCase();
+    return items.some(function(it){ return it.name.toLowerCase() === n; });
+  }
+
+  document.getElementById("addBtn").addEventListener("click", function(){
+    const name = nameInput.value.trim();
+    if(!name) return;
+    const emoji = emojiInput.value.trim() || "🛒";
+    items.push({ id: uid(), name: name, emoji: emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null });
+    saveItems(items);
+    nameInput.value = "";
+    emojiInput.value = "";
+    hideSuggest();
+    renderMain();
+  });
+  nameInput.addEventListener("keydown", function(e){
+    if(e.key === "Enter") document.getElementById("addBtn").click();
+  });
+
+  // ==== 名前入力サジェスト（候補辞書から近い名前を出す。タップで名前・絵文字を自動入力） ====
+  function hideSuggest(){
+    suggestBox.classList.add("hidden");
+    suggestBox.innerHTML = "";
+  }
+  nameInput.addEventListener("input", function(){
+    const q = nameInput.value.trim().toLowerCase();
+    if(!q){ hideSuggest(); return; }
+    const matches = ALL_CANDIDATES.filter(function(c){
+      return c.name.toLowerCase().indexOf(q) !== -1 && !hasItemNamed(c.name);
+    }).slice(0, 5);
+    if(matches.length === 0){ hideSuggest(); return; }
+    suggestBox.innerHTML = "";
+    matches.forEach(function(c){
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "suggest-item";
+      b.innerHTML = '<span class="emoji">' + c.emoji + '</span><span class="name"></span>';
+      b.querySelector(".name").textContent = c.name;
+      b.addEventListener("click", function(){
+        nameInput.value = c.name;
+        emojiInput.value = c.emoji;
+        hideSuggest();
+        nameInput.focus();
+      });
+      suggestBox.appendChild(b);
+    });
+    suggestBox.classList.remove("hidden");
+  });
+  nameInput.addEventListener("blur", function(){
+    // クリックでの選択を先に処理させるため、少し遅らせて閉じる
+    setTimeout(hideSuggest, 150);
+  });
+
+  // ==== 今日のリスト画面 ====
+  // 「まだ買うもの」→タップ→「🧺カゴに入れたもの」（グレーアウトで表示、あとから見返せる）という2段構成。
+  // 買い忘れ防止のため、リストからは消さずグレーアウトで積み上げていく方式にしている。
+  const mainScreen = document.getElementById("mainScreen");
+  const todayScreen = document.getElementById("todayScreen");
+  const todoSection = document.getElementById("todoSection");
+  const todoList = document.getElementById("todoList");
+  const cartSection = document.getElementById("cartSection");
+  const cartList = document.getElementById("cartList");
+  const celebrate = document.getElementById("celebrate");
+  const todayTotalBar = document.getElementById("todayTotalBar");
+
+  function makeTodayRow(it, inCart){
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "today-row" + (inCart ? " in-cart" : "");
+    row.innerHTML =
+      '<span class="emoji">' + it.emoji + '</span>' +
+      '<span class="name"></span>' +
+      '<span class="price-tap-badge"></span>' +
+      '<span class="hint">' + (inCart ? "タップで戻す" : "タップでカゴへ") + '</span>';
+    row.querySelector(".name").textContent = it.name;
+
+    const priceBadge = row.querySelector(".price-tap-badge");
+    const currentPrice = inCart ? (it.actualPrice != null ? it.actualPrice : (it.price || 0)) : (it.price || 0);
+    priceBadge.textContent = "¥" + currentPrice.toLocaleString();
+    priceBadge.addEventListener("click", function(e){
+      e.stopPropagation(); // 親のタップ（カゴへ移動/戻す）を誘発しないように
+      const input = prompt(inCart ? "実際に払った金額は？" : "予定の金額は？", String(currentPrice));
+      if(input === null) return;
+      const v = parseInt(input, 10);
+      if(isNaN(v) || v < 0) return;
+      if(inCart){ it.actualPrice = v; } else { it.price = v; }
+      saveItems(items);
+      renderToday();
+    });
+
+    row.addEventListener("click", function(){
+      it.inCart = !it.inCart;
+      saveItems(items);
+      renderToday();
+      renderMain();
+    });
+    return row;
+  }
+
+  // お店・売り場を使っている時は、お店を歩く順（売り場順に整理するで決めた順）に並べる
+  function sortByStoreIfNeeded(list){
+    if(stores.length === 0) return list;
+    return list.slice().sort(hierarchyCompare);
+  }
+
+  // お店ごとに、そのお店の色の枠で囲んでグループ表示する（お店を使っていない時は今まで通りフラットに並べる）
+  function renderTodayGrouped(container, list, inCart){
+    if(stores.length === 0){
+      list.forEach(function(it){ container.appendChild(makeTodayRow(it, inCart)); });
+      return;
+    }
+    const groups = stores.concat([null]); // null = お店未割り当て
+    groups.forEach(function(store){
+      const storeId = store ? store.id : null;
+      const groupItems = list.filter(function(it){ return (it.storeId || null) === storeId; });
+      if(groupItems.length === 0) return;
+
+      const frame = document.createElement("div");
+      frame.className = "store-frame";
+      const label = document.createElement("div");
+      label.className = "store-frame-label";
+      if(store){
+        frame.style.borderColor = store.color || "#ff8a65";
+        frame.style.background = hexToRgba(store.color || "#ff8a65", 0.08);
+        const dot = document.createElement("span");
+        dot.className = "store-dot";
+        dot.style.background = store.color || "#ff8a65";
+        label.appendChild(dot);
+        label.appendChild(document.createTextNode(store.name));
+      } else {
+        label.classList.add("muted");
+        label.textContent = "未割り当て";
+      }
+      frame.appendChild(label);
+      groupItems.forEach(function(it){ frame.appendChild(makeTodayRow(it, inCart)); });
+      container.appendChild(frame);
+    });
+  }
+
+  function renderToday(){
+    todoList.innerHTML = "";
+    cartList.innerHTML = "";
+    const checkedItems = items.filter(function(it){ return it.checked; });
+    const todoItems = sortByStoreIfNeeded(checkedItems.filter(function(it){ return !it.inCart; }));
+    const cartItems = sortByStoreIfNeeded(checkedItems.filter(function(it){ return it.inCart; }));
+
+    todoSection.classList.toggle("hidden", todoItems.length === 0);
+    cartSection.classList.toggle("hidden", cartItems.length === 0);
+    celebrate.classList.toggle("hidden", !(checkedItems.length > 0 && todoItems.length === 0));
+
+    // 予定合計＝今日必要な全アイテムのprice合計。実績合計＝カゴに入れた分のactualPrice（未設定ならprice）合計
+    const plannedTotal = checkedItems.reduce(function(sum, it){ return sum + (it.price || 0); }, 0);
+    const actualTotal = cartItems.reduce(function(sum, it){ return sum + (it.actualPrice != null ? it.actualPrice : (it.price || 0)); }, 0);
+    todayTotalBar.classList.toggle("hidden", checkedItems.length === 0);
+    if(checkedItems.length > 0){
+      todayTotalBar.innerHTML =
+        '<span class="total-group">予定合計 <span class="amount">¥' + plannedTotal.toLocaleString() + '</span></span>' +
+        (cartItems.length > 0 ? '<span class="total-group">実績 <span class="amount">¥' + actualTotal.toLocaleString() + '</span></span>' : '');
+    }
+
+    renderTodayGrouped(todoList, todoItems, false);
+    renderTodayGrouped(cartList, cartItems, true);
+  }
+
+  openTodayBtn.addEventListener("click", function(){
+    renderToday();
+    mainScreen.classList.add("hidden");
+    todayScreen.classList.remove("hidden");
+  });
+  document.getElementById("backToMainBtn").addEventListener("click", function(){
+    todayScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  // ==== 候補から選んで追加 画面 ====
+  const candidateScreen = document.getElementById("candidateScreen");
+  const candidateGroups = document.getElementById("candidateGroups");
+
+  function renderCandidates(){
+    candidateGroups.innerHTML = "";
+    CANDIDATE_GROUPS.forEach(function(group){
+      const wrap = document.createElement("div");
+      wrap.className = "candidate-group";
+      const label = document.createElement("div");
+      label.className = "candidate-group-label";
+      label.textContent = group.label;
+      wrap.appendChild(label);
+
+      const row = document.createElement("div");
+      row.className = "candidate-chip-row";
+      group.items.forEach(function(c){
+        const added = hasItemNamed(c.name);
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "candidate-chip" + (added ? " added" : "");
+        chip.innerHTML = '<span class="emoji">' + c.emoji + '</span><span class="name"></span>';
+        chip.querySelector(".name").textContent = c.name;
+        chip.addEventListener("click", function(){
+          if(hasItemNamed(c.name)){
+            items = items.filter(function(it){ return it.name.toLowerCase() !== c.name.toLowerCase(); });
+          } else {
+            items.push({ id: uid(), name: c.name, emoji: c.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null });
+          }
+          saveItems(items);
+          renderCandidates();
+          renderMain();
+        });
+        row.appendChild(chip);
+      });
+      wrap.appendChild(row);
+      candidateGroups.appendChild(wrap);
+    });
+  }
+
+  document.getElementById("openCandidateBtn").addEventListener("click", function(){
+    renderCandidates();
+    mainScreen.classList.add("hidden");
+    candidateScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromCandidateBtn").addEventListener("click", function(){
+    candidateScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  // ==== お店・売り場で分ける 画面（プレミアム機能。現時点では合言葉ロックは未実装、機能検証を優先） ====
+  // 2026年9月12日：円へのドラッグ方式は実機（スマホ）で表示が崩れる不具合が出たため、
+  // 「アイテムごとにボタンでお店・売り場を選ぶ」方式に作り替えた（ドラッグ操作を一切使わない）
+  const organizeScreen = document.getElementById("organizeScreen");
+  const storeManageList = document.getElementById("storeManageList");
+  const assignList = document.getElementById("assignList");
+  const assignEmptyNote = document.getElementById("assignEmptyNote");
+
+  // ---- お店・売り場の管理（追加・並び替え・削除） ----
+  function renderStoreManage(){
+    storeManageList.innerHTML = "";
+    stores.forEach(function(store, idx){
+      const row = document.createElement("div");
+      row.className = "store-manage-row";
+
+      const top = document.createElement("div");
+      top.className = "store-manage-top";
+
+      const colorInput = document.createElement("input");
+      colorInput.type = "color";
+      colorInput.className = "store-color-input";
+      colorInput.value = store.color || "#ff8a65";
+      colorInput.title = "この店の色を選ぶ";
+      colorInput.addEventListener("input", function(){
+        store.color = colorInput.value;
+        saveStores(stores);
+        renderAssignList();
+        renderMain();
+      });
+      top.appendChild(colorInput);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "store-manage-name";
+      nameSpan.textContent = store.name;
+      top.appendChild(nameSpan);
+
+      const upBtn = document.createElement("button");
+      upBtn.type = "button"; upBtn.className = "mini-btn"; upBtn.textContent = "▲";
+      upBtn.disabled = idx === 0;
+      upBtn.addEventListener("click", function(){
+        if(idx === 0) return;
+        const tmp = stores[idx - 1]; stores[idx - 1] = stores[idx]; stores[idx] = tmp;
+        saveStores(stores);
+        renderStoreManage(); renderAssignList(); renderMain();
+      });
+      const downBtn = document.createElement("button");
+      downBtn.type = "button"; downBtn.className = "mini-btn"; downBtn.textContent = "▼";
+      downBtn.disabled = idx === stores.length - 1;
+      downBtn.addEventListener("click", function(){
+        if(idx === stores.length - 1) return;
+        const tmp = stores[idx + 1]; stores[idx + 1] = stores[idx]; stores[idx] = tmp;
+        saveStores(stores);
+        renderStoreManage(); renderAssignList(); renderMain();
+      });
+      const delBtn = document.createElement("button");
+      delBtn.type = "button"; delBtn.className = "mini-btn danger"; delBtn.textContent = "✕";
+      delBtn.addEventListener("click", function(){
+        if(!confirm('「' + store.name + '」を削除しますか？（中のアイテムは未割り当てに戻ります）')) return;
+        stores = stores.filter(function(s){ return s.id !== store.id; });
+        items.forEach(function(it){ if(it.storeId === store.id){ it.storeId = null; it.departmentId = null; } });
+        saveStores(stores); saveItems(items);
+        renderStoreManage(); renderAssignList(); renderMain();
+      });
+      top.appendChild(upBtn); top.appendChild(downBtn); top.appendChild(delBtn);
+      row.appendChild(top);
+
+      const deptRow = document.createElement("div");
+      deptRow.className = "dept-manage-row";
+      store.departments.forEach(function(dept){
+        const chip = document.createElement("span");
+        chip.className = "dept-manage-chip";
+        chip.innerHTML = '<span></span><button type="button" class="dept-del-btn">✕</button>';
+        chip.querySelector("span").textContent = dept.name;
+        chip.querySelector(".dept-del-btn").addEventListener("click", function(){
+          store.departments = store.departments.filter(function(d){ return d.id !== dept.id; });
+          items.forEach(function(it){ if(it.storeId === store.id && it.departmentId === dept.id) it.departmentId = null; });
+          saveStores(stores); saveItems(items);
+          renderStoreManage(); renderAssignList(); renderMain();
+        });
+        deptRow.appendChild(chip);
+      });
+      const addDeptBtn = document.createElement("button");
+      addDeptBtn.type = "button";
+      addDeptBtn.className = "dept-add-chip";
+      addDeptBtn.textContent = "＋ 売り場";
+      addDeptBtn.addEventListener("click", function(){
+        const name = prompt("売り場の名前（例：野菜）");
+        if(!name || !name.trim()) return;
+        store.departments.push({ id: uid(), name: name.trim() });
+        saveStores(stores);
+        renderStoreManage(); renderAssignList();
+      });
+      deptRow.appendChild(addDeptBtn);
+      row.appendChild(deptRow);
+
+      storeManageList.appendChild(row);
+    });
+  }
+
+  document.getElementById("addStoreBtn").addEventListener("click", function(){
+    const name = prompt("お店の名前（例：スーパー、ホームセンター）");
+    if(!name || !name.trim()) return;
+    stores.push({ id: uid(), name: name.trim(), color: nextStoreColor(), departments: [] });
+    saveStores(stores);
+    renderStoreManage(); renderAssignList(); renderMain();
+  });
+
+  // ---- アイテムごとに、お店→売り場をボタンで選ぶ ----
+  function renderAssignList(){
+    assignList.innerHTML = "";
+    assignEmptyNote.classList.toggle("hidden", items.length > 0);
+
+    items.forEach(function(it){
+      const row = document.createElement("div");
+      row.className = "assign-row";
+
+      const label = document.createElement("div");
+      label.className = "assign-item-label";
+      label.innerHTML = '<span class="emoji">' + it.emoji + '</span><span class="name"></span>';
+      label.querySelector(".name").textContent = it.name;
+      row.appendChild(label);
+
+      if(stores.length > 0){
+        const storeBtnRow = document.createElement("div");
+        storeBtnRow.className = "assign-btn-row";
+        stores.forEach(function(store){
+          const btn = document.createElement("button");
+          btn.type = "button";
+          const isSelected = it.storeId === store.id;
+          btn.className = "assign-btn" + (isSelected ? " selected" : "");
+          btn.textContent = store.name;
+          const color = store.color || "#ff8a65";
+          if(isSelected){
+            btn.style.background = color;
+            btn.style.borderColor = darkenColor(color, 0.25);
+            btn.style.color = readableTextColor(color);
+          } else {
+            btn.style.borderColor = color; // 未選択でも枠線の色でどの店か分かるように
+          }
+          btn.addEventListener("click", function(){
+            it.storeId = (it.storeId === store.id) ? null : store.id;
+            it.departmentId = null; // お店を変えたら売り場の選択はリセット
+            saveItems(items);
+            renderAssignList();
+            renderMain();
+          });
+          storeBtnRow.appendChild(btn);
+        });
+        row.appendChild(storeBtnRow);
+
+        const currentStore = stores.find(function(s){ return s.id === it.storeId; });
+        if(currentStore && currentStore.departments.length > 0){
+          const deptBtnRow = document.createElement("div");
+          deptBtnRow.className = "assign-btn-row dept";
+          currentStore.departments.forEach(function(dept){
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const isDeptSelected = it.departmentId === dept.id;
+            btn.className = "assign-btn small" + (isDeptSelected ? " selected" : "");
+            btn.textContent = dept.name;
+            const deptColor = currentStore.color || "#ff8a65";
+            if(isDeptSelected){
+              btn.style.background = deptColor;
+              btn.style.borderColor = darkenColor(deptColor, 0.25);
+              btn.style.color = readableTextColor(deptColor);
+            } else {
+              btn.style.borderColor = deptColor;
+            }
+            btn.addEventListener("click", function(){
+              it.departmentId = (it.departmentId === dept.id) ? null : dept.id;
+              saveItems(items);
+              renderAssignList();
+              renderMain();
+            });
+            deptBtnRow.appendChild(btn);
+          });
+          row.appendChild(deptBtnRow);
+        }
+      }
+
+      assignList.appendChild(row);
+    });
+  }
+
+  document.getElementById("openOrganizeBtn").addEventListener("click", function(){
+    renderStoreManage();
+    renderAssignList();
+    mainScreen.classList.add("hidden");
+    organizeScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromOrganizeBtn").addEventListener("click", function(){
+    organizeScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  // ==== 値段を設定する 画面（プレミアム機能「こまかめ版」。現時点では合言葉ロックは未実装、比較検証中） ====
+  const priceScreen = document.getElementById("priceScreen");
+  const priceList = document.getElementById("priceList");
+  const priceEmptyNote = document.getElementById("priceEmptyNote");
+
+  function renderPriceScreen(){
+    priceList.innerHTML = "";
+    priceEmptyNote.classList.toggle("hidden", items.length > 0);
+    items.forEach(function(it){
+      const row = document.createElement("div");
+      row.className = "price-row";
+      row.innerHTML =
+        '<span class="emoji">' + it.emoji + '</span>' +
+        '<span class="name"></span>' +
+        '<span class="yen-mark">¥</span>';
+      row.querySelector(".name").textContent = it.name;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.step = "1";
+      input.value = it.price ? String(it.price) : "";
+      input.placeholder = "0";
+      input.addEventListener("input", function(){
+        const v = parseInt(input.value, 10);
+        it.price = isNaN(v) || v < 0 ? 0 : v;
+        saveItems(items);
+      });
+      row.appendChild(input);
+      priceList.appendChild(row);
+    });
+  }
+
+  document.getElementById("openPriceBtn").addEventListener("click", function(){
+    renderPriceScreen();
+    mainScreen.classList.add("hidden");
+    priceScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromPriceBtn").addEventListener("click", function(){
+    priceScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  renderMain();
+})();
+</script>
+</body>
+</html>
