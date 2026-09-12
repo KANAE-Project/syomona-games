@@ -211,6 +211,53 @@
     padding:2px 8px;
     border-radius:999px;
   }
+  .price-open-btn{ background:#c9982e; box-shadow:0 4px 0 #a17820; }
+  .price-open-btn .premium-tag{ color:#a17820; }
+
+  /* ==== 値段を設定する 画面 ==== */
+  .price-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 2px;
+    border-bottom:1px solid rgba(31,58,52,.1);
+  }
+  .price-row .emoji{ font-size:1.3rem; }
+  .price-row .name{ flex:1; font-weight:700; font-size:.88rem; }
+  .price-row .yen-mark{ font-size:.85rem; opacity:.6; }
+  .price-row input[type=number]{
+    width:80px;
+    font-family:inherit;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:10px;
+    padding:7px 8px;
+    font-size:.9rem;
+    text-align:right;
+    background:#fff;
+  }
+  .today-total-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:rgba(201,152,46,.12);
+    border:2px solid rgba(201,152,46,.35);
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:16px;
+    font-weight:900;
+    font-size:.9rem;
+    color:#8a6a1f;
+  }
+  .today-total-bar .amount{ font-size:1.05rem; }
+  .price-tap-badge{
+    font-size:.72rem;
+    font-weight:900;
+    color:#a17820;
+    background:rgba(201,152,46,.15);
+    border-radius:999px;
+    padding:2px 9px;
+    flex:none;
+  }
 
   .add-form-wrap{ position:relative; margin-bottom:14px; }
   .add-form{
@@ -554,6 +601,7 @@
 
       <button type="button" id="openCandidateBtn" class="candidate-open-btn">📋 候補から選んで追加</button>
       <button type="button" id="openOrganizeBtn" class="organize-open-btn">🗂 売り場順に整理する<span class="premium-tag">✨プレミアム</span></button>
+      <button type="button" id="openPriceBtn" class="organize-open-btn price-open-btn">💰 値段を設定する<span class="premium-tag">✨プレミアム</span></button>
 
       <div class="add-form-wrap">
         <div class="add-form">
@@ -598,12 +646,25 @@
       <button type="button" id="backFromOrganizeBtn" class="back-inline">← 一覧に戻る</button>
     </div>
 
+    <!-- ==== 値段を設定する 画面（プレミアム機能「こまかめ版」：品目ごとに単価） ==== -->
+    <div id="priceScreen" class="hidden">
+      <div class="today-header">
+        <h2>💰 値段を設定する</h2>
+        <p>だいたいの単価を入れておくと、今日の合計が分かるよ</p>
+      </div>
+      <div id="priceList"></div>
+      <div id="priceEmptyNote" class="empty-note hidden">まだアイテムが登録されていません</div>
+      <button type="button" id="backFromPriceBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
     <!-- ==== 今日のリスト画面（買い物中用） ==== -->
     <div id="todayScreen" class="hidden">
       <div class="today-header">
         <h2>🛒 今日のリスト</h2>
-        <p>買ったらタップでカゴに移そう</p>
+        <p>買ったらタップでカゴに移そう。値段の¥をタップすると金額を編集できるよ</p>
       </div>
+
+      <div id="todayTotalBar" class="today-total-bar hidden"></div>
 
       <div id="todoSection">
         <div class="section-label">まだ買うもの</div>
@@ -809,6 +870,8 @@
             if(typeof it.useCount !== "number") it.useCount = 0;
             if(typeof it.storeId === "undefined") it.storeId = it.categoryId || null;
             if(typeof it.departmentId === "undefined") it.departmentId = null;
+            if(typeof it.price !== "number") it.price = 0; // 予定単価（「💰値段を設定する」画面で編集）
+            if(typeof it.actualPrice !== "number") it.actualPrice = null; // 実際に払った金額（カゴに入れる時に上書き可、未設定ならpriceを使う）
             delete it.categoryId;
           });
           saveItems(parsed); // 移行結果をすぐ保存し、次回以降は同じ移行処理を繰り返さないようにする
@@ -818,7 +881,7 @@
     }catch(e){}
     // 初回だけ、よく使う定番アイテムを仮でいくつか入れておく（自由に編集・削除してOK）
     const seeded = DEFAULT_ITEMS.map(function(it){
-      return { id: uid(), name: it.name, emoji: it.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null };
+      return { id: uid(), name: it.name, emoji: it.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null };
     });
     saveItems(seeded);
     return seeded;
@@ -1067,7 +1130,7 @@
     const name = nameInput.value.trim();
     if(!name) return;
     const emoji = emojiInput.value.trim() || "🛒";
-    items.push({ id: uid(), name: name, emoji: emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null });
+    items.push({ id: uid(), name: name, emoji: emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null });
     saveItems(items);
     nameInput.value = "";
     emojiInput.value = "";
@@ -1122,6 +1185,7 @@
   const cartSection = document.getElementById("cartSection");
   const cartList = document.getElementById("cartList");
   const celebrate = document.getElementById("celebrate");
+  const todayTotalBar = document.getElementById("todayTotalBar");
 
   function makeTodayRow(it, inCart){
     const row = document.createElement("button");
@@ -1130,8 +1194,24 @@
     row.innerHTML =
       '<span class="emoji">' + it.emoji + '</span>' +
       '<span class="name"></span>' +
+      '<span class="price-tap-badge"></span>' +
       '<span class="hint">' + (inCart ? "タップで戻す" : "タップでカゴへ") + '</span>';
     row.querySelector(".name").textContent = it.name;
+
+    const priceBadge = row.querySelector(".price-tap-badge");
+    const currentPrice = inCart ? (it.actualPrice != null ? it.actualPrice : (it.price || 0)) : (it.price || 0);
+    priceBadge.textContent = "¥" + currentPrice.toLocaleString();
+    priceBadge.addEventListener("click", function(e){
+      e.stopPropagation(); // 親のタップ（カゴへ移動/戻す）を誘発しないように
+      const input = prompt(inCart ? "実際に払った金額は？" : "予定の金額は？", String(currentPrice));
+      if(input === null) return;
+      const v = parseInt(input, 10);
+      if(isNaN(v) || v < 0) return;
+      if(inCart){ it.actualPrice = v; } else { it.price = v; }
+      saveItems(items);
+      renderToday();
+    });
+
     row.addEventListener("click", function(){
       it.inCart = !it.inCart;
       saveItems(items);
@@ -1192,6 +1272,16 @@
     cartSection.classList.toggle("hidden", cartItems.length === 0);
     celebrate.classList.toggle("hidden", !(checkedItems.length > 0 && todoItems.length === 0));
 
+    // 予定合計＝今日必要な全アイテムのprice合計。実績合計＝カゴに入れた分のactualPrice（未設定ならprice）合計
+    const plannedTotal = checkedItems.reduce(function(sum, it){ return sum + (it.price || 0); }, 0);
+    const actualTotal = cartItems.reduce(function(sum, it){ return sum + (it.actualPrice != null ? it.actualPrice : (it.price || 0)); }, 0);
+    todayTotalBar.classList.toggle("hidden", checkedItems.length === 0);
+    if(checkedItems.length > 0){
+      todayTotalBar.innerHTML =
+        '<span class="total-group">予定合計 <span class="amount">¥' + plannedTotal.toLocaleString() + '</span></span>' +
+        (cartItems.length > 0 ? '<span class="total-group">実績 <span class="amount">¥' + actualTotal.toLocaleString() + '</span></span>' : '');
+    }
+
     renderTodayGrouped(todoList, todoItems, false);
     renderTodayGrouped(cartList, cartItems, true);
   }
@@ -1234,7 +1324,7 @@
           if(hasItemNamed(c.name)){
             items = items.filter(function(it){ return it.name.toLowerCase() !== c.name.toLowerCase(); });
           } else {
-            items.push({ id: uid(), name: c.name, emoji: c.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null });
+            items.push({ id: uid(), name: c.name, emoji: c.emoji, checked: false, inCart: false, useCount: 0, storeId: null, departmentId: null, price: 0, actualPrice: null });
           }
           saveItems(items);
           renderCandidates();
@@ -1450,6 +1540,49 @@
   });
   document.getElementById("backFromOrganizeBtn").addEventListener("click", function(){
     organizeScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  // ==== 値段を設定する 画面（プレミアム機能「こまかめ版」。現時点では合言葉ロックは未実装、比較検証中） ====
+  const priceScreen = document.getElementById("priceScreen");
+  const priceList = document.getElementById("priceList");
+  const priceEmptyNote = document.getElementById("priceEmptyNote");
+
+  function renderPriceScreen(){
+    priceList.innerHTML = "";
+    priceEmptyNote.classList.toggle("hidden", items.length > 0);
+    items.forEach(function(it){
+      const row = document.createElement("div");
+      row.className = "price-row";
+      row.innerHTML =
+        '<span class="emoji">' + it.emoji + '</span>' +
+        '<span class="name"></span>' +
+        '<span class="yen-mark">¥</span>';
+      row.querySelector(".name").textContent = it.name;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.step = "1";
+      input.value = it.price ? String(it.price) : "";
+      input.placeholder = "0";
+      input.addEventListener("input", function(){
+        const v = parseInt(input.value, 10);
+        it.price = isNaN(v) || v < 0 ? 0 : v;
+        saveItems(items);
+      });
+      row.appendChild(input);
+      priceList.appendChild(row);
+    });
+  }
+
+  document.getElementById("openPriceBtn").addEventListener("click", function(){
+    renderPriceScreen();
+    mainScreen.classList.add("hidden");
+    priceScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromPriceBtn").addEventListener("click", function(){
+    priceScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
     renderMain();
   });
