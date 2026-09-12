@@ -364,82 +364,43 @@
   .mini-btn:active{ transform:scale(.9); }
   .mini-btn.danger{ background:#e74c3c; color:#fff; }
 
-  .tray-block{
-    border:2px dashed rgba(31,58,52,.25);
+  /* ==== お店・売り場の管理（並び替え・追加・削除） ==== */
+  .store-manage-row{
+    border:2px solid rgba(31,58,52,.12);
     border-radius:14px;
     padding:10px 12px;
-    margin-bottom:16px;
-    transition:background .15s ease, border-color .15s ease;
+    margin-bottom:10px;
+    background:rgba(255,255,255,.5);
   }
-  .tray-block.drag-over{ background:rgba(43,182,149,.15); border-color:var(--accent); }
-  .tray-label{ font-size:.78rem; font-weight:900; opacity:.65; margin-bottom:8px; }
-  .chip-tray{ display:flex; flex-wrap:wrap; gap:8px; min-height:36px; }
-  .chip-tray:empty::after{ content:"（からっぽ）"; font-size:.75rem; opacity:.4; }
-
-  .organize-chip{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    font-family:inherit;
+  .store-manage-top{ display:flex; align-items:center; gap:8px; }
+  .store-manage-name{ flex:1; font-weight:900; font-size:.88rem; }
+  .dept-manage-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .dept-manage-chip{
+    display:inline-flex; align-items:center; gap:5px;
     border:2px solid rgba(31,58,52,.15);
     border-radius:999px;
     background:#fff;
-    padding:6px 12px 6px 8px;
-    font-size:.8rem;
+    padding:4px 6px 4px 10px;
+    font-size:.72rem;
     font-weight:700;
     color:var(--ink);
-    touch-action:none;
-    cursor:grab;
-    user-select:none;
-    -webkit-user-select:none;
   }
-  .organize-chip.dragging{ opacity:.85; box-shadow:0 8px 18px rgba(20,80,60,.3); cursor:grabbing; }
-
-  .store-block{
-    border:2px solid rgba(31,58,52,.12);
-    border-radius:16px;
-    padding:14px;
-    margin-bottom:14px;
-    background:rgba(255,255,255,.4);
-  }
-  .store-block-top{ display:flex; align-items:center; gap:10px; }
-  .bucket-circle{
-    width:76px; height:76px;
-    border-radius:50%;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:#fff;
-    border:3px solid var(--accent2);
-    color:var(--ink);
-    font-weight:900;
-    font-size:.72rem;
-    text-align:center;
-    padding:4px;
-    cursor:pointer;
-    flex:none;
-    transition:transform .15s ease, background .15s ease;
-    line-height:1.25;
-  }
-  .bucket-circle .count{ font-size:.62rem; opacity:.65; margin-top:1px; font-weight:700; }
-  .bucket-circle.drag-over{ background:rgba(255,138,101,.25); transform:scale(1.1); }
-  .bucket-circle.dept-circle{ width:64px; height:64px; border-color:var(--accent); font-size:.66rem; }
-  .store-block-controls{ display:flex; gap:6px; margin-left:auto; }
-  .store-name-label{ flex:1; font-weight:900; font-size:.85rem; }
-  .dept-row{ display:flex; flex-wrap:wrap; gap:12px; margin-top:14px; padding-top:12px; border-top:1px dashed rgba(31,58,52,.15); }
-  .dept-item{ display:flex; flex-direction:column; align-items:center; gap:6px; }
-  .dept-chip-list{ display:flex; flex-wrap:wrap; gap:5px; max-width:88px; justify-content:center; }
-  .bucket-add-circle{
-    width:64px; height:64px;
-    border-radius:50%;
-    border:2px dashed rgba(31,58,52,.3);
-    background:none;
-    color:var(--ink);
-    font-size:1.3rem;
-    font-weight:900;
-    cursor:pointer;
-    flex:none;
+  .dept-del-btn{
+    font-family:inherit; cursor:pointer; border:none; border-radius:50%;
+    background:rgba(231,76,60,.15); color:#e74c3c;
+    width:18px; height:18px; font-size:.6rem;
     display:flex; align-items:center; justify-content:center;
   }
-  .bucket-add-circle:active{ transform:scale(.94); }
+  .dept-add-chip{
+    font-family:inherit; cursor:pointer;
+    border:2px dashed rgba(31,58,52,.3);
+    border-radius:999px;
+    background:none;
+    color:var(--ink);
+    padding:4px 12px;
+    font-size:.72rem;
+    font-weight:700;
+  }
   .bucket-add-btn{
     display:block;
     width:100%;
@@ -455,6 +416,32 @@
     margin-bottom:14px;
   }
   .bucket-add-btn:active{ transform:scale(.98); }
+
+  /* ==== アイテムごとにお店・売り場をボタンで選ぶ ==== */
+  .assign-row{
+    border-bottom:1px solid rgba(31,58,52,.1);
+    padding:10px 2px;
+  }
+  .assign-item-label{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:.88rem; margin-bottom:8px; }
+  .assign-item-label .emoji{ font-size:1.2rem; }
+  .assign-btn-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .assign-btn-row.dept{ margin-top:6px; padding-left:14px; }
+  .assign-btn{
+    font-family:inherit;
+    cursor:pointer;
+    border:2px solid rgba(31,58,52,.2);
+    border-radius:999px;
+    background:#fff;
+    color:var(--ink);
+    padding:6px 14px;
+    font-size:.78rem;
+    font-weight:700;
+    transition:transform .1s ease, background .15s ease, border-color .15s ease;
+  }
+  .assign-btn:active{ transform:scale(.95); }
+  .assign-btn.selected{ background:var(--accent2); border-color:var(--accent2-dark); color:#fff; }
+  .assign-btn.small{ padding:4px 11px; font-size:.72rem; }
+  .assign-btn.small.selected{ background:var(--accent); border-color:var(--accent-dark); }
   .celebrate{
     text-align:center;
     padding:40px 16px;
@@ -554,21 +541,20 @@
       <button type="button" id="backFromCandidateBtn" class="back-inline">← 一覧に戻る</button>
     </div>
 
-    <!-- ==== 売り場順に整理する 画面（プレミアム機能）：円にドラッグして放り込む方式 ==== -->
+    <!-- ==== 売り場順に整理する 画面（プレミアム機能）：ボタンで選ぶ方式 ==== -->
     <div id="organizeScreen" class="hidden">
       <div class="today-header">
         <h2>🏪 お店・売り場で分ける</h2>
-        <p>チップを円にドラッグして放り込もう（円をタップすると売り場を開閉）</p>
+        <p>アイテムごとに、ボタンでお店・売り場を選んでね</p>
       </div>
 
-      <div class="tray-block" data-drop-zone="root-tray">
-        <div class="tray-label">🗑 未割り当て</div>
-        <div id="rootTray" class="chip-tray"></div>
-      </div>
-
-      <div id="storeList"></div>
-
+      <div class="section-label">お店・売り場を管理</div>
+      <div id="storeManageList"></div>
       <button type="button" id="addStoreBtn" class="bucket-add-btn">＋ お店を追加</button>
+
+      <div class="section-label" style="margin-top:6px;">アイテムを割り当てる</div>
+      <div id="assignList"></div>
+      <div id="assignEmptyNote" class="empty-note hidden">まだアイテムが登録されていません</div>
 
       <button type="button" id="backFromOrganizeBtn" class="back-inline">← 一覧に戻る</button>
     </div>
@@ -1154,217 +1140,87 @@
   });
 
   // ==== お店・売り場で分ける 画面（プレミアム機能。現時点では合言葉ロックは未実装、機能検証を優先） ====
-  // チップ（アイテム）を円（お店／売り場）にドラッグして放り込む方式。
-  // 円には data-drop-zone 属性でキーを持たせ、ドロップ時に elementFromPoint で判定する。
+  // 2026年9月12日：円へのドラッグ方式は実機（スマホ）で表示が崩れる不具合が出たため、
+  // 「アイテムごとにボタンでお店・売り場を選ぶ」方式に作り替えた（ドラッグ操作を一切使わない）
   const organizeScreen = document.getElementById("organizeScreen");
-  const storeListEl = document.getElementById("storeList");
-  const rootTray = document.getElementById("rootTray");
-  let expandedStoreIds = {}; // どの店の売り場欄を開いているか（画面を開き直すとリセットしてよい一時状態）
+  const storeManageList = document.getElementById("storeManageList");
+  const assignList = document.getElementById("assignList");
+  const assignEmptyNote = document.getElementById("assignEmptyNote");
 
-  function itemsFor(storeId, deptId){
-    return items.filter(function(it){
-      return (it.storeId || null) === storeId && (it.departmentId || null) === (deptId || null);
-    });
-  }
-
-  // アイテムを掴んでいる間だけbodyへ浮かせて追従させ、離した位置のdata-drop-zoneを見て振り分ける。
-  // 掴んだままにせず、結果に応じて必ずrenderOrganize()で作り直す（浮いた要素の後片付けも兼ねる）
-  function makeChipDraggable(chipEl, item){
-    let dragging = false, offsetX = 0, offsetY = 0;
-
-    chipEl.addEventListener("pointerdown", function(e){
-      dragging = true;
-      chipEl.setPointerCapture(e.pointerId);
-      chipEl.classList.add("dragging");
-      const rect = chipEl.getBoundingClientRect();
-      offsetX = e.clientX - rect.left;
-      offsetY = e.clientY - rect.top;
-      chipEl.style.position = "fixed";
-      chipEl.style.left = rect.left + "px";
-      chipEl.style.top = rect.top + "px";
-      chipEl.style.width = rect.width + "px";
-      chipEl.style.zIndex = 999;
-      document.body.appendChild(chipEl); // スクロール領域の外に出し、常に画面に対して浮かせる
-    });
-
-    chipEl.addEventListener("pointermove", function(e){
-      if(!dragging) return;
-      chipEl.style.left = (e.clientX - offsetX) + "px";
-      chipEl.style.top = (e.clientY - offsetY) + "px";
-      chipEl.style.pointerEvents = "none";
-      const hovered = document.elementFromPoint(e.clientX, e.clientY);
-      chipEl.style.pointerEvents = "";
-      const zone = hovered ? hovered.closest("[data-drop-zone]") : null;
-      document.querySelectorAll(".drag-over").forEach(function(el){ if(el !== zone) el.classList.remove("drag-over"); });
-      if(zone) zone.classList.add("drag-over");
-    });
-
-    function finishDrag(e){
-      if(!dragging) return;
-      dragging = false;
-      chipEl.style.pointerEvents = "none";
-      const hovered = document.elementFromPoint(e.clientX, e.clientY);
-      chipEl.style.pointerEvents = "";
-      const zone = hovered ? hovered.closest("[data-drop-zone]") : null;
-      if(zone) applyDrop(item, zone.dataset.dropZone);
-      renderOrganize();
-      renderMain();
-    }
-    chipEl.addEventListener("pointerup", finishDrag);
-    chipEl.addEventListener("pointercancel", function(){ dragging = false; renderOrganize(); });
-  }
-
-  function applyDrop(item, key){
-    if(key === "root-tray"){
-      item.storeId = null; item.departmentId = null;
-    } else if(key.indexOf("store-tray:") === 0){
-      item.storeId = key.slice(11); item.departmentId = null;
-    } else if(key.indexOf("store:") === 0){
-      const sid = key.slice(6);
-      if(item.storeId !== sid){ item.storeId = sid; item.departmentId = null; }
-    } else if(key.indexOf("dept:") === 0){
-      const rest = key.slice(5);
-      const sep = rest.indexOf(":");
-      item.storeId = rest.slice(0, sep);
-      item.departmentId = rest.slice(sep + 1);
-    }
-    saveItems(items);
-  }
-
-  function createOrganizeChip(it){
-    const chip = document.createElement("div");
-    chip.className = "organize-chip";
-    chip.innerHTML = '<span class="emoji">' + it.emoji + '</span><span class="name"></span>';
-    chip.querySelector(".name").textContent = it.name;
-    makeChipDraggable(chip, it);
-    return chip;
-  }
-
-  function renderTrayInto(container, storeId, deptId){
-    container.innerHTML = "";
-    itemsFor(storeId, deptId).forEach(function(it){ container.appendChild(createOrganizeChip(it)); });
-  }
-
-  function renderOrganize(){
-    expandedStoreIds = expandedStoreIds || {};
-    renderTrayInto(rootTray, null, null);
-
-    storeListEl.innerHTML = "";
+  // ---- お店・売り場の管理（追加・並び替え・削除） ----
+  function renderStoreManage(){
+    storeManageList.innerHTML = "";
     stores.forEach(function(store, idx){
-      const block = document.createElement("div");
-      block.className = "store-block";
+      const row = document.createElement("div");
+      row.className = "store-manage-row";
 
       const top = document.createElement("div");
-      top.className = "store-block-top";
+      top.className = "store-manage-top";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "store-manage-name";
+      nameSpan.textContent = store.name;
+      top.appendChild(nameSpan);
 
-      const circle = document.createElement("button");
-      circle.type = "button";
-      circle.className = "bucket-circle";
-      circle.dataset.dropZone = "store:" + store.id;
-      const storeCount = items.filter(function(it){ return (it.storeId || null) === store.id; }).length;
-      circle.innerHTML = '<span class="circle-name"></span><span class="count">' + storeCount + '件</span>';
-      circle.querySelector(".circle-name").textContent = store.name;
-      circle.addEventListener("click", function(){
-        expandedStoreIds[store.id] = !expandedStoreIds[store.id];
-        renderOrganize();
-      });
-      top.appendChild(circle);
-
-      const nameLabel = document.createElement("span");
-      nameLabel.className = "store-name-label";
-      nameLabel.textContent = expandedStoreIds[store.id] ? "▲ 売り場をとじる" : "▼ 売り場をひらく";
-      top.appendChild(nameLabel);
-
-      const controls = document.createElement("div");
-      controls.className = "store-block-controls";
       const upBtn = document.createElement("button");
       upBtn.type = "button"; upBtn.className = "mini-btn"; upBtn.textContent = "▲";
       upBtn.disabled = idx === 0;
-      upBtn.addEventListener("click", function(e){
-        e.stopPropagation();
+      upBtn.addEventListener("click", function(){
         if(idx === 0) return;
         const tmp = stores[idx - 1]; stores[idx - 1] = stores[idx]; stores[idx] = tmp;
         saveStores(stores);
-        renderOrganize(); renderMain();
+        renderStoreManage(); renderAssignList(); renderMain();
       });
       const downBtn = document.createElement("button");
       downBtn.type = "button"; downBtn.className = "mini-btn"; downBtn.textContent = "▼";
       downBtn.disabled = idx === stores.length - 1;
-      downBtn.addEventListener("click", function(e){
-        e.stopPropagation();
+      downBtn.addEventListener("click", function(){
         if(idx === stores.length - 1) return;
         const tmp = stores[idx + 1]; stores[idx + 1] = stores[idx]; stores[idx] = tmp;
         saveStores(stores);
-        renderOrganize(); renderMain();
+        renderStoreManage(); renderAssignList(); renderMain();
       });
       const delBtn = document.createElement("button");
       delBtn.type = "button"; delBtn.className = "mini-btn danger"; delBtn.textContent = "✕";
-      delBtn.addEventListener("click", function(e){
-        e.stopPropagation();
+      delBtn.addEventListener("click", function(){
         if(!confirm('「' + store.name + '」を削除しますか？（中のアイテムは未割り当てに戻ります）')) return;
         stores = stores.filter(function(s){ return s.id !== store.id; });
         items.forEach(function(it){ if(it.storeId === store.id){ it.storeId = null; it.departmentId = null; } });
         saveStores(stores); saveItems(items);
-        renderOrganize(); renderMain();
+        renderStoreManage(); renderAssignList(); renderMain();
       });
-      controls.appendChild(upBtn); controls.appendChild(downBtn); controls.appendChild(delBtn);
-      top.appendChild(controls);
-      block.appendChild(top);
+      top.appendChild(upBtn); top.appendChild(downBtn); top.appendChild(delBtn);
+      row.appendChild(top);
 
-      if(expandedStoreIds[store.id]){
-        const trayBlock = document.createElement("div");
-        trayBlock.className = "tray-block";
-        trayBlock.dataset.dropZone = "store-tray:" + store.id;
-        const trayLabel = document.createElement("div");
-        trayLabel.className = "tray-label";
-        trayLabel.textContent = "この店でまだ売り場未定";
-        const trayChips = document.createElement("div");
-        trayChips.className = "chip-tray";
-        trayBlock.appendChild(trayLabel);
-        trayBlock.appendChild(trayChips);
-        block.appendChild(trayBlock);
-        renderTrayInto(trayChips, store.id, null);
-
-        const deptRow = document.createElement("div");
-        deptRow.className = "dept-row";
-        store.departments.forEach(function(dept){
-          const deptWrap = document.createElement("div");
-          deptWrap.className = "dept-item";
-          const deptCircle = document.createElement("button");
-          deptCircle.type = "button";
-          deptCircle.className = "bucket-circle dept-circle";
-          deptCircle.dataset.dropZone = "dept:" + store.id + ":" + dept.id;
-          const deptCount = items.filter(function(it){ return (it.storeId || null) === store.id && (it.departmentId || null) === dept.id; }).length;
-          deptCircle.innerHTML = '<span class="circle-name"></span><span class="count">' + deptCount + '件</span>';
-          deptCircle.querySelector(".circle-name").textContent = dept.name;
-          deptWrap.appendChild(deptCircle);
-          const deptChips = document.createElement("div");
-          deptChips.className = "dept-chip-list";
-          deptWrap.appendChild(deptChips);
-          renderTrayInto(deptChips, store.id, dept.id);
-          deptRow.appendChild(deptWrap);
+      const deptRow = document.createElement("div");
+      deptRow.className = "dept-manage-row";
+      store.departments.forEach(function(dept){
+        const chip = document.createElement("span");
+        chip.className = "dept-manage-chip";
+        chip.innerHTML = '<span></span><button type="button" class="dept-del-btn">✕</button>';
+        chip.querySelector("span").textContent = dept.name;
+        chip.querySelector(".dept-del-btn").addEventListener("click", function(){
+          store.departments = store.departments.filter(function(d){ return d.id !== dept.id; });
+          items.forEach(function(it){ if(it.storeId === store.id && it.departmentId === dept.id) it.departmentId = null; });
+          saveStores(stores); saveItems(items);
+          renderStoreManage(); renderAssignList(); renderMain();
         });
+        deptRow.appendChild(chip);
+      });
+      const addDeptBtn = document.createElement("button");
+      addDeptBtn.type = "button";
+      addDeptBtn.className = "dept-add-chip";
+      addDeptBtn.textContent = "＋ 売り場";
+      addDeptBtn.addEventListener("click", function(){
+        const name = prompt("売り場の名前（例：野菜）");
+        if(!name || !name.trim()) return;
+        store.departments.push({ id: uid(), name: name.trim() });
+        saveStores(stores);
+        renderStoreManage(); renderAssignList();
+      });
+      deptRow.appendChild(addDeptBtn);
+      row.appendChild(deptRow);
 
-        const addDeptBtn = document.createElement("button");
-        addDeptBtn.type = "button";
-        addDeptBtn.className = "bucket-add-circle";
-        addDeptBtn.textContent = "＋";
-        addDeptBtn.addEventListener("click", function(){
-          const name = prompt("売り場の名前（例：野菜）");
-          if(!name || !name.trim()) return;
-          store.departments.push({ id: uid(), name: name.trim() });
-          saveStores(stores);
-          renderOrganize();
-        });
-        const addDeptWrap = document.createElement("div");
-        addDeptWrap.className = "dept-item";
-        addDeptWrap.appendChild(addDeptBtn);
-        deptRow.appendChild(addDeptWrap);
-
-        block.appendChild(deptRow);
-      }
-
-      storeListEl.appendChild(block);
+      storeManageList.appendChild(row);
     });
   }
 
@@ -1373,12 +1229,71 @@
     if(!name || !name.trim()) return;
     stores.push({ id: uid(), name: name.trim(), departments: [] });
     saveStores(stores);
-    renderOrganize();
-    renderMain();
+    renderStoreManage(); renderAssignList(); renderMain();
   });
 
+  // ---- アイテムごとに、お店→売り場をボタンで選ぶ ----
+  function renderAssignList(){
+    assignList.innerHTML = "";
+    assignEmptyNote.classList.toggle("hidden", items.length > 0);
+
+    items.forEach(function(it){
+      const row = document.createElement("div");
+      row.className = "assign-row";
+
+      const label = document.createElement("div");
+      label.className = "assign-item-label";
+      label.innerHTML = '<span class="emoji">' + it.emoji + '</span><span class="name"></span>';
+      label.querySelector(".name").textContent = it.name;
+      row.appendChild(label);
+
+      if(stores.length > 0){
+        const storeBtnRow = document.createElement("div");
+        storeBtnRow.className = "assign-btn-row";
+        stores.forEach(function(store){
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "assign-btn" + (it.storeId === store.id ? " selected" : "");
+          btn.textContent = store.name;
+          btn.addEventListener("click", function(){
+            it.storeId = (it.storeId === store.id) ? null : store.id;
+            it.departmentId = null; // お店を変えたら売り場の選択はリセット
+            saveItems(items);
+            renderAssignList();
+            renderMain();
+          });
+          storeBtnRow.appendChild(btn);
+        });
+        row.appendChild(storeBtnRow);
+
+        const currentStore = stores.find(function(s){ return s.id === it.storeId; });
+        if(currentStore && currentStore.departments.length > 0){
+          const deptBtnRow = document.createElement("div");
+          deptBtnRow.className = "assign-btn-row dept";
+          currentStore.departments.forEach(function(dept){
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "assign-btn small" + (it.departmentId === dept.id ? " selected" : "");
+            btn.textContent = dept.name;
+            btn.addEventListener("click", function(){
+              it.departmentId = (it.departmentId === dept.id) ? null : dept.id;
+              saveItems(items);
+              renderAssignList();
+              renderMain();
+            });
+            deptBtnRow.appendChild(btn);
+          });
+          row.appendChild(deptBtnRow);
+        }
+      }
+
+      assignList.appendChild(row);
+    });
+  }
+
   document.getElementById("openOrganizeBtn").addEventListener("click", function(){
-    renderOrganize();
+    renderStoreManage();
+    renderAssignList();
     mainScreen.classList.add("hidden");
     organizeScreen.classList.remove("hidden");
   });
