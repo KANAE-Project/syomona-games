@@ -220,6 +220,13 @@
   .today-row .emoji{ font-size:1.5rem; }
   .today-row .name{ font-size:1rem; font-weight:700; flex:1; }
   .today-row .hint{ font-size:.7rem; opacity:.5; }
+  .today-row.in-cart{
+    background:rgba(31,58,52,.06);
+    border-color:rgba(31,58,52,.06);
+  }
+  .today-row.in-cart .emoji{ filter:grayscale(1); opacity:.6; }
+  .today-row.in-cart .name{ opacity:.5; text-decoration:line-through; }
+  #todoSection{ margin-bottom:20px; }
   .celebrate{
     text-align:center;
     padding:40px 16px;
@@ -298,12 +305,22 @@
     <div id="todayScreen" class="hidden">
       <div class="today-header">
         <h2>🛒 今日のリスト</h2>
-        <p>買ったらタップで消していこう</p>
+        <p>買ったらタップでカゴに移そう</p>
       </div>
-      <div id="todayList" class="today-list"></div>
+
+      <div id="todoSection">
+        <div class="section-label">まだ買うもの</div>
+        <div id="todoList" class="today-list"></div>
+      </div>
+
+      <div id="cartSection" class="hidden">
+        <div class="section-label">🧺 カゴに入れたもの</div>
+        <div id="cartList" class="today-list"></div>
+      </div>
+
       <div id="celebrate" class="celebrate hidden">
         <div class="big">🎉</div>
-        <p>全部揃った！お疲れさまでした</p>
+        <p>全部カゴに入った！お疲れさまでした</p>
       </div>
       <button type="button" id="backToMainBtn" class="back-inline">← 一覧に戻る</button>
     </div>
@@ -337,12 +354,16 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if(raw){
         const parsed = JSON.parse(raw);
-        if(Array.isArray(parsed)) return parsed;
+        if(Array.isArray(parsed)){
+          // 旧バージョン（inCart未対応）のデータを読み込んだ時の移行措置
+          parsed.forEach(function(it){ if(typeof it.inCart !== "boolean") it.inCart = false; });
+          return parsed;
+        }
       }
     }catch(e){}
     // 初回だけ、よく使う定番アイテムを仮でいくつか入れておく（自由に編集・削除してOK）
     const seeded = DEFAULT_ITEMS.map(function(it){
-      return { id: uid(), name: it.name, emoji: it.emoji, checked: false };
+      return { id: uid(), name: it.name, emoji: it.emoji, checked: false, inCart: false };
     });
     saveItems(seeded);
     return seeded;
@@ -389,6 +410,7 @@
           return;
         }
         it.checked = !it.checked;
+        if(!it.checked) it.inCart = false; // 「今日必要」から外したら、カゴ状態もリセットしておく
         lastToggledId = it.checked ? it.id : null;
         saveItems(items);
         renderMain();
@@ -410,7 +432,7 @@
   });
 
   document.getElementById("resetBtn").addEventListener("click", function(){
-    items.forEach(function(it){ it.checked = false; });
+    items.forEach(function(it){ it.checked = false; it.inCart = false; });
     saveItems(items);
     renderMain();
   });
@@ -421,7 +443,7 @@
     const name = nameInput.value.trim();
     if(!name) return;
     const emoji = emojiInput.value.trim() || "🛒";
-    items.push({ id: uid(), name: name, emoji: emoji, checked: false });
+    items.push({ id: uid(), name: name, emoji: emoji, checked: false, inCart: false });
     saveItems(items);
     nameInput.value = "";
     emojiInput.value = "";
@@ -432,34 +454,47 @@
   });
 
   // ==== 今日のリスト画面 ====
+  // 「まだ買うもの」→タップ→「🧺カゴに入れたもの」（グレーアウトで表示、あとから見返せる）という2段構成。
+  // 買い忘れ防止のため、リストからは消さずグレーアウトで積み上げていく方式にしている。
   const mainScreen = document.getElementById("mainScreen");
   const todayScreen = document.getElementById("todayScreen");
-  const todayList = document.getElementById("todayList");
+  const todoSection = document.getElementById("todoSection");
+  const todoList = document.getElementById("todoList");
+  const cartSection = document.getElementById("cartSection");
+  const cartList = document.getElementById("cartList");
   const celebrate = document.getElementById("celebrate");
 
-  function renderToday(){
-    todayList.innerHTML = "";
-    const checkedItems = items.filter(function(it){ return it.checked; });
-    celebrate.classList.toggle("hidden", checkedItems.length > 0);
-    todayList.classList.toggle("hidden", checkedItems.length === 0);
-
-    checkedItems.forEach(function(it){
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "today-row";
-      row.innerHTML =
-        '<span class="emoji">' + it.emoji + '</span>' +
-        '<span class="name"></span>' +
-        '<span class="hint">タップで完了</span>';
-      row.querySelector(".name").textContent = it.name;
-      row.addEventListener("click", function(){
-        it.checked = false;
-        saveItems(items);
-        renderToday();
-        renderMain();
-      });
-      todayList.appendChild(row);
+  function makeTodayRow(it, inCart){
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "today-row" + (inCart ? " in-cart" : "");
+    row.innerHTML =
+      '<span class="emoji">' + it.emoji + '</span>' +
+      '<span class="name"></span>' +
+      '<span class="hint">' + (inCart ? "タップで戻す" : "タップでカゴへ") + '</span>';
+    row.querySelector(".name").textContent = it.name;
+    row.addEventListener("click", function(){
+      it.inCart = !it.inCart;
+      saveItems(items);
+      renderToday();
+      renderMain();
     });
+    return row;
+  }
+
+  function renderToday(){
+    todoList.innerHTML = "";
+    cartList.innerHTML = "";
+    const checkedItems = items.filter(function(it){ return it.checked; });
+    const todoItems = checkedItems.filter(function(it){ return !it.inCart; });
+    const cartItems = checkedItems.filter(function(it){ return it.inCart; });
+
+    todoSection.classList.toggle("hidden", todoItems.length === 0);
+    cartSection.classList.toggle("hidden", cartItems.length === 0);
+    celebrate.classList.toggle("hidden", !(checkedItems.length > 0 && todoItems.length === 0));
+
+    todoItems.forEach(function(it){ todoList.appendChild(makeTodayRow(it, false)); });
+    cartItems.forEach(function(it){ cartList.appendChild(makeTodayRow(it, true)); });
   }
 
   openTodayBtn.addEventListener("click", function(){

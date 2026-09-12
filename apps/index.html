@@ -25,7 +25,20 @@
     padding:40px 16px 60px;
   }
   .wrap{ width:100%; max-width:480px; }
-  h1{ text-align:center; font-size:1.8rem; margin:0 0 6px; }
+  h1{ text-align:center; font-size:1.8rem; margin:0 0 10px; }
+  .nickname-wrap{ text-align:center; margin-bottom:20px; }
+  .nickname-badge{
+    display:inline-block;
+    background:#fff;
+    border:3px solid var(--ink);
+    color:var(--accent-dark);
+    font-size:1.3rem;
+    font-weight:900;
+    padding:6px 26px;
+    border-radius:999px;
+    transform:rotate(-3deg);
+    box-shadow:3px 3px 0 var(--accent);
+  }
   .sub{ text-align:center; font-size:.85rem; opacity:.7; margin-bottom:28px; }
   .card{
     display:block;
@@ -58,6 +71,7 @@
 <body>
 <div class="wrap">
   <h1>地味に便利ツールズ</h1>
+  <div class="nickname-wrap"><span class="nickname-badge">ジミベン</span></div>
   <div class="sub">1機能に特化した、地味だけど実用的なアプリ集</div>
 
   <a class="card" href="kaimono-loop/">
