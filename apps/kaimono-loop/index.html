@@ -374,6 +374,26 @@
   }
   .store-manage-top{ display:flex; align-items:center; gap:8px; }
   .store-manage-name{ flex:1; font-weight:900; font-size:.88rem; }
+  .store-color-input{
+    -webkit-appearance:none; appearance:none;
+    width:26px; height:26px;
+    border:2px solid rgba(31,58,52,.2);
+    border-radius:50%;
+    padding:0;
+    background:none;
+    cursor:pointer;
+    flex:none;
+  }
+  .store-color-input::-webkit-color-swatch-wrapper{ padding:0; border-radius:50%; }
+  .store-color-input::-webkit-color-swatch{ border:none; border-radius:50%; }
+  .store-color-input::-moz-color-swatch{ border:none; border-radius:50%; }
+  .store-dot{
+    display:inline-block;
+    width:9px; height:9px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+  }
   .dept-manage-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
   .dept-manage-chip{
     display:inline-flex; align-items:center; gap:5px;
@@ -793,13 +813,30 @@
   const STORE_STORAGE_KEY = "kaimono_loop_stores_v1";
   const OLD_CAT_STORAGE_KEY = "kaimono_loop_categories_v1"; // 単層カテゴリ版（1つ前のバージョン）からの移行用
   const DEFAULT_STORES = [
-    { name:"スーパー", departments:["野菜","肉","魚","惣菜","お菓子","ドリンク","パン"] },
-    { name:"ドラッグストア", departments:["薬","洗濯","キッチン","お風呂","お菓子","ドリンク","パン"] }
+    { name:"スーパー", color:"#ff8a65", departments:["野菜","肉","魚","惣菜","お菓子","ドリンク","パン"] },
+    { name:"ドラッグストア", color:"#7c9eff", departments:["薬","洗濯","キッチン","お風呂","お菓子","ドリンク","パン"] },
+    { name:"100均", color:"#4caf50", departments:[] }
   ];
+  // お店ごとの色が未設定の時（旧データ・追加時）に順番に割り当てる予備パレット
+  const STORE_COLOR_PALETTE = ["#ff8a65","#7c9eff","#4caf50","#f6c344","#e57ae5","#4fc3c0","#ff6b81","#9b8cf2"];
+  function nextStoreColor(){
+    return STORE_COLOR_PALETTE[stores.length % STORE_COLOR_PALETTE.length];
+  }
   function loadStores(){
     try{
       const raw = localStorage.getItem(STORE_STORAGE_KEY);
-      if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)){
+          // 旧バージョン（色未対応）のデータを読み込んだ時の移行措置：順番に予備パレットの色を割り当てる
+          let changed = false;
+          parsed.forEach(function(s, idx){
+            if(!s.color){ s.color = STORE_COLOR_PALETTE[idx % STORE_COLOR_PALETTE.length]; changed = true; }
+          });
+          if(changed) saveStores(parsed);
+          return parsed;
+        }
+      }
     }catch(e){}
     // 1つ前のバージョン（単層カテゴリ）が残っていれば、店として引き継ぐ（売り場は空の状態から）
     try{
@@ -807,22 +844,41 @@
       if(oldRaw){
         const oldCats = JSON.parse(oldRaw);
         if(Array.isArray(oldCats) && oldCats.length){
-          const migrated = oldCats.map(function(c){ return { id: c.id, name: c.name, departments: [] }; });
+          const migrated = oldCats.map(function(c, idx){
+            return { id: c.id, name: c.name, color: STORE_COLOR_PALETTE[idx % STORE_COLOR_PALETTE.length], departments: [] };
+          });
           saveStores(migrated);
           try{ localStorage.removeItem(OLD_CAT_STORAGE_KEY); }catch(e2){}
           return migrated;
         }
       }
     }catch(e){}
-    // 完全新規なら、定番の2店舗を売り場付きで仮登録しておく（自由に編集・削除可）
+    // 完全新規なら、定番の3店舗を売り場・色付きで仮登録しておく（自由に編集・削除可）
     const seeded = DEFAULT_STORES.map(function(s){
-      return { id: uid(), name: s.name, departments: s.departments.map(function(d){ return { id: uid(), name: d }; }) };
+      return { id: uid(), name: s.name, color: s.color, departments: s.departments.map(function(d){ return { id: uid(), name: d }; }) };
     });
     saveStores(seeded);
     return seeded;
   }
   function saveStores(list){
     try{ localStorage.setItem(STORE_STORAGE_KEY, JSON.stringify(list)); }catch(e){}
+  }
+  // ==== 色まわりのちいさなユーティリティ（ユーザーが選んだ任意の色に対応するため） ====
+  function hexToRgb(hex){
+    let h = hex.replace("#", "");
+    if(h.length === 3) h = h.split("").map(function(c){ return c + c; }).join("");
+    const num = parseInt(h, 16);
+    return { r:(num >> 16) & 255, g:(num >> 8) & 255, b:num & 255 };
+  }
+  function darkenColor(hex, amount){
+    const c = hexToRgb(hex);
+    return "rgb(" + Math.round(c.r * (1 - amount)) + "," + Math.round(c.g * (1 - amount)) + "," + Math.round(c.b * (1 - amount)) + ")";
+  }
+  // 選んだ色の明るさに応じて、文字色を白/濃い緑のどちらにすれば読みやすいか判定する
+  function readableTextColor(hex){
+    const c = hexToRgb(hex);
+    const luminance = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
+    return luminance > 0.62 ? "#1f3a34" : "#ffffff";
   }
   // お店の並び順における位置（未割り当ては常に一番最後）
   function storeRank(storeId){
@@ -928,7 +984,13 @@
         if(storeItems.length === 0) return;
         const label = document.createElement("div");
         label.className = "section-label";
-        label.textContent = store ? store.name : "未割り当て";
+        if(store){
+          const dot = document.createElement("span");
+          dot.className = "store-dot";
+          dot.style.background = store.color || "#ff8a65";
+          label.appendChild(dot);
+        }
+        label.appendChild(document.createTextNode(store ? store.name : "未割り当て"));
         itemGrid.appendChild(label);
 
         const deptGroups = (store ? store.departments : []).concat([null]); // null = 売り場未割り当て
@@ -1156,6 +1218,20 @@
 
       const top = document.createElement("div");
       top.className = "store-manage-top";
+
+      const colorInput = document.createElement("input");
+      colorInput.type = "color";
+      colorInput.className = "store-color-input";
+      colorInput.value = store.color || "#ff8a65";
+      colorInput.title = "この店の色を選ぶ";
+      colorInput.addEventListener("input", function(){
+        store.color = colorInput.value;
+        saveStores(stores);
+        renderAssignList();
+        renderMain();
+      });
+      top.appendChild(colorInput);
+
       const nameSpan = document.createElement("span");
       nameSpan.className = "store-manage-name";
       nameSpan.textContent = store.name;
@@ -1227,7 +1303,7 @@
   document.getElementById("addStoreBtn").addEventListener("click", function(){
     const name = prompt("お店の名前（例：スーパー、ホームセンター）");
     if(!name || !name.trim()) return;
-    stores.push({ id: uid(), name: name.trim(), departments: [] });
+    stores.push({ id: uid(), name: name.trim(), color: nextStoreColor(), departments: [] });
     saveStores(stores);
     renderStoreManage(); renderAssignList(); renderMain();
   });
@@ -1253,8 +1329,17 @@
         stores.forEach(function(store){
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "assign-btn" + (it.storeId === store.id ? " selected" : "");
+          const isSelected = it.storeId === store.id;
+          btn.className = "assign-btn" + (isSelected ? " selected" : "");
           btn.textContent = store.name;
+          const color = store.color || "#ff8a65";
+          if(isSelected){
+            btn.style.background = color;
+            btn.style.borderColor = darkenColor(color, 0.25);
+            btn.style.color = readableTextColor(color);
+          } else {
+            btn.style.borderColor = color; // 未選択でも枠線の色でどの店か分かるように
+          }
           btn.addEventListener("click", function(){
             it.storeId = (it.storeId === store.id) ? null : store.id;
             it.departmentId = null; // お店を変えたら売り場の選択はリセット
@@ -1273,8 +1358,17 @@
           currentStore.departments.forEach(function(dept){
             const btn = document.createElement("button");
             btn.type = "button";
-            btn.className = "assign-btn small" + (it.departmentId === dept.id ? " selected" : "");
+            const isDeptSelected = it.departmentId === dept.id;
+            btn.className = "assign-btn small" + (isDeptSelected ? " selected" : "");
             btn.textContent = dept.name;
+            const deptColor = currentStore.color || "#ff8a65";
+            if(isDeptSelected){
+              btn.style.background = deptColor;
+              btn.style.borderColor = darkenColor(deptColor, 0.25);
+              btn.style.color = readableTextColor(deptColor);
+            } else {
+              btn.style.borderColor = deptColor;
+            }
             btn.addEventListener("click", function(){
               it.departmentId = (it.departmentId === dept.id) ? null : dept.id;
               saveItems(items);
