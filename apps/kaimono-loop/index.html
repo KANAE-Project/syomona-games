@@ -621,15 +621,9 @@
   // ここでのグループ分けはあくまで候補を探しやすくするための一時的な見せ方であり、
   // 登録後のリスト自体を常時カテゴリ分けする機能（有料化検討中）とは別物。
   const CANDIDATE_GROUPS = [
-    { label:"🥦 食品", items:[
-      { name:"米", emoji:"🍚" }, { name:"食パン", emoji:"🍞" }, { name:"卵", emoji:"🥚" },
-      { name:"牛乳", emoji:"🥛" }, { name:"チーズ", emoji:"🧀" }, { name:"バター", emoji:"🧈" },
+    { label:"🥬 野菜", items:[
       { name:"野菜", emoji:"🥬" }, { name:"にんじん", emoji:"🥕" }, { name:"じゃがいも", emoji:"🥔" },
       { name:"玉ねぎ", emoji:"🧅" }, { name:"トマト", emoji:"🍅" }, { name:"きゅうり", emoji:"🥒" },
-      { name:"バナナ", emoji:"🍌" }, { name:"りんご", emoji:"🍎" }, { name:"みかん", emoji:"🍊" },
-      { name:"お肉", emoji:"🥩" }, { name:"鶏肉", emoji:"🍗" }, { name:"魚", emoji:"🐟" }
-    ]},
-    { label:"🥬 野菜", items:[
       { name:"ほうれん草", emoji:"🥬" }, { name:"小松菜", emoji:"🥬" }, { name:"チンゲン菜", emoji:"🥬" },
       { name:"白菜", emoji:"🥬" }, { name:"キャベツ", emoji:"🥬" }, { name:"レタス", emoji:"🥬" },
       { name:"サニーレタス", emoji:"🥬" }, { name:"水菜", emoji:"🥬" }, { name:"長ねぎ", emoji:"🧅" },
@@ -644,10 +638,12 @@
       { name:"しいたけ", emoji:"🍄" }, { name:"まいたけ", emoji:"🍄" }, { name:"なめこ", emoji:"🍄" }
     ]},
     { label:"🍎 果物", items:[
+      { name:"バナナ", emoji:"🍌" }, { name:"りんご", emoji:"🍎" }, { name:"みかん", emoji:"🍊" },
       { name:"オレンジ", emoji:"🍊" }, { name:"キウイ", emoji:"🥝" }, { name:"ぶどう", emoji:"🍇" },
       { name:"梨", emoji:"🍐" }, { name:"桃", emoji:"🍑" }, { name:"いちご", emoji:"🍓" }
     ]},
     { label:"🥩 肉", items:[
+      { name:"お肉", emoji:"🥩" }, { name:"鶏肉", emoji:"🍗" },
       { name:"鶏もも肉", emoji:"🍗" }, { name:"鶏むね肉", emoji:"🍗" }, { name:"鶏ささみ", emoji:"🍗" },
       { name:"豚こま切れ", emoji:"🥩" }, { name:"豚バラ肉", emoji:"🥓" }, { name:"豚ロース", emoji:"🥩" },
       { name:"牛こま切れ", emoji:"🥩" }, { name:"牛薄切り肉", emoji:"🥩" }, { name:"合いびき肉", emoji:"🥩" },
@@ -655,13 +651,14 @@
       { name:"ハム", emoji:"🍖" }, { name:"ウインナー", emoji:"🌭" }
     ]},
     { label:"🐟 魚・海産物", items:[
-      { name:"鮭", emoji:"🐟" }, { name:"さば", emoji:"🐟" }, { name:"ぶり", emoji:"🐟" },
+      { name:"魚", emoji:"🐟" }, { name:"鮭", emoji:"🐟" }, { name:"さば", emoji:"🐟" }, { name:"ぶり", emoji:"🐟" },
       { name:"たら", emoji:"🐟" }, { name:"あじ", emoji:"🐟" }, { name:"まぐろ", emoji:"🐟" },
       { name:"かつお", emoji:"🐟" }, { name:"えび", emoji:"🍤" }, { name:"いか", emoji:"🦑" },
       { name:"あさり", emoji:"🦪" }, { name:"しらす", emoji:"🐟" }, { name:"ツナ缶", emoji:"🥫" },
       { name:"さば缶", emoji:"🥫" }
     ]},
     { label:"🥛 卵・乳製品", items:[
+      { name:"卵", emoji:"🥚" }, { name:"牛乳", emoji:"🥛" }, { name:"チーズ", emoji:"🧀" }, { name:"バター", emoji:"🧈" },
       { name:"豆乳", emoji:"🥛" }, { name:"ヨーグルト", emoji:"🥣" },
       { name:"スライスチーズ", emoji:"🧀" }, { name:"生クリーム", emoji:"🥛" }
     ]},
@@ -670,6 +667,7 @@
       { name:"油揚げ", emoji:"🟫" }, { name:"納豆", emoji:"🫘" }, { name:"味噌", emoji:"🍲" }
     ]},
     { label:"🍚 主食", items:[
+      { name:"米", emoji:"🍚" }, { name:"食パン", emoji:"🍞" },
       { name:"ロールパン", emoji:"🥐" }, { name:"うどん", emoji:"🍜" }, { name:"そば", emoji:"🍜" },
       { name:"中華麺", emoji:"🍜" }, { name:"冷凍うどん", emoji:"🍜" }, { name:"パスタソース", emoji:"🍝" }
     ]},
