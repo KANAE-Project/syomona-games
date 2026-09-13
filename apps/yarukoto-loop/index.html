@@ -305,8 +305,8 @@
   }
   .today-row.in-cart .emoji{ filter:grayscale(1); opacity:.6; }
   .today-row.in-cart .name{ opacity:.5; text-decoration:line-through; }
-  #todoSection{ margin-bottom:20px; }
-  #doneSection{ margin-top:24px; padding-top:20px; border-top:3px solid rgba(26,47,69,.25); }
+  #doneSection{ margin-bottom:20px; }
+  #todoSection.with-divider{ margin-top:24px; padding-top:20px; border-top:3px solid rgba(26,47,69,.25); }
   #todoSection > .section-label,
   #doneSection > .section-label{
     font-size:1.1rem;
@@ -612,14 +612,14 @@
         <p>▲▼で順番を並べ替え、終わったらタップで完了にしよう</p>
       </div>
 
-      <div id="todoSection">
-        <div class="section-label">やること</div>
-        <div id="todoList" class="today-list"></div>
-      </div>
-
       <div id="doneSection" class="hidden">
         <div class="section-label">✅ 完了</div>
         <div id="doneList" class="today-list"></div>
+      </div>
+
+      <div id="todoSection">
+        <div class="section-label">やること</div>
+        <div id="todoList" class="today-list"></div>
       </div>
 
       <div id="celebrate" class="celebrate hidden">
@@ -1088,6 +1088,8 @@
 
     todoSection.classList.toggle("hidden", todoItems.length === 0);
     doneSection.classList.toggle("hidden", doneItems.length === 0);
+    // 「完了」が1件以上ある時だけ、その下に来る「やること」との間に区切り線を入れる
+    todoSection.classList.toggle("with-divider", doneItems.length > 0);
     celebrate.classList.toggle("hidden", !(checkedItems.length > 0 && todoItems.length === 0));
 
     todoItems.forEach(function(it, idx){
