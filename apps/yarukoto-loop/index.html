@@ -7,13 +7,13 @@
 <meta name="description" content="やることをタップするだけ。仕事カテゴリで分けて選んで、順番はあとからサクッと並べ替えられる、地味に便利なやることリストアプリ">
 <style>
   :root{
-    --bg1:#eafaf6;
-    --bg2:#d3f3ea;
-    --ink:#1f3a34;
-    --accent:#2bb695;
-    --accent-dark:#1f8f74;
-    --accent2:#ff8a65;
-    --accent2-dark:#e35f3a;
+    --bg1:#eaf3fc;
+    --bg2:#d0e6fa;
+    --ink:#1a2f45;
+    --accent:#2f80c9;
+    --accent-dark:#20609e;
+    --accent2:#3454a8;
+    --accent2-dark:#24406e;
     --card:#ffffff;
   }
   *{box-sizing:border-box;}
@@ -29,14 +29,14 @@
   }
   .wrap{ width:100%; max-width:480px; }
   h1{ text-align:center; font-size:1.4rem; margin:0 0 4px; }
-  .tagline{ text-align:center; font-size:.78rem; font-weight:900; color:var(--accent-dark); background:rgba(43,182,149,.12); display:inline-block; padding:3px 12px; border-radius:999px; margin:0 auto 8px; }
+  .tagline{ text-align:center; font-size:.78rem; font-weight:900; color:var(--accent-dark); background:rgba(47,128,201,.12); display:inline-block; padding:3px 12px; border-radius:999px; margin:0 auto 8px; }
   .tagline-wrap{ text-align:center; margin-bottom:6px; }
   .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:18px; }
   .stage{
     background:rgba(255,255,255,.55);
     border-radius:22px;
     padding:20px 16px 24px;
-    box-shadow:0 8px 24px rgba(20,80,60,.12);
+    box-shadow:0 8px 24px rgba(15,35,60,.12);
   }
   .hidden{ display:none !important; }
 
@@ -83,7 +83,7 @@
     display:block;
     width:100%;
     font-family:inherit;
-    border:2px solid rgba(31,58,52,.18);
+    border:2px solid rgba(26,47,69,.18);
     border-radius:12px;
     padding:10px 12px;
     font-size:.9rem;
@@ -106,7 +106,7 @@
     gap:4px;
     font-family:inherit;
     cursor:pointer;
-    border:3px solid rgba(31,58,52,.12);
+    border:3px solid rgba(26,47,69,.12);
     border-radius:16px;
     background:var(--card);
     padding:14px 8px 12px;
@@ -209,11 +209,11 @@
     position:absolute;
     left:64px; right:0; top:calc(100% + 4px);
     background:#fff;
-    border:2px solid rgba(31,58,52,.18);
+    border:2px solid rgba(26,47,69,.18);
     border-radius:12px;
     overflow:hidden;
     z-index:5;
-    box-shadow:0 6px 16px rgba(20,80,60,.15);
+    box-shadow:0 6px 16px rgba(15,35,60,.15);
   }
   .suggest-item{
     display:flex;
@@ -229,11 +229,11 @@
     font-size:.88rem;
     color:var(--ink);
   }
-  .suggest-item:active{ background:rgba(43,182,149,.15); }
-  .suggest-item + .suggest-item{ border-top:1px solid rgba(31,58,52,.08); }
+  .suggest-item:active{ background:rgba(47,128,201,.15); }
+  .suggest-item + .suggest-item{ border-top:1px solid rgba(26,47,69,.08); }
   .add-form input[type=text]{
     font-family:inherit;
-    border:2px solid rgba(31,58,52,.18);
+    border:2px solid rgba(26,47,69,.18);
     border-radius:12px;
     padding:10px 12px;
     font-size:.95rem;
@@ -264,7 +264,7 @@
     flex:1;
     font-family:inherit;
     cursor:pointer;
-    border:2px solid rgba(31,58,52,.18);
+    border:2px solid rgba(26,47,69,.18);
     border-radius:12px;
     background:rgba(255,255,255,.7);
     color:var(--ink);
@@ -286,7 +286,7 @@
     align-items:center;
     gap:12px;
     background:var(--card);
-    border:2px solid rgba(31,58,52,.1);
+    border:2px solid rgba(26,47,69,.1);
     border-radius:14px;
     padding:12px 14px;
     cursor:pointer;
@@ -300,13 +300,13 @@
   .today-row .name{ font-size:1rem; font-weight:700; flex:1; }
   .today-row .hint{ font-size:.7rem; opacity:.5; }
   .today-row.in-cart{
-    background:rgba(31,58,52,.06);
-    border-color:rgba(31,58,52,.06);
+    background:rgba(26,47,69,.06);
+    border-color:rgba(26,47,69,.06);
   }
   .today-row.in-cart .emoji{ filter:grayscale(1); opacity:.6; }
   .today-row.in-cart .name{ opacity:.5; text-decoration:line-through; }
   #todoSection{ margin-bottom:20px; }
-  #doneSection{ margin-top:24px; padding-top:20px; border-top:3px solid rgba(31,58,52,.25); }
+  #doneSection{ margin-top:24px; padding-top:20px; border-top:3px solid rgba(26,47,69,.25); }
   #todoSection > .section-label,
   #doneSection > .section-label{
     font-size:1.1rem;
@@ -331,7 +331,7 @@
     align-items:center;
     gap:10px;
     background:var(--card);
-    border:2px solid rgba(31,58,52,.1);
+    border:2px solid rgba(26,47,69,.1);
     border-radius:14px;
     padding:12px 14px;
     cursor:pointer;
@@ -364,7 +364,7 @@
     gap:6px;
     font-family:inherit;
     cursor:pointer;
-    border:2px solid rgba(31,58,52,.15);
+    border:2px solid rgba(26,47,69,.15);
     border-radius:999px;
     background:#fff;
     padding:7px 14px 7px 10px;
@@ -401,7 +401,7 @@
 
   /* ==== 仕事カテゴリの管理（並び替え・追加・削除） ==== */
   .category-manage-row{
-    border:2px solid rgba(31,58,52,.12);
+    border:2px solid rgba(26,47,69,.12);
     border-radius:14px;
     padding:10px 12px;
     margin-bottom:10px;
@@ -412,7 +412,7 @@
   .category-color-input{
     -webkit-appearance:none; appearance:none;
     width:26px; height:26px;
-    border:2px solid rgba(31,58,52,.2);
+    border:2px solid rgba(26,47,69,.2);
     border-radius:50%;
     padding:0;
     background:none;
@@ -427,7 +427,7 @@
     width:100%;
     font-family:inherit;
     cursor:pointer;
-    border:2px dashed rgba(31,58,52,.3);
+    border:2px dashed rgba(26,47,69,.3);
     border-radius:12px;
     background:none;
     color:var(--ink);
@@ -440,7 +440,7 @@
 
   /* ==== タスクごとにカテゴリをボタンで選ぶ ==== */
   .assign-row{
-    border-bottom:1px solid rgba(31,58,52,.1);
+    border-bottom:1px solid rgba(26,47,69,.1);
     padding:10px 2px;
   }
   .assign-item-label{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:.88rem; margin-bottom:8px; }
@@ -449,7 +449,7 @@
   .assign-btn{
     font-family:inherit;
     cursor:pointer;
-    border:2px solid rgba(31,58,52,.2);
+    border:2px solid rgba(26,47,69,.2);
     border-radius:999px;
     background:#fff;
     color:var(--ink);
@@ -487,17 +487,17 @@
   .back-link{
     display:inline-block; font-size:.8rem; font-weight:700;
     color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:10px;
-    padding:4px 14px; border:2px dashed rgba(31,58,52,.35); border-radius:999px;
+    padding:4px 14px; border:2px dashed rgba(26,47,69,.35); border-radius:999px;
   }
-  .back-link:hover{ opacity:1; border-color:rgba(31,58,52,.6); }
+  .back-link:hover{ opacity:1; border-color:rgba(26,47,69,.6); }
   .back-link-btn{
     display:block; background:none; color:var(--ink);
     font-size:1rem; font-weight:900; text-decoration:none; text-align:center;
     padding:12px 16px; border-radius:14px; margin-top:20px;
-    border:2px dashed rgba(31,58,52,.35);
+    border:2px dashed rgba(26,47,69,.35);
     transition:transform .15s ease, border-color .15s ease;
   }
-  .back-link-btn:active{ transform:scale(.98); border-color:rgba(31,58,52,.6); }
+  .back-link-btn:active{ transform:scale(.98); border-color:rgba(26,47,69,.6); }
 
   .privacy-note{
     font-size:.68rem;
