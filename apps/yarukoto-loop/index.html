@@ -1082,9 +1082,9 @@
     const checkedItems = tasks.filter(function(it){ return it.checked; });
     const todoItems = checkedItems.filter(function(it){ return !it.done; })
       .sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
-    // 完了セクションは「新しく完了したものほど上」に積み上がるように、完了日時の新しい順（降順）で並べる
+    // 完了セクションは、完了した順に上から下へ積み上がっていくように、完了日時の古い順（昇順）で並べる
     const doneItems = checkedItems.filter(function(it){ return it.done; })
-      .sort(function(a, b){ return (b.completedAt || 0) - (a.completedAt || 0); });
+      .sort(function(a, b){ return (a.completedAt || 0) - (b.completedAt || 0); });
 
     todoSection.classList.toggle("hidden", todoItems.length === 0);
     doneSection.classList.toggle("hidden", doneItems.length === 0);
