@@ -328,23 +328,52 @@
   }
   .today-row-main{
     display:flex;
-    align-items:center;
-    gap:10px;
+    flex-direction:column;
+    gap:8px;
     background:var(--card);
     border:2px solid rgba(26,47,69,.1);
     border-radius:14px;
     padding:12px 14px;
+    flex:1;
+    min-width:0;
+  }
+  .done-row{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    background:rgba(26,47,69,.06);
+    border:2px solid rgba(26,47,69,.06);
+    border-radius:14px;
+    padding:12px 14px;
+    width:100%;
+  }
+  .today-row-content{
+    display:flex;
+    align-items:center;
+    gap:10px;
     cursor:pointer;
     font-family:inherit;
     text-align:left;
-    flex:1;
-    min-width:0;
     transition:transform .12s ease;
   }
-  .today-row-main:active{ transform:scale(.98); }
-  .today-row-main .emoji{ font-size:1.5rem; flex:none; }
-  .today-row-main .name{ font-size:1rem; font-weight:700; flex:1; min-width:0; overflow-wrap:break-word; }
-  .today-row-main .hint{ font-size:.7rem; opacity:.5; flex:none; }
+  .today-row-content:active{ transform:scale(.98); }
+  .today-row-content .emoji{ font-size:1.5rem; flex:none; }
+  .today-row-content .name{ font-size:1rem; font-weight:700; flex:1; min-width:0; overflow-wrap:break-word; }
+  .today-row-content .hint{ font-size:.7rem; opacity:.5; flex:none; }
+  .done-row .today-row-content .emoji{ filter:grayscale(1); opacity:.6; }
+  .done-row .today-row-content .name{ opacity:.5; text-decoration:line-through; }
+  .memo-input{
+    display:block;
+    width:100%;
+    font-family:inherit;
+    border:1px dashed rgba(26,47,69,.28);
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:.78rem;
+    background:rgba(255,255,255,.7);
+    color:var(--ink);
+  }
+  .memo-input::placeholder{ color:rgba(26,47,69,.4); }
   .category-dot{
     display:inline-block;
     width:9px; height:9px;
@@ -722,6 +751,8 @@
             if(typeof it.useCount !== "number") it.useCount = 0;
             if(typeof it.categoryId === "undefined") it.categoryId = null;
             if(typeof it.order !== "number") it.order = null;
+            if(typeof it.completedAt !== "number") it.completedAt = null; // 完了にした日時（「完了」セクションを新しい順に並べるため）
+            if(typeof it.memo !== "string") it.memo = ""; // 今日のリスト画面の各枠に書けるちょっとしたメモ
           });
           saveTasks(parsed);
           return parsed;
@@ -733,7 +764,7 @@
     categories.forEach(function(cat){
       const defs = DEFAULT_TASKS_BY_CATEGORY[cat.name] || [];
       defs.forEach(function(t){
-        seeded.push({ id: uid(), name: t.name, emoji: t.emoji, checked:false, done:false, useCount:0, categoryId: cat.id, order:null });
+        seeded.push({ id: uid(), name: t.name, emoji: t.emoji, checked:false, done:false, useCount:0, categoryId: cat.id, order:null, completedAt:null, memo:"" });
       });
     });
     saveTasks(seeded);
@@ -794,9 +825,12 @@
         it.useCount = (it.useCount || 0) + 1;
         it.done = false;
         it.order = nextOrder(); // 今日のリストの一番下に追加
+        it.completedAt = null;
+        it.memo = ""; // 前回のメモは持ち越さない（今回分をまっさらから書けるように）
       } else {
         it.done = false;
         it.order = null;
+        it.completedAt = null;
       }
       lastToggledId = it.checked ? it.id : null;
       saveTasks(tasks);
@@ -867,7 +901,7 @@
   });
 
   document.getElementById("resetBtn").addEventListener("click", function(){
-    tasks.forEach(function(it){ it.checked = false; it.done = false; it.order = null; });
+    tasks.forEach(function(it){ it.checked = false; it.done = false; it.order = null; it.completedAt = null; it.memo = ""; });
     saveTasks(tasks);
     renderMain();
   });
@@ -885,7 +919,7 @@
     const name = nameInput.value.trim();
     if(!name) return;
     const emoji = emojiInput.value.trim() || "📌";
-    tasks.push({ id: uid(), name: name, emoji: emoji, checked:false, done:false, useCount:0, categoryId:null, order:null });
+    tasks.push({ id: uid(), name: name, emoji: emoji, checked:false, done:false, useCount:0, categoryId:null, order:null, completedAt:null, memo:"" });
     saveTasks(tasks);
     nameInput.value = "";
     emojiInput.value = "";
@@ -972,45 +1006,73 @@
     orderBtns.appendChild(upBtn);
     orderBtns.appendChild(downBtn);
 
-    const main = document.createElement("button");
-    main.type = "button";
+    const main = document.createElement("div");
     main.className = "today-row-main";
-    main.innerHTML =
+
+    const content = document.createElement("div");
+    content.className = "today-row-content";
+    content.innerHTML =
       (cat ? '<span class="category-dot" style="background:' + cat.color + '"></span>' : '') +
       '<span class="emoji">' + it.emoji + '</span>' +
       '<span class="name"></span>' +
       '<span class="hint">タップで完了</span>';
-    main.querySelector(".name").textContent = it.name;
-    main.addEventListener("click", function(){
+    content.querySelector(".name").textContent = it.name;
+    content.addEventListener("click", function(){
       it.done = true;
+      it.completedAt = Date.now(); // 完了セクションを新しい順に並べるための記録
       saveTasks(tasks);
       renderToday();
       renderMain();
     });
+
+    main.appendChild(content);
+    main.appendChild(makeMemoInput(it));
 
     row.appendChild(orderBtns);
     row.appendChild(main);
     return row;
   }
 
+  // タスク行に付ける、ちょっとしたメモの入力欄（今日のリスト画面限定。inputごとに再描画はせず、値だけ静かに保存する）
+  function makeMemoInput(it){
+    const memoInput = document.createElement("input");
+    memoInput.type = "text";
+    memoInput.className = "memo-input";
+    memoInput.placeholder = "メモ（任意）";
+    memoInput.maxLength = 200;
+    memoInput.value = it.memo || "";
+    memoInput.addEventListener("click", function(e){ e.stopPropagation(); }); // タップで完了/戻すを誘発しないように
+    memoInput.addEventListener("input", function(){
+      it.memo = memoInput.value;
+      saveTasks(tasks); // 入力のたびに静かに保存するだけで、再描画はしない（フォーカスが切れてしまうため）
+    });
+    return memoInput;
+  }
+
   function makeDoneRow(it){
     const cat = categories.find(function(c){ return c.id === it.categoryId; });
-    const row = document.createElement("button");
-    row.type = "button";
-    row.className = "today-row in-cart";
-    row.innerHTML =
+    const row = document.createElement("div");
+    row.className = "done-row";
+
+    const content = document.createElement("div");
+    content.className = "today-row-content";
+    content.innerHTML =
       (cat ? '<span class="category-dot" style="background:' + cat.color + '"></span>' : '') +
       '<span class="emoji">' + it.emoji + '</span>' +
       '<span class="name"></span>' +
       '<span class="hint">タップで戻す</span>';
-    row.querySelector(".name").textContent = it.name;
-    row.addEventListener("click", function(){
+    content.querySelector(".name").textContent = it.name;
+    content.addEventListener("click", function(){
       it.done = false;
       it.order = nextOrder(); // やることリストの一番下に戻す
+      it.completedAt = null;
       saveTasks(tasks);
       renderToday();
       renderMain();
     });
+
+    row.appendChild(content);
+    row.appendChild(makeMemoInput(it));
     return row;
   }
 
@@ -1020,8 +1082,9 @@
     const checkedItems = tasks.filter(function(it){ return it.checked; });
     const todoItems = checkedItems.filter(function(it){ return !it.done; })
       .sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+    // 完了セクションは「新しく完了したものほど上」に積み上がるように、完了日時の新しい順（降順）で並べる
     const doneItems = checkedItems.filter(function(it){ return it.done; })
-      .sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+      .sort(function(a, b){ return (b.completedAt || 0) - (a.completedAt || 0); });
 
     todoSection.classList.toggle("hidden", todoItems.length === 0);
     doneSection.classList.toggle("hidden", doneItems.length === 0);
@@ -1071,7 +1134,7 @@
           if(hasTaskNamed(c.name)){
             tasks = tasks.filter(function(it){ return it.name.toLowerCase() !== c.name.toLowerCase(); });
           } else {
-            tasks.push({ id: uid(), name: c.name, emoji: c.emoji, checked:false, done:false, useCount:0, categoryId:null, order:null });
+            tasks.push({ id: uid(), name: c.name, emoji: c.emoji, checked:false, done:false, useCount:0, categoryId:null, order:null, completedAt:null, memo:"" });
           }
           saveTasks(tasks);
           renderCandidates();
