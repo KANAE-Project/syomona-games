@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ループするやることリスト｜地味に便利ツールズ</title>
+<meta name="description" content="やることをタップするだけ。仕事カテゴリで分けて選んで、順番はあとからサクッと並べ替えられる、地味に便利なやることリストアプリ">
+<style>
+  :root{
+    --bg1:#eafaf6;
+    --bg2:#d3f3ea;
+    --ink:#1f3a34;
+    --accent:#2bb695;
+    --accent-dark:#1f8f74;
+    --accent2:#ff8a65;
+    --accent2-dark:#e35f3a;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.4rem; margin:0 0 4px; }
+  .tagline{ text-align:center; font-size:.78rem; font-weight:900; color:var(--accent-dark); background:rgba(43,182,149,.12); display:inline-block; padding:3px 12px; border-radius:999px; margin:0 auto 8px; }
+  .tagline-wrap{ text-align:center; margin-bottom:6px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:18px; }
+  .stage{
+    background:rgba(255,255,255,.55);
+    border-radius:22px;
+    padding:20px 16px 24px;
+    box-shadow:0 8px 24px rgba(20,80,60,.12);
+  }
+  .hidden{ display:none !important; }
+
+  .today-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:1.02rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent2);
+    box-shadow:0 4px 0 var(--accent2-dark);
+    margin-bottom:18px;
+    transition:transform .15s ease;
+  }
+  .today-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2-dark); }
+  .today-btn .count-badge{
+    background:rgba(255,255,255,.85);
+    color:var(--accent2-dark);
+    font-size:.85rem;
+    font-weight:900;
+    padding:2px 10px;
+    border-radius:999px;
+  }
+  .today-btn:disabled{ opacity:.5; cursor:default; }
+
+  .section-label{
+    font-size:.8rem;
+    font-weight:900;
+    opacity:.65;
+    margin:0 2px 8px;
+    display:flex;
+    align-items:center;
+  }
+
+  .search-input{
+    display:block;
+    width:100%;
+    font-family:inherit;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:.9rem;
+    background:#fff;
+    margin-bottom:10px;
+  }
+
+  .item-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .task-btn{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    font-family:inherit;
+    cursor:pointer;
+    border:3px solid rgba(31,58,52,.12);
+    border-radius:16px;
+    background:var(--card);
+    padding:14px 8px 12px;
+    min-height:88px;
+    transition:transform .12s ease, background .15s ease, border-color .15s ease;
+  }
+  .task-btn:active{ transform:scale(.95); }
+  .task-btn .emoji{ font-size:1.9rem; line-height:1; }
+  .task-btn .name{ font-size:.82rem; font-weight:700; text-align:center; word-break:break-word; line-height:1.3; }
+  .task-btn.checked{
+    background:var(--accent);
+    border-color:var(--accent-dark);
+    color:#fff;
+  }
+  .task-btn.checked .name{ color:#fff; }
+  .task-btn .check-badge{
+    position:absolute;
+    top:-8px; right:-8px;
+    width:26px; height:26px;
+    border-radius:50%;
+    background:var(--accent2);
+    color:#fff;
+    font-size:.85rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+    opacity:0;
+    transform:scale(.4);
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .task-btn.checked .check-badge{ opacity:1; transform:scale(1); }
+  .task-btn.pop .check-badge{ animation:badgePop .35s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes badgePop{
+    0%{ transform:scale(.3) rotate(-15deg); }
+    60%{ transform:scale(1.25) rotate(6deg); }
+    100%{ transform:scale(1) rotate(0deg); }
+  }
+  .task-btn .del-badge{
+    position:absolute;
+    top:-8px; left:-8px;
+    width:24px; height:24px;
+    border-radius:50%;
+    background:#e74c3c;
+    color:#fff;
+    font-size:.8rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+  }
+  .empty-note{
+    text-align:center;
+    font-size:.82rem;
+    opacity:.6;
+    padding:20px 10px;
+  }
+
+  .candidate-open-btn{
+    display:block;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    background:var(--accent);
+    color:#fff;
+    padding:11px 8px;
+    font-size:.88rem;
+    font-weight:900;
+    box-shadow:0 4px 0 var(--accent-dark);
+    margin-bottom:14px;
+    transition:transform .15s ease;
+  }
+  .candidate-open-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+
+  .organize-open-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    background:var(--accent2);
+    color:#fff;
+    padding:11px 8px;
+    font-size:.88rem;
+    font-weight:900;
+    box-shadow:0 4px 0 var(--accent2-dark);
+    margin-bottom:14px;
+    transition:transform .15s ease;
+  }
+  .organize-open-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2-dark); }
+
+  .add-form-wrap{ position:relative; margin-bottom:14px; }
+  .add-form{
+    display:flex;
+    gap:8px;
+  }
+  .suggest-box{
+    position:absolute;
+    left:64px; right:0; top:calc(100% + 4px);
+    background:#fff;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    overflow:hidden;
+    z-index:5;
+    box-shadow:0 6px 16px rgba(20,80,60,.15);
+  }
+  .suggest-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    text-align:left;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    background:#fff;
+    padding:9px 12px;
+    font-size:.88rem;
+    color:var(--ink);
+  }
+  .suggest-item:active{ background:rgba(43,182,149,.15); }
+  .suggest-item + .suggest-item{ border-top:1px solid rgba(31,58,52,.08); }
+  .add-form input[type=text]{
+    font-family:inherit;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:.95rem;
+    background:#fff;
+  }
+  .add-form .emoji-input{ width:56px; text-align:center; flex:none; }
+  .add-form .name-input{ flex:1; min-width:0; }
+  .add-form button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    padding:0 16px;
+    font-size:.9rem;
+    font-weight:900;
+    color:#fff;
+    background:var(--accent);
+    flex:none;
+  }
+  .add-form button:active{ transform:scale(.96); }
+
+  .tool-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .tool-btn{
+    flex:1;
+    font-family:inherit;
+    cursor:pointer;
+    border:2px solid rgba(31,58,52,.18);
+    border-radius:12px;
+    background:rgba(255,255,255,.7);
+    color:var(--ink);
+    padding:10px 8px;
+    font-size:.8rem;
+    font-weight:700;
+    transition:transform .12s ease, background .15s ease;
+  }
+  .tool-btn:active{ transform:scale(.96); }
+  .tool-btn.on{ background:var(--ink); color:#fff; }
+
+  /* ==== 「今日のリスト」画面 ==== */
+  #todayScreen .today-header{ text-align:center; margin-bottom:16px; }
+  #todayScreen .today-header h2{ font-size:1.1rem; margin:0 0 4px; }
+  #todayScreen .today-header p{ font-size:.78rem; opacity:.65; margin:0; }
+  .today-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+  .today-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--card);
+    border:2px solid rgba(31,58,52,.1);
+    border-radius:14px;
+    padding:12px 14px;
+    cursor:pointer;
+    font-family:inherit;
+    text-align:left;
+    width:100%;
+    transition:transform .12s ease;
+  }
+  .today-row:active{ transform:scale(.98); }
+  .today-row .emoji{ font-size:1.5rem; }
+  .today-row .name{ font-size:1rem; font-weight:700; flex:1; }
+  .today-row .hint{ font-size:.7rem; opacity:.5; }
+  .today-row.in-cart{
+    background:rgba(31,58,52,.06);
+    border-color:rgba(31,58,52,.06);
+  }
+  .today-row.in-cart .emoji{ filter:grayscale(1); opacity:.6; }
+  .today-row.in-cart .name{ opacity:.5; text-decoration:line-through; }
+  #todoSection{ margin-bottom:20px; }
+  #doneSection{ margin-top:24px; padding-top:20px; border-top:3px solid rgba(31,58,52,.25); }
+  #todoSection > .section-label,
+  #doneSection > .section-label{
+    font-size:1.1rem;
+    font-weight:900;
+    opacity:1;
+    color:var(--ink);
+    margin:0 2px 14px;
+  }
+  .todo-row-flat{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .order-btns{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    flex:none;
+  }
+  .today-row-main{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--card);
+    border:2px solid rgba(31,58,52,.1);
+    border-radius:14px;
+    padding:12px 14px;
+    cursor:pointer;
+    font-family:inherit;
+    text-align:left;
+    flex:1;
+    min-width:0;
+    transition:transform .12s ease;
+  }
+  .today-row-main:active{ transform:scale(.98); }
+  .today-row-main .emoji{ font-size:1.5rem; flex:none; }
+  .today-row-main .name{ font-size:1rem; font-weight:700; flex:1; min-width:0; overflow-wrap:break-word; }
+  .today-row-main .hint{ font-size:.7rem; opacity:.5; flex:none; }
+  .category-dot{
+    display:inline-block;
+    width:9px; height:9px;
+    border-radius:50%;
+    margin-right:6px;
+    flex:none;
+    vertical-align:middle;
+  }
+
+  /* ==== 候補から選んで追加 画面 ==== */
+  .candidate-group{ margin-bottom:18px; }
+  .candidate-group-label{ font-size:.85rem; font-weight:900; opacity:.7; margin-bottom:8px; }
+  .candidate-chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .candidate-chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:inherit;
+    cursor:pointer;
+    border:2px solid rgba(31,58,52,.15);
+    border-radius:999px;
+    background:#fff;
+    padding:7px 14px 7px 10px;
+    font-size:.82rem;
+    font-weight:700;
+    color:var(--ink);
+    transition:transform .12s ease, background .15s ease, border-color .15s ease;
+  }
+  .candidate-chip:active{ transform:scale(.95); }
+  .candidate-chip .emoji{ font-size:1.05rem; }
+  .candidate-chip.added{
+    background:var(--accent);
+    border-color:var(--accent-dark);
+    color:#fff;
+  }
+  .candidate-chip.added::after{ content:"✓"; margin-left:2px; }
+
+  .mini-btn{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    background:rgba(255,255,255,.85);
+    color:var(--ink);
+    width:26px; height:26px;
+    font-size:.7rem;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .12s ease;
+    flex:none;
+  }
+  .mini-btn:active{ transform:scale(.9); }
+  .mini-btn:disabled{ opacity:.3; }
+  .mini-btn.danger{ background:#e74c3c; color:#fff; }
+
+  /* ==== 仕事カテゴリの管理（並び替え・追加・削除） ==== */
+  .category-manage-row{
+    border:2px solid rgba(31,58,52,.12);
+    border-radius:14px;
+    padding:10px 12px;
+    margin-bottom:10px;
+    background:rgba(255,255,255,.5);
+  }
+  .category-manage-top{ display:flex; align-items:center; gap:8px; }
+  .category-manage-name{ flex:1; font-weight:900; font-size:.88rem; }
+  .category-color-input{
+    -webkit-appearance:none; appearance:none;
+    width:26px; height:26px;
+    border:2px solid rgba(31,58,52,.2);
+    border-radius:50%;
+    padding:0;
+    background:none;
+    cursor:pointer;
+    flex:none;
+  }
+  .category-color-input::-webkit-color-swatch-wrapper{ padding:0; border-radius:50%; }
+  .category-color-input::-webkit-color-swatch{ border:none; border-radius:50%; }
+  .category-color-input::-moz-color-swatch{ border:none; border-radius:50%; }
+  .bucket-add-btn{
+    display:block;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:2px dashed rgba(31,58,52,.3);
+    border-radius:12px;
+    background:none;
+    color:var(--ink);
+    padding:11px 8px;
+    font-size:.85rem;
+    font-weight:700;
+    margin-bottom:14px;
+  }
+  .bucket-add-btn:active{ transform:scale(.98); }
+
+  /* ==== タスクごとにカテゴリをボタンで選ぶ ==== */
+  .assign-row{
+    border-bottom:1px solid rgba(31,58,52,.1);
+    padding:10px 2px;
+  }
+  .assign-item-label{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:.88rem; margin-bottom:8px; }
+  .assign-item-label .emoji{ font-size:1.2rem; }
+  .assign-btn-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .assign-btn{
+    font-family:inherit;
+    cursor:pointer;
+    border:2px solid rgba(31,58,52,.2);
+    border-radius:999px;
+    background:#fff;
+    color:var(--ink);
+    padding:6px 14px;
+    font-size:.78rem;
+    font-weight:700;
+    transition:transform .1s ease, background .15s ease, border-color .15s ease;
+  }
+  .assign-btn:active{ transform:scale(.95); }
+  .celebrate{
+    text-align:center;
+    padding:40px 16px;
+  }
+  .celebrate .big{ font-size:2.6rem; margin-bottom:10px; }
+  .celebrate p{ font-size:.95rem; font-weight:700; opacity:.8; }
+  .back-inline{
+    display:block;
+    width:100%;
+    text-align:center;
+    background:var(--accent);
+    border:none;
+    border-radius:12px;
+    font-family:inherit;
+    cursor:pointer;
+    color:#fff;
+    font-weight:900;
+    font-size:.9rem;
+    padding:11px 8px;
+    margin:4px auto 0;
+    box-shadow:0 4px 0 var(--accent-dark);
+    transition:transform .15s ease;
+  }
+  .back-inline:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+
+  .back-link{
+    display:inline-block; font-size:.8rem; font-weight:700;
+    color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:10px;
+    padding:4px 14px; border:2px dashed rgba(31,58,52,.35); border-radius:999px;
+  }
+  .back-link:hover{ opacity:1; border-color:rgba(31,58,52,.6); }
+  .back-link-btn{
+    display:block; background:none; color:var(--ink);
+    font-size:1rem; font-weight:900; text-decoration:none; text-align:center;
+    padding:12px 16px; border-radius:14px; margin-top:20px;
+    border:2px dashed rgba(31,58,52,.35);
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .back-link-btn:active{ transform:scale(.98); border-color:rgba(31,58,52,.6); }
+
+  .privacy-note{
+    font-size:.68rem;
+    opacity:.55;
+    text-align:center;
+    margin:16px auto 0;
+    max-width:340px;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../" class="back-link">← ジミベン トップに戻る</a>
+  <h1>ループするやることリスト</h1>
+  <div class="tagline-wrap"><span class="tagline">地味に便利ツールズ</span></div>
+  <div class="sub">やることをタップするだけ。順番はあとからサクッと並べ替えられる</div>
+
+  <div class="stage">
+
+    <!-- ==== メイン画面：登録済みタスク一覧 ==== -->
+    <div id="mainScreen">
+      <button type="button" id="openTodayBtn" class="today-btn" disabled>
+        📋 今日のリストを見る <span class="count-badge" id="countBadge">0件</span>
+      </button>
+
+      <div class="section-label">いつもの業務（タップで今日やることに）</div>
+      <input type="text" id="searchInput" class="search-input hidden" placeholder="🔍 名前で探す">
+      <div id="itemGrid"></div>
+      <div id="emptyNote" class="empty-note hidden">まだ何も登録されていません。下から追加してね</div>
+      <div id="noMatchNote" class="empty-note hidden">見つかりませんでした</div>
+
+      <button type="button" id="openCandidateBtn" class="candidate-open-btn">📋 候補から選んで追加</button>
+      <button type="button" id="openCategoryBtn" class="organize-open-btn">🗂 仕事カテゴリを管理する</button>
+
+      <div class="add-form-wrap">
+        <div class="add-form">
+          <input type="text" id="emojiInput" class="emoji-input" placeholder="📌" maxlength="4">
+          <input type="text" id="nameInput" class="name-input" placeholder="やること名（例：メール確認）" maxlength="20" autocomplete="off">
+          <button type="button" id="addBtn">追加</button>
+        </div>
+        <div id="suggestBox" class="suggest-box hidden"></div>
+      </div>
+
+      <div class="tool-row">
+        <button type="button" id="editModeBtn" class="tool-btn">✏️ 編集する</button>
+        <button type="button" id="resetBtn" class="tool-btn">🔄 チェックをリセット</button>
+      </div>
+    </div>
+
+    <!-- ==== 候補から選んで追加 画面 ==== -->
+    <div id="candidateScreen" class="hidden">
+      <div class="today-header">
+        <h2>📋 候補から選んで追加</h2>
+        <p>タップで登録・解除できるよ</p>
+      </div>
+      <div id="candidateGroups"></div>
+      <button type="button" id="backFromCandidateBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== 仕事カテゴリを管理する 画面 ==== -->
+    <div id="categoryScreen" class="hidden">
+      <div class="today-header">
+        <h2>🗂 仕事カテゴリを管理する</h2>
+        <p>カテゴリの追加・並び替え・色分けと、やることの振り分けができるよ</p>
+      </div>
+
+      <div class="section-label">カテゴリを管理</div>
+      <div id="categoryManageList"></div>
+      <button type="button" id="addCategoryBtn" class="bucket-add-btn">＋ カテゴリを追加</button>
+
+      <div class="section-label" style="margin-top:6px;">やることを振り分ける</div>
+      <div id="assignList"></div>
+      <div id="assignEmptyNote" class="empty-note hidden">まだやることが登録されていません</div>
+
+      <button type="button" id="backFromCategoryBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== 今日のリスト画面 ==== -->
+    <div id="todayScreen" class="hidden">
+      <div class="today-header">
+        <h2>📋 今日のリスト</h2>
+        <p>▲▼で順番を並べ替え、終わったらタップで完了にしよう</p>
+      </div>
+
+      <div id="todoSection">
+        <div class="section-label">やること</div>
+        <div id="todoList" class="today-list"></div>
+      </div>
+
+      <div id="doneSection" class="hidden">
+        <div class="section-label">✅ 完了</div>
+        <div id="doneList" class="today-list"></div>
+      </div>
+
+      <div id="celebrate" class="celebrate hidden">
+        <div class="big">🎉</div>
+        <p>全部終わった！お疲れさまでした</p>
+      </div>
+      <button type="button" id="backToMainBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+  </div>
+
+  <div class="privacy-note">※ 登録したやることリストはこの端末（ブラウザ）の中だけに保存されます。サーバーには送信・保存されません。</div>
+
+  <a href="../" class="back-link-btn">← ジミベン トップに戻る</a>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = "yarukoto_loop_tasks_v1";
+  const CATEGORY_STORAGE_KEY = "yarukoto_loop_categories_v1";
+
+  // ==== 初回起動時のデフォルト仕事カテゴリ＆仮タスク ====
+  const DEFAULT_CATEGORIES = [
+    { name:"定例業務", color:"#ff8a65" },
+    { name:"メール", color:"#7c9eff" },
+    { name:"データ", color:"#4caf50" },
+    { name:"報告", color:"#f6c344" }
+  ];
+  const DEFAULT_TASKS_BY_CATEGORY = {
+    "定例業務": [ { name:"朝礼", emoji:"🌅" }, { name:"日報作成", emoji:"📝" } ],
+    "メール": [ { name:"メール確認", emoji:"📧" }, { name:"メール返信", emoji:"↩️" } ],
+    "データ": [ { name:"データ入力", emoji:"⌨️" }, { name:"データ集計", emoji:"📊" } ],
+    "報告": [ { name:"週次報告書作成", emoji:"📋" }, { name:"進捗共有", emoji:"🗣️" } ]
+  };
+
+  // ==== 「候補から選んで追加」＆ 入力サジェスト共通の候補辞書 ====
+  const CANDIDATE_GROUPS = [
+    { label:"🔁 定例業務", items:[
+      { name:"朝礼", emoji:"🌅" }, { name:"終礼", emoji:"🌆" }, { name:"日報作成", emoji:"📝" },
+      { name:"週報作成", emoji:"📝" }, { name:"月次締め作業", emoji:"📅" }, { name:"経費精算", emoji:"💴" },
+      { name:"備品発注", emoji:"📦" }, { name:"郵便物確認", emoji:"✉️" }
+    ]},
+    { label:"📧 メール", items:[
+      { name:"メール確認", emoji:"📧" }, { name:"メール返信", emoji:"↩️" }, { name:"問い合わせ対応", emoji:"💬" },
+      { name:"見積書送付", emoji:"📄" }, { name:"請求書送付", emoji:"🧾" }, { name:"リマインドメール送信", emoji:"⏰" }
+    ]},
+    { label:"📊 データ", items:[
+      { name:"データ入力", emoji:"⌨️" }, { name:"データ集計", emoji:"📊" }, { name:"Excel関数チェック", emoji:"🧮" },
+      { name:"資料の数値確認", emoji:"🔍" }, { name:"在庫確認", emoji:"📦" }, { name:"売上入力", emoji:"💹" }
+    ]},
+    { label:"📢 報告", items:[
+      { name:"週次報告書作成", emoji:"📋" }, { name:"月次報告書作成", emoji:"📋" }, { name:"上司への進捗報告", emoji:"🗣️" },
+      { name:"チームへの共有", emoji:"📢" }, { name:"議事録作成", emoji:"📝" }
+    ]},
+    { label:"📁 資料作成", items:[
+      { name:"提案資料作成", emoji:"📁" }, { name:"プレゼン資料作成", emoji:"🖥️" },
+      { name:"マニュアル作成", emoji:"📘" }, { name:"テンプレート整備", emoji:"🗂️" }
+    ]},
+    { label:"📞 電話・来客対応", items:[
+      { name:"電話対応", emoji:"📞" }, { name:"来客対応", emoji:"🙇" }, { name:"アポイント調整", emoji:"📅" }
+    ]},
+    { label:"🗂 その他雑務", items:[
+      { name:"郵便物発送", emoji:"📮" }, { name:"備品補充", emoji:"🧻" }, { name:"ファイリング", emoji:"🗄️" },
+      { name:"掲示物更新", emoji:"📌" }
+    ]}
+  ];
+  const ALL_CANDIDATES = CANDIDATE_GROUPS.reduce(function(acc, g){ return acc.concat(g.items); }, []);
+
+  function uid(){
+    return "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  // ==== 仕事カテゴリ（1階層。色分け・並び替え・追加・削除ができる） ====
+  const CATEGORY_COLOR_PALETTE = ["#ff8a65","#7c9eff","#4caf50","#f6c344","#e57ae5","#4fc3c0","#ff6b81","#9b8cf2"];
+  function nextCategoryColor(){
+    return CATEGORY_COLOR_PALETTE[categories.length % CATEGORY_COLOR_PALETTE.length];
+  }
+  function loadCategories(){
+    try{
+      const raw = localStorage.getItem(CATEGORY_STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)) return parsed;
+      }
+    }catch(e){}
+    const seeded = DEFAULT_CATEGORIES.map(function(c){ return { id: uid(), name: c.name, color: c.color }; });
+    saveCategories(seeded);
+    return seeded;
+  }
+  function saveCategories(list){
+    try{ localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(list)); }catch(e){}
+  }
+
+  // ==== 色まわりのちいさなユーティリティ（ユーザーが選んだ任意の色に対応するため） ====
+  function hexToRgb(hex){
+    let h = hex.replace("#", "");
+    if(h.length === 3) h = h.split("").map(function(c){ return c + c; }).join("");
+    const num = parseInt(h, 16);
+    return { r:(num >> 16) & 255, g:(num >> 8) & 255, b:num & 255 };
+  }
+  function darkenColor(hex, amount){
+    const c = hexToRgb(hex);
+    return "rgb(" + Math.round(c.r * (1 - amount)) + "," + Math.round(c.g * (1 - amount)) + "," + Math.round(c.b * (1 - amount)) + ")";
+  }
+  // 選んだ色の明るさに応じて、文字色を白/濃い緑のどちらにすれば読みやすいか判定する
+  function readableTextColor(hex){
+    const c = hexToRgb(hex);
+    const luminance = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
+    return luminance > 0.62 ? "#1f3a34" : "#ffffff";
+  }
+  // カテゴリの並び順における位置（未分類は常に一番最後）
+  function categoryRank(categoryId){
+    if(!categoryId) return categories.length;
+    const idx = categories.findIndex(function(c){ return c.id === categoryId; });
+    return idx === -1 ? categories.length : idx;
+  }
+
+  let categories = loadCategories();
+
+  // ==== タスク本体 ====
+  function loadTasks(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)){
+          parsed.forEach(function(it){
+            if(typeof it.done !== "boolean") it.done = false;
+            if(typeof it.useCount !== "number") it.useCount = 0;
+            if(typeof it.categoryId === "undefined") it.categoryId = null;
+            if(typeof it.order !== "number") it.order = null;
+          });
+          saveTasks(parsed);
+          return parsed;
+        }
+      }
+    }catch(e){}
+    // 初回だけ、仕事カテゴリの例に沿った仮タスクを登録しておく（自由に編集・削除可）
+    const seeded = [];
+    categories.forEach(function(cat){
+      const defs = DEFAULT_TASKS_BY_CATEGORY[cat.name] || [];
+      defs.forEach(function(t){
+        seeded.push({ id: uid(), name: t.name, emoji: t.emoji, checked:false, done:false, useCount:0, categoryId: cat.id, order:null });
+      });
+    });
+    saveTasks(seeded);
+    return seeded;
+  }
+  function saveTasks(list){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }catch(e){}
+  }
+
+  let tasks = loadTasks();
+  let editMode = false;
+  let lastToggledId = null; // 直前にチェックしたタスクだけポップアニメーションさせるための印
+
+  const itemGrid = document.getElementById("itemGrid");
+  const emptyNote = document.getElementById("emptyNote");
+  const noMatchNote = document.getElementById("noMatchNote");
+  const searchInput = document.getElementById("searchInput");
+  const openTodayBtn = document.getElementById("openTodayBtn");
+  const countBadge = document.getElementById("countBadge");
+  const editModeBtn = document.getElementById("editModeBtn");
+
+  // リストが増えてきた時だけ検索ボックスを出す
+  const SEARCH_THRESHOLD = 8;
+
+  function checkedCount(){
+    return tasks.filter(function(it){ return it.checked; }).length;
+  }
+
+  // 今日のリスト内で使う「次の並び順番号」（今チェックされているタスクの最大orderの次）
+  function nextOrder(){
+    const maxOrder = tasks.reduce(function(m, t){
+      return (t.checked && typeof t.order === "number") ? Math.max(m, t.order) : m;
+    }, -1);
+    return maxOrder + 1;
+  }
+
+  function createTaskBtn(it){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "task-btn" + (it.checked ? " checked" : "");
+    btn.innerHTML =
+      '<span class="emoji">' + it.emoji + '</span>' +
+      '<span class="name"></span>' +
+      '<span class="check-badge">✓</span>' +
+      (editMode ? '<span class="del-badge">✕</span>' : '');
+    btn.querySelector(".name").textContent = it.name; // XSS対策：テキストはtextContentで入れる
+    btn.addEventListener("click", function(){
+      if(editMode){
+        if(confirm('「' + it.name + '」を削除しますか？')){
+          tasks = tasks.filter(function(x){ return x.id !== it.id; });
+          saveTasks(tasks);
+          renderMain();
+        }
+        return;
+      }
+      it.checked = !it.checked;
+      if(it.checked){
+        it.useCount = (it.useCount || 0) + 1;
+        it.done = false;
+        it.order = nextOrder(); // 今日のリストの一番下に追加
+      } else {
+        it.done = false;
+        it.order = null;
+      }
+      lastToggledId = it.checked ? it.id : null;
+      saveTasks(tasks);
+      renderMain();
+    });
+    if(it.checked && it.id === lastToggledId){ btn.classList.add("pop"); }
+    return btn;
+  }
+
+  function renderMain(){
+    itemGrid.innerHTML = "";
+    searchInput.classList.toggle("hidden", tasks.length <= SEARCH_THRESHOLD);
+
+    const query = searchInput.value.trim().toLowerCase();
+    const useCategories = categories.length > 0;
+    // カテゴリを使っている時はカテゴリ順、使っていない時はよく「今日やる」にしたものほど上に来るよう自動で並べる
+    const base = useCategories
+      ? tasks.slice().sort(function(a, b){ return categoryRank(a.categoryId) - categoryRank(b.categoryId); })
+      : tasks.slice().sort(function(a, b){ return (b.useCount || 0) - (a.useCount || 0); });
+    const visible = query
+      ? base.filter(function(it){ return it.name.toLowerCase().indexOf(query) !== -1; })
+      : base;
+
+    emptyNote.classList.toggle("hidden", tasks.length > 0);
+    noMatchNote.classList.toggle("hidden", !(tasks.length > 0 && query && visible.length === 0));
+
+    function appendGrid(list){
+      const grid = document.createElement("div");
+      grid.className = "item-grid";
+      list.forEach(function(it){ grid.appendChild(createTaskBtn(it)); });
+      itemGrid.appendChild(grid);
+    }
+
+    if(useCategories){
+      const groups = categories.concat([null]); // null = カテゴリ未分類
+      groups.forEach(function(cat){
+        const catId = cat ? cat.id : null;
+        const catItems = visible.filter(function(it){ return (it.categoryId || null) === catId; });
+        if(catItems.length === 0) return;
+        const label = document.createElement("div");
+        label.className = "section-label";
+        if(cat){
+          const dot = document.createElement("span");
+          dot.className = "category-dot";
+          dot.style.background = cat.color || "#ff8a65";
+          label.appendChild(dot);
+        }
+        label.appendChild(document.createTextNode(cat ? cat.name : "未分類"));
+        itemGrid.appendChild(label);
+        appendGrid(catItems);
+      });
+    } else {
+      appendGrid(visible);
+    }
+
+    const n = checkedCount();
+    countBadge.textContent = n + "件";
+    openTodayBtn.disabled = n === 0;
+  }
+
+  searchInput.addEventListener("input", renderMain);
+
+  editModeBtn.addEventListener("click", function(){
+    editMode = !editMode;
+    editModeBtn.textContent = editMode ? "✅ 編集をおわる" : "✏️ 編集する";
+    editModeBtn.classList.toggle("on", editMode);
+    renderMain();
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    tasks.forEach(function(it){ it.checked = false; it.done = false; it.order = null; });
+    saveTasks(tasks);
+    renderMain();
+  });
+
+  const emojiInput = document.getElementById("emojiInput");
+  const nameInput = document.getElementById("nameInput");
+  const suggestBox = document.getElementById("suggestBox");
+
+  function hasTaskNamed(name){
+    const n = name.trim().toLowerCase();
+    return tasks.some(function(it){ return it.name.toLowerCase() === n; });
+  }
+
+  document.getElementById("addBtn").addEventListener("click", function(){
+    const name = nameInput.value.trim();
+    if(!name) return;
+    const emoji = emojiInput.value.trim() || "📌";
+    tasks.push({ id: uid(), name: name, emoji: emoji, checked:false, done:false, useCount:0, categoryId:null, order:null });
+    saveTasks(tasks);
+    nameInput.value = "";
+    emojiInput.value = "";
+    hideSuggest();
+    renderMain();
+  });
+  nameInput.addEventListener("keydown", function(e){
+    if(e.key === "Enter") document.getElementById("addBtn").click();
+  });
+
+  // ==== 名前入力サジェスト（候補辞書から近い名前を出す。タップで名前・絵文字を自動入力） ====
+  function hideSuggest(){
+    suggestBox.classList.add("hidden");
+    suggestBox.innerHTML = "";
+  }
+  nameInput.addEventListener("input", function(){
+    const q = nameInput.value.trim().toLowerCase();
+    if(!q){ hideSuggest(); return; }
+    const matches = ALL_CANDIDATES.filter(function(c){
+      return c.name.toLowerCase().indexOf(q) !== -1 && !hasTaskNamed(c.name);
+    }).slice(0, 5);
+    if(matches.length === 0){ hideSuggest(); return; }
+    suggestBox.innerHTML = "";
+    matches.forEach(function(c){
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "suggest-item";
+      b.innerHTML = '<span class="emoji">' + c.emoji + '</span><span class="name"></span>';
+      b.querySelector(".name").textContent = c.name;
+      b.addEventListener("click", function(){
+        nameInput.value = c.name;
+        emojiInput.value = c.emoji;
+        hideSuggest();
+        nameInput.focus();
+      });
+      suggestBox.appendChild(b);
+    });
+    suggestBox.classList.remove("hidden");
+  });
+  nameInput.addEventListener("blur", function(){
+    setTimeout(hideSuggest, 150);
+  });
+
+  // ==== 今日のリスト画面 ====
+  // カテゴリでは区切らず、フラットな1本のリストにして▲▼で自由に並べ替えられるようにしている。
+  // 終わったタスクは「完了」セクションに移動（グレーアウト表示、タップで戻せる）。
+  const mainScreen = document.getElementById("mainScreen");
+  const todayScreen = document.getElementById("todayScreen");
+  const todoSection = document.getElementById("todoSection");
+  const todoList = document.getElementById("todoList");
+  const doneSection = document.getElementById("doneSection");
+  const doneList = document.getElementById("doneList");
+  const celebrate = document.getElementById("celebrate");
+
+  // 今日のリスト内（未完了のみ）で、指定タスクを1つ上/下のタスクと入れ替える
+  function moveTodoOrder(it, dir){
+    const list = tasks.filter(function(t){ return t.checked && !t.done; })
+      .sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+    const idx = list.findIndex(function(t){ return t.id === it.id; });
+    const swapIdx = idx + dir;
+    if(idx === -1 || swapIdx < 0 || swapIdx >= list.length) return;
+    const other = list[swapIdx];
+    const tmp = it.order; it.order = other.order; other.order = tmp;
+    saveTasks(tasks);
+    renderToday();
+  }
+
+  function makeTodoRow(it, isFirst, isLast){
+    const cat = categories.find(function(c){ return c.id === it.categoryId; });
+
+    const row = document.createElement("div");
+    row.className = "today-row todo-row-flat";
+
+    const orderBtns = document.createElement("div");
+    orderBtns.className = "order-btns";
+    const upBtn = document.createElement("button");
+    upBtn.type = "button"; upBtn.className = "mini-btn"; upBtn.textContent = "▲";
+    upBtn.disabled = isFirst;
+    upBtn.addEventListener("click", function(e){ e.stopPropagation(); moveTodoOrder(it, -1); });
+    const downBtn = document.createElement("button");
+    downBtn.type = "button"; downBtn.className = "mini-btn"; downBtn.textContent = "▼";
+    downBtn.disabled = isLast;
+    downBtn.addEventListener("click", function(e){ e.stopPropagation(); moveTodoOrder(it, 1); });
+    orderBtns.appendChild(upBtn);
+    orderBtns.appendChild(downBtn);
+
+    const main = document.createElement("button");
+    main.type = "button";
+    main.className = "today-row-main";
+    main.innerHTML =
+      (cat ? '<span class="category-dot" style="background:' + cat.color + '"></span>' : '') +
+      '<span class="emoji">' + it.emoji + '</span>' +
+      '<span class="name"></span>' +
+      '<span class="hint">タップで完了</span>';
+    main.querySelector(".name").textContent = it.name;
+    main.addEventListener("click", function(){
+      it.done = true;
+      saveTasks(tasks);
+      renderToday();
+      renderMain();
+    });
+
+    row.appendChild(orderBtns);
+    row.appendChild(main);
+    return row;
+  }
+
+  function makeDoneRow(it){
+    const cat = categories.find(function(c){ return c.id === it.categoryId; });
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "today-row in-cart";
+    row.innerHTML =
+      (cat ? '<span class="category-dot" style="background:' + cat.color + '"></span>' : '') +
+      '<span class="emoji">' + it.emoji + '</span>' +
+      '<span class="name"></span>' +
+      '<span class="hint">タップで戻す</span>';
+    row.querySelector(".name").textContent = it.name;
+    row.addEventListener("click", function(){
+      it.done = false;
+      it.order = nextOrder(); // やることリストの一番下に戻す
+      saveTasks(tasks);
+      renderToday();
+      renderMain();
+    });
+    return row;
+  }
+
+  function renderToday(){
+    todoList.innerHTML = "";
+    doneList.innerHTML = "";
+    const checkedItems = tasks.filter(function(it){ return it.checked; });
+    const todoItems = checkedItems.filter(function(it){ return !it.done; })
+      .sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+    const doneItems = checkedItems.filter(function(it){ return it.done; })
+      .sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+
+    todoSection.classList.toggle("hidden", todoItems.length === 0);
+    doneSection.classList.toggle("hidden", doneItems.length === 0);
+    celebrate.classList.toggle("hidden", !(checkedItems.length > 0 && todoItems.length === 0));
+
+    todoItems.forEach(function(it, idx){
+      todoList.appendChild(makeTodoRow(it, idx === 0, idx === todoItems.length - 1));
+    });
+    doneItems.forEach(function(it){ doneList.appendChild(makeDoneRow(it)); });
+  }
+
+  openTodayBtn.addEventListener("click", function(){
+    renderToday();
+    mainScreen.classList.add("hidden");
+    todayScreen.classList.remove("hidden");
+  });
+  document.getElementById("backToMainBtn").addEventListener("click", function(){
+    todayScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  // ==== 候補から選んで追加 画面 ====
+  const candidateScreen = document.getElementById("candidateScreen");
+  const candidateGroups = document.getElementById("candidateGroups");
+
+  function renderCandidates(){
+    candidateGroups.innerHTML = "";
+    CANDIDATE_GROUPS.forEach(function(group){
+      const wrap = document.createElement("div");
+      wrap.className = "candidate-group";
+      const label = document.createElement("div");
+      label.className = "candidate-group-label";
+      label.textContent = group.label;
+      wrap.appendChild(label);
+
+      const row = document.createElement("div");
+      row.className = "candidate-chip-row";
+      group.items.forEach(function(c){
+        const added = hasTaskNamed(c.name);
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "candidate-chip" + (added ? " added" : "");
+        chip.innerHTML = '<span class="emoji">' + c.emoji + '</span><span class="name"></span>';
+        chip.querySelector(".name").textContent = c.name;
+        chip.addEventListener("click", function(){
+          if(hasTaskNamed(c.name)){
+            tasks = tasks.filter(function(it){ return it.name.toLowerCase() !== c.name.toLowerCase(); });
+          } else {
+            tasks.push({ id: uid(), name: c.name, emoji: c.emoji, checked:false, done:false, useCount:0, categoryId:null, order:null });
+          }
+          saveTasks(tasks);
+          renderCandidates();
+          renderMain();
+        });
+        row.appendChild(chip);
+      });
+      wrap.appendChild(row);
+      candidateGroups.appendChild(wrap);
+    });
+  }
+
+  document.getElementById("openCandidateBtn").addEventListener("click", function(){
+    renderCandidates();
+    mainScreen.classList.add("hidden");
+    candidateScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromCandidateBtn").addEventListener("click", function(){
+    candidateScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  // ==== 仕事カテゴリを管理する 画面 ====
+  const categoryScreen = document.getElementById("categoryScreen");
+  const categoryManageList = document.getElementById("categoryManageList");
+  const assignList = document.getElementById("assignList");
+  const assignEmptyNote = document.getElementById("assignEmptyNote");
+
+  // ---- カテゴリの管理（追加・並び替え・削除・色分け） ----
+  function renderCategoryManage(){
+    categoryManageList.innerHTML = "";
+    categories.forEach(function(cat, idx){
+      const row = document.createElement("div");
+      row.className = "category-manage-row";
+
+      const top = document.createElement("div");
+      top.className = "category-manage-top";
+
+      const colorInput = document.createElement("input");
+      colorInput.type = "color";
+      colorInput.className = "category-color-input";
+      colorInput.value = cat.color || "#ff8a65";
+      colorInput.title = "このカテゴリの色を選ぶ";
+      colorInput.addEventListener("input", function(){
+        cat.color = colorInput.value;
+        saveCategories(categories);
+        renderAssignList();
+        renderMain();
+      });
+      top.appendChild(colorInput);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "category-manage-name";
+      nameSpan.textContent = cat.name;
+      top.appendChild(nameSpan);
+
+      const upBtn = document.createElement("button");
+      upBtn.type = "button"; upBtn.className = "mini-btn"; upBtn.textContent = "▲";
+      upBtn.disabled = idx === 0;
+      upBtn.addEventListener("click", function(){
+        if(idx === 0) return;
+        const tmp = categories[idx - 1]; categories[idx - 1] = categories[idx]; categories[idx] = tmp;
+        saveCategories(categories);
+        renderCategoryManage(); renderAssignList(); renderMain();
+      });
+      const downBtn = document.createElement("button");
+      downBtn.type = "button"; downBtn.className = "mini-btn"; downBtn.textContent = "▼";
+      downBtn.disabled = idx === categories.length - 1;
+      downBtn.addEventListener("click", function(){
+        if(idx === categories.length - 1) return;
+        const tmp = categories[idx + 1]; categories[idx + 1] = categories[idx]; categories[idx] = tmp;
+        saveCategories(categories);
+        renderCategoryManage(); renderAssignList(); renderMain();
+      });
+      const delBtn = document.createElement("button");
+      delBtn.type = "button"; delBtn.className = "mini-btn danger"; delBtn.textContent = "✕";
+      delBtn.addEventListener("click", function(){
+        if(!confirm('「' + cat.name + '」を削除しますか？（中のやることは未分類に戻ります）')) return;
+        categories = categories.filter(function(c){ return c.id !== cat.id; });
+        tasks.forEach(function(it){ if(it.categoryId === cat.id) it.categoryId = null; });
+        saveCategories(categories);
+        saveTasks(tasks);
+        renderCategoryManage(); renderAssignList(); renderMain();
+      });
+
+      top.appendChild(upBtn);
+      top.appendChild(downBtn);
+      top.appendChild(delBtn);
+      row.appendChild(top);
+      categoryManageList.appendChild(row);
+    });
+  }
+
+  document.getElementById("addCategoryBtn").addEventListener("click", function(){
+    const name = prompt("カテゴリの名前（例：資料作成）");
+    if(!name || !name.trim()) return;
+    categories.push({ id: uid(), name: name.trim(), color: nextCategoryColor() });
+    saveCategories(categories);
+    renderCategoryManage();
+    renderAssignList();
+    renderMain();
+  });
+
+  // ---- タスクごとにカテゴリをボタンで選ぶ ----
+  function renderAssignList(){
+    assignList.innerHTML = "";
+    assignEmptyNote.classList.toggle("hidden", tasks.length > 0);
+    tasks.forEach(function(it){
+      const row = document.createElement("div");
+      row.className = "assign-row";
+
+      const label = document.createElement("div");
+      label.className = "assign-item-label";
+      label.innerHTML = '<span class="emoji">' + it.emoji + '</span><span class="name"></span>';
+      label.querySelector(".name").textContent = it.name;
+      row.appendChild(label);
+
+      const btnRow = document.createElement("div");
+      btnRow.className = "assign-btn-row";
+      categories.forEach(function(cat){
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "assign-btn";
+        btn.textContent = cat.name;
+        if(it.categoryId === cat.id){
+          btn.classList.add("selected");
+          btn.style.background = cat.color;
+          btn.style.borderColor = darkenColor(cat.color, .25);
+          btn.style.color = readableTextColor(cat.color);
+        }
+        btn.addEventListener("click", function(){
+          it.categoryId = (it.categoryId === cat.id) ? null : cat.id;
+          saveTasks(tasks);
+          renderAssignList();
+          renderMain();
+        });
+        btnRow.appendChild(btn);
+      });
+      row.appendChild(btnRow);
+      assignList.appendChild(row);
+    });
+  }
+
+  document.getElementById("openCategoryBtn").addEventListener("click", function(){
+    renderCategoryManage();
+    renderAssignList();
+    mainScreen.classList.add("hidden");
+    categoryScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromCategoryBtn").addEventListener("click", function(){
+    categoryScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    renderMain();
+  });
+
+  renderMain();
+})();
+</script>
+</body>
+</html>
