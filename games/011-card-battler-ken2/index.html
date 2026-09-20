@@ -75,7 +75,13 @@
   .card.mini::after{ inset:1px; border-width:1px; border-radius:3px; }
   .card.mini .lab{ font-size:.5rem; }
 
-  .hand{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .hand{ --cw:calc((min(100vw,480px) - 74px) / 6); display:flex; flex-wrap:wrap; gap:8px 6px; align-items:flex-end; }
+  .hand .card{ width:var(--cw); flex:none; }
+  .hand .card .lab{ font-size:.58rem; }
+  .grp{ position:relative; display:flex; gap:2px; padding:7px 3px 3px; border:2px solid #f5d76e; border-radius:11px; background:rgba(245,215,110,.10); box-shadow:0 0 8px rgba(245,215,110,.35); }
+  .grp.partial{ border-style:dashed; border-color:rgba(255,255,255,.55); background:rgba(255,255,255,.05); box-shadow:none; }
+  .grp::before{ content:attr(data-label); position:absolute; top:-8px; left:8px; font-size:.55rem; font-weight:900; line-height:1; padding:2px 6px; border-radius:8px; background:#f5d76e; color:#3a2a10; white-space:nowrap; }
+  .grp.partial::before{ background:#5a4a4a; color:#fff; }
   .hand .card.selected{ transform:translateY(-8px); box-shadow:0 0 0 2px #fff, 0 6px 12px rgba(0,0,0,.5); }
   .hand .card.fresh{ animation:fresh 1.1s ease-in-out infinite; }
   @keyframes fresh{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,0);} 50%{ box-shadow:0 0 10px 3px rgba(255,255,255,.85);} }
@@ -169,7 +175,16 @@
   .rule-btn{ font-family:inherit; font-weight:900; font-size:.85rem; border:none; border-radius:999px; padding:6px 14px; background:var(--accent2); color:#2a1414; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
   .hintbar{ font-size:.74rem; line-height:1.5; text-align:center; background:rgba(0,0,0,.28); border-radius:8px; padding:4px 8px; margin-bottom:6px; min-height:2.2em; }
   .hintbar b{ color:var(--accent2); }
-  .hand .card.spare{ opacity:.5; filter:grayscale(.35); }
+  .card.big{ border-width:4px; border-radius:14px; cursor:default; }
+  .card.big::after{ inset:3px; border-radius:9px; }
+  .card.big .lab{ font-size:1rem; padding:4px 0 5px; }
+  .reveal{ cursor:pointer; flex-direction:column; text-align:center; }
+  .reveal .rv-title{ font-family:var(--tcg-font); font-size:1.5rem; color:var(--accent2); margin-bottom:14px; text-shadow:0 0 12px #000; }
+  .reveal .rv-row{ display:flex; gap:10px; justify-content:center; width:100%; }
+  .reveal .rv-row .card{ animation:fxPop .45s cubic-bezier(.2,1.4,.4,1); }
+  .reveal .rv-name{ margin-top:12px; font-weight:900; font-size:.95rem; }
+  .reveal .rv-sub{ margin-top:6px; font-size:.85rem; color:var(--accent2); font-weight:900; }
+  .reveal .rv-tap{ margin-top:16px; font-size:.7rem; opacity:.6; }
   .rules{ text-align:left; font-size:.82rem; line-height:1.65; }
   .rules h4{ margin:14px 0 4px; color:var(--accent2); font-size:.95rem; }
   .rules p{ margin:4px 0; }
@@ -248,7 +263,7 @@
   var HUMAN = 0, CPU = 1, ROUNDS = 4, CPU_CAREFUL = true;
   var GAME_URL = 'https://kanae-project.github.io/syomona-games/games/011-card-battler-ken2/';
   var match = { round: 1, total: [0, 0] };
-  var R = null, ultraChar = 0, state = 'idle', selected = null, newIdx = null, stealUsed = false;
+  var R = null, ultraChar = 0, state = 'idle', selected = null, newIdx = null, stealUsed = false, handOrder = [];
   var logLines = [], resolveHuman = null, resolveRon = null;
   var $ = function(id){ return document.getElementById(id); };
   var sleep = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
@@ -310,32 +325,40 @@
     fillDisc($('cpuDisc'), R.p[CPU].disc); fillDisc($('myDisc'), R.p[HUMAN].disc);
 
     var hand = $('hand'); hand.innerHTML = '';
-    var ids = sortedIds(R.p[HUMAN]);
-    var spareLeft = null, need = 0, spareDark = 0;
-    if (state === 'humanTurn' && E.total(R.p[HUMAN].h, R.p[HUMAN].w) >= 10) {
-      var cov = E.bestCover(R.p[HUMAN].h, R.p[HUMAN].w);
-      spareLeft = cov.left.slice(); need = 9 - cov.m;
-      for (var q = 0; q < 21; q++) if (E.isDark(q)) spareDark += cov.left[q];
-    }
+    var lay = E.layoutHand(R.p[HUMAN].h, R.p[HUMAN].w);
+    var ten = E.total(R.p[HUMAN].h, R.p[HUMAN].w) >= 10;
+    var need = 9 - lay.matched, spareDark = 0;
+    for (var q = 0; q < 21; q++) if (E.isDark(q)) spareDark += lay.left[q];
     var hb = $('hintBar');
-    if (spareLeft) {
-      hb.innerHTML = (need === 0 ? '✨ <b>上がれます！</b>「殲滅！」を押そう' : '上がりまで <b>あと' + need + '枚</b>（薄い札＝今は使っていない札）')
+    if (state === 'humanTurn' && ten) {
+      hb.innerHTML = (need === 0 ? '✨ <b>上がれます！</b>「殲滅！」を押そう' : '上がりまで <b>あと' + need + '枚</b>（枠で囲まれた札＝つながっている札。枠の外は今使っていない札）')
         + '<br>🌑 余りダーク <b>' + spareDark + '/3</b>' + (spareDark >= 3 ? ' → <b>ダーク略奪できる！</b>' : '（3枚たまると略奪できる）');
     } else { hb.innerHTML = state === 'ronPrompt' ? '' : '相手の番です…'; }
+    handOrder = [];
+    lay.groups.forEach(function(g){ g.cards.forEach(function(id){ handOrder.push(id); }); });
+    lay.singles.forEach(function(id){ handOrder.push(id); });
     var freshIdx = -1;
-    if (newIdx !== null) { for (var j = ids.length - 1; j >= 0; j--) if (ids[j] === newIdx) { freshIdx = j; break; } }
-    ids.forEach(function(id, idx){
-      var c = cardEl(id);
+    if (newIdx !== null) { for (var j = handOrder.length - 1; j >= 0; j--) if (handOrder[j] === newIdx) { freshIdx = j; break; } }
+    var pos = 0;
+    function mk(id){
+      var idx = pos++, c = cardEl(id);
       if (idx === freshIdx) c.classList.add('fresh');
-      if (spareLeft && id !== E.ULTRA && spareLeft[id] > 0) { spareLeft[id]--; c.classList.add('spare'); }
       if (selected !== null && idx === selected) c.classList.add('selected');
       c.addEventListener('click', function(){
         if (state !== 'humanTurn') return;
         selected = (selected === idx) ? null : idx; render();
       });
-      hand.appendChild(c);
+      return c;
+    }
+    lay.groups.forEach(function(g){
+      var box = document.createElement('div');
+      box.className = 'grp' + (g.full ? '' : ' partial');
+      box.setAttribute('data-label', (g.kind === 'stair' ? '階段' : '3きょうだい') + (g.full ? '' : ' あと1枚'));
+      g.cards.forEach(function(id){ box.appendChild(mk(id)); });
+      hand.appendChild(box);
     });
-    updateButtons(ids);
+    lay.singles.forEach(function(id){ hand.appendChild(mk(id)); });
+    updateButtons();
   }
   function fillDisc(el, list){
     el.innerHTML = '';
@@ -345,7 +368,7 @@
   function setBtn(id, on, glow){
     var b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('glow', !!glow);
   }
-  function updateButtons(ids){
+  function updateButtons(){
     var turn = state === 'humanTurn', ron = state === 'ronPrompt';
     $('btnRon').classList.toggle('hidden', !ron); $('btnPass').classList.toggle('hidden', !ron);
     $('btnWin').classList.toggle('hidden', ron); $('btnSteal').classList.toggle('hidden', ron); $('btnDiscard').classList.toggle('hidden', ron);
@@ -358,7 +381,7 @@
   }
 
   // ---------- オーバーレイ ----------
-  var FX_IMG = { '殲滅！': 'images/fx-win.png', '討伐！': 'images/fx-ron.png', 'ダーク略奪！': 'images/fx-steal.png' };
+  var FX_IMG = { '殲滅！': 'images/fx-win.png', '討伐！': 'images/fx-ron.png', 'ダーク略奪！': 'images/fx-steal.png', '涅槃降臨！': 'images/fx-nehan.png' };
   function showFlash(big, small, ms){
     var f = document.createElement('div'); f.className = 'flash';
     var img = FX_IMG[big];
@@ -367,6 +390,28 @@
     if (im) im.addEventListener('error', function(){ im.outerHTML = '<div class="big">' + big + '</div>'; });
     $('layer').appendChild(f);
     return sleep(ms || 1400).then(function(){ f.remove(); });
+  }
+  // 引いた/奪った/奪われたカードを画面いっぱいに見せる（タップか時間で閉じる）
+  function revealCards(title, ids, ms, sub){
+    return new Promise(function(res){
+      var o = document.createElement('div'); o.className = 'overlay reveal';
+      var w = ids.length === 1 ? '64%' : ids.length === 2 ? '42%' : '29%';
+      o.innerHTML = '<div class="rv-title">' + title + '</div><div class="rv-row"></div>'
+        + '<div class="rv-name">' + ids.map(function(id){ return cardName(id); }).join(' ／ ') + '</div>'
+        + (sub ? '<div class="rv-sub">' + sub + '</div>' : '') + '<div class="rv-tap">タップで閉じる</div>';
+      var row = o.querySelector('.rv-row');
+      ids.forEach(function(id){ var c = cardEl(id); c.classList.add('big'); c.style.width = w; row.appendChild(c); });
+      var done = false, close = function(){ if (done) return; done = true; o.remove(); res(); };
+      o.addEventListener('click', close);
+      setTimeout(close, ms || 1500);
+      $('layer').appendChild(o);
+    });
+  }
+  // 涅槃が含まれていたら先に「涅槃降臨！」演出
+  async function gainCards(title, ids, ms, sub){
+    if (!ids || !ids.length) return;
+    if (ids.indexOf(E.ULTRA) >= 0) await showFlash('涅槃降臨！', '', 1500);
+    await revealCards(title, ids, ms, sub);
   }
   function showModal(html){
     var o = document.createElement('div'); o.className = 'overlay';
@@ -401,8 +446,9 @@
     var got = E.drawFor(R, HUMAN);
     newIdx = got.length ? got[0] : null;
     state = 'humanTurn';
-    setMsg('あなたの番：1枚引いた！ 捨てる札を選ぼう');
+    setMsg('あなたの番：' + got.length + '枚引いた！ 捨てる札を選ぼう');
     render();
+    await gainCards(got.length > 1 ? '引いたカード（相手に奪われた分を補充）' : '引いたカード', got, 1400);
     var action = await new Promise(function(res){ resolveHuman = res; });
     if (action.type === 'win') {
       var sc = E.scoreWin(R.p[HUMAN].h, R.p[HUMAN].w);
@@ -410,8 +456,7 @@
       endRound(HUMAN, 'tsumo', sc); return 'ended';
     }
     // 捨てる
-    var ids = sortedIds(R.p[HUMAN]);
-    var id = ids[action.idx];
+    var id = handOrder[action.idx];
     var ron = E.discard(R, HUMAN, id);
     selected = null; newIdx = null; state = 'idle';
     addLog('あなた：' + cardName(id) + ' を捨てた');
@@ -430,7 +475,9 @@
     if (r.events && r.events.length) {
       var st = r.events[0].result;
       await showFlash('ダーク略奪！', '相手が' + (st.from === 'discard' ? 'あなたの捨て札から' : 'あなたの手札から') + '奪った…', 1600);
-      addLog('相手：ダーク略奪（' + (st.from === 'discard' ? '捨て札から' : '手札からランダム') + '）');
+      addLog('相手：ダーク略奪で ' + cardName(st.card) + ' を奪われた');
+      render();
+      await revealCards('奪われたカード！', [st.card], 2000, st.from === 'discard' ? 'あなたの捨て札から奪われた' : 'あなたの手札から奪われた');
     }
     if (r.type === 'tsumo') {
       render();
@@ -476,7 +523,9 @@
     var st = E.steal(R, HUMAN, pick);
     stealUsed = true; selected = null; newIdx = st.card;
     render();
-    await showFlash('ダーク略奪！', '余りダーク3枚を捧げて ' + cardName(st.card) + ' を奪った！', 1700);
+    await showFlash('ダーク略奪！', '余りダーク3枚を捧げた！', 1400);
+    await gainCards('奪ったカード！', [st.card], 1500, st.from === 'discard' ? '相手の捨て札から' : '相手の手札からランダムに');
+    await gainCards('山から補充した札', st.drew, 1500);
     addLog('あなた：ダーク略奪で ' + cardName(st.card) + ' をゲット');
     setMsg('略奪成功！ 山から2枚補充した。捨てる札を選ぼう');
     render();
@@ -578,7 +627,7 @@
     var html = '<h3>📖 ルール</h3><div class="rules">'
     + '<h4>🎯 目的</h4><p>手札9枚を<b>「3枚組」×3セット</b>にそろえて、<b>殲滅！</b>ボタンを押せば勝ち。その局の得点をゲットできます。</p>'
     + '<h4>🃏 毎ターンやること</h4><p>① 山から1枚引く（手札10枚になる）<br>② いらない1枚を捨てる（9枚に戻る）<br>これを相手と交互にくり返します。<b>10枚のうち9枚が3組になれば上がり</b>です（余る1枚は使いません）。</p>'
-    + '<p class="small">手札の上に「上がりまであと○枚」を表示します。薄く表示される札は、今の組み方で使っていない札＝捨て候補です。</p>'
+    + '<p class="small">手札の上に「上がりまであと○枚」を表示します。つながっているカードは金色の枠で囲んで見せます（点線の枠は「あと1枚」）。枠の外の札は今使っていない札＝捨て候補です。</p>'
     + '<h4>🧩 3枚組は2種類だけ</h4>'
     + '<p><b>① 進化の階段</b>…同じキャラ・同じ系統で、段階が連続する3枚</p><div class="ex" id="exStair"></div>'
     + '<p class="small">階段の作り方：素→光1→光2／光1→光2→光3／素→闇1→闇2／闇1→闇2→闇3</p>'

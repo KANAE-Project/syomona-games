@@ -88,6 +88,7 @@
     var c = counts.slice();
     var best = { m: -1, dl: -1 };
     var done = false;
+    var path = [];
     function darkLeft() {
       var n = 0;
       for (var i = 0; i < 21; i++) if (isDark(i)) n += c[i];
@@ -96,7 +97,8 @@
     function record(m, wl) {
       var dl = darkLeft();
       if (m > best.m || (m === best.m && dl > best.dl)) {
-        best = { m: m, dl: dl, left: c.slice(), wLeft: wl };
+        best = { m: m, dl: dl, left: c.slice(), wLeft: wl,
+          groups: path.map(function (g) { return { tpl: g.tpl, got: g.got.slice(), wild: g.wild }; }) };
       }
     }
     function rec(depth, start, m, wl) {
@@ -110,12 +112,32 @@
           if (c[x] > 0) { c[x]--; taken.push(x); m2++; }
           else if (w2 > 0) { w2--; m2++; }
         }
-        if (m2 > m) rec(depth + 1, i, m2, w2);
+        if (m2 > m) { path.push({ tpl: i, got: taken.slice(), wild: wl - w2 }); rec(depth + 1, i, m2, w2); path.pop(); }
         for (var k = 0; k < taken.length; k++) c[taken[k]]++;
       }
     }
     rec(0, 0, 0, w);
     return best;
+  }
+
+  // 手札の見せ方: 2枚以上つながっている組(テンプレ順に並べ、涅槃は入る位置に置く)と、余りの札
+  function layoutHand(counts, w) {
+    var cv = bestCover(counts, w), groups = [], singles = [], i;
+    (cv.groups || []).forEach(function (g) {
+      var pool = g.got.slice(), wild = g.wild, cards = [];
+      TEMPLATES[g.tpl].cards.forEach(function (x) {
+        var k = pool.indexOf(x);
+        if (k >= 0) { pool.splice(k, 1); cards.push(x); }
+        else if (wild > 0) { wild--; cards.push(ULTRA); }
+      });
+      if (cards.length >= 2) groups.push({ cards: cards, full: cards.length === 3, kind: TEMPLATES[g.tpl].kind });
+      else cards.forEach(function (x) { singles.push(x); });
+    });
+    groups.sort(function (a, b) { return (b.full ? 1 : 0) - (a.full ? 1 : 0); });
+    var rest = [];
+    for (i = 0; i < 21; i++) for (var n = 0; n < cv.left[i]; n++) rest.push(i);
+    for (i = 0; i < cv.wLeft; i++) rest.push(ULTRA);
+    return { groups: groups, singles: singles.concat(rest), matched: cv.m, left: cv.left, wLeft: cv.wLeft };
   }
 
   function total(counts, w) {
@@ -341,7 +363,7 @@
     HAND_SIZE: HAND_SIZE, STEAL_COST: STEAL_COST, TEMPLATES: TEMPLATES, YAKU: YAKU,
     kOf: kOf, charOf: charOf, isDark: isDark, isLight: isLight, classOf: classOf,
     mulberry32: mulberry32, shuffle: shuffle,
-    bestCover: bestCover, isWinning: isWinning, spareDark: spareDark, scoreWin: scoreWin,
+    bestCover: bestCover, layoutHand: layoutHand, isWinning: isWinning, spareDark: spareDark, scoreWin: scoreWin,
     battleCompare: battleCompare,
     createRound: createRound, drawFor: drawFor, canTsumo: canTsumo, discard: discard, canRon: canRon,
     takeForRon: takeForRon, canSteal: canSteal, stealChoices: stealChoices, steal: steal,
