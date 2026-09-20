@@ -163,12 +163,29 @@
   .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
   .usage-notice{ margin-top:18px; font-size:.72rem; line-height:1.8; opacity:.85; text-align:left; background:rgba(255,255,255,.06); border-radius:10px; padding:12px 14px; border:1px solid rgba(255,255,255,.16); }
   .usage-notice .usage-title{ font-weight:bold; color:var(--accent2); display:block; margin-bottom:4px; }
+
+  .toprow{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .toprow .back-link{ margin-bottom:0; }
+  .rule-btn{ font-family:inherit; font-weight:900; font-size:.85rem; border:none; border-radius:999px; padding:6px 14px; background:var(--accent2); color:#2a1414; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
+  .hintbar{ font-size:.74rem; line-height:1.5; text-align:center; background:rgba(0,0,0,.28); border-radius:8px; padding:4px 8px; margin-bottom:6px; min-height:2.2em; }
+  .hintbar b{ color:var(--accent2); }
+  .hand .card.spare{ opacity:.5; filter:grayscale(.35); }
+  .rules{ text-align:left; font-size:.82rem; line-height:1.65; }
+  .rules h4{ margin:14px 0 4px; color:var(--accent2); font-size:.95rem; }
+  .rules p{ margin:4px 0; }
+  .rules .ex{ display:flex; gap:6px; align-items:center; margin:6px 0; }
+  .rules .ex .card{ width:52px; flex:none; cursor:default; }
+  .rules .ex .arrow{ opacity:.7; font-weight:900; }
+  .rules table{ width:100%; border-collapse:collapse; font-size:.78rem; margin:4px 0; }
+  .rules td{ padding:2px 4px; border-bottom:1px solid rgba(255,255,255,.12); }
+  .rules td:last-child{ text-align:right; white-space:nowrap; color:var(--accent2); font-weight:900; }
+  .rules .small{ font-size:.72rem; opacity:.75; }
   .note{ font-size:.7rem; opacity:.6; text-align:center; margin-top:12px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <div class="toprow"><a href="../../" class="back-link">← ゲーム一覧に戻る</a><button type="button" class="rule-btn" id="ruleBtn">📖 ルール</button></div>
   <h1>カードバトラー★ケン2</h1>
   <div class="subtitle">～お前のターンもある～</div>
 
@@ -195,6 +212,7 @@
 
   <div class="area">
     <h2><span>🃏 あなたの手札</span><span id="handHint"></span></h2>
+    <div class="hintbar" id="hintBar"></div>
     <div class="hand" id="hand"></div>
   </div>
 
@@ -293,11 +311,23 @@
 
     var hand = $('hand'); hand.innerHTML = '';
     var ids = sortedIds(R.p[HUMAN]);
+    var spareLeft = null, need = 0, spareDark = 0;
+    if (state === 'humanTurn' && E.total(R.p[HUMAN].h, R.p[HUMAN].w) >= 10) {
+      var cov = E.bestCover(R.p[HUMAN].h, R.p[HUMAN].w);
+      spareLeft = cov.left.slice(); need = 9 - cov.m;
+      for (var q = 0; q < 21; q++) if (E.isDark(q)) spareDark += cov.left[q];
+    }
+    var hb = $('hintBar');
+    if (spareLeft) {
+      hb.innerHTML = (need === 0 ? '✨ <b>上がれます！</b>「殲滅！」を押そう' : '上がりまで <b>あと' + need + '枚</b>（薄い札＝今は使っていない札）')
+        + '<br>🌑 余りダーク <b>' + spareDark + '/3</b>' + (spareDark >= 3 ? ' → <b>ダーク略奪できる！</b>' : '（3枚たまると略奪できる）');
+    } else { hb.innerHTML = state === 'ronPrompt' ? '' : '相手の番です…'; }
     var freshIdx = -1;
     if (newIdx !== null) { for (var j = ids.length - 1; j >= 0; j--) if (ids[j] === newIdx) { freshIdx = j; break; } }
     ids.forEach(function(id, idx){
       var c = cardEl(id);
       if (idx === freshIdx) c.classList.add('fresh');
+      if (spareLeft && id !== E.ULTRA && spareLeft[id] > 0) { spareLeft[id]--; c.classList.add('spare'); }
       if (selected !== null && idx === selected) c.classList.add('selected');
       c.addEventListener('click', function(){
         if (state !== 'humanTurn') return;
@@ -313,7 +343,7 @@
     list.forEach(function(id){ el.appendChild(cardEl(id, { mini: true })); });
   }
   function setBtn(id, on, glow){
-    var b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('glow', !!glow); b.disabled = !on;
+    var b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('glow', !!glow);
   }
   function updateButtons(ids){
     var turn = state === 'humanTurn', ron = state === 'ronPrompt';
@@ -425,15 +455,20 @@
   }
 
   // ---------- ボタン ----------
+  function explain(txt){ if (state === 'humanTurn') setMsg(txt); }
   $('btnWin').addEventListener('click', function(){
+    if (state === 'humanTurn' && !E.canTsumo(R, HUMAN)) { var m = E.bestCover(R.p[HUMAN].h, R.p[HUMAN].w).m; explain('まだ上がれません。あと' + (9 - m) + '枚で殲滅できます（📖ルール参照）'); return; }
     if (state === 'humanTurn' && E.canTsumo(R, HUMAN) && resolveHuman) { var f = resolveHuman; resolveHuman = null; f({ type: 'win' }); }
   });
   $('btnDiscard').addEventListener('click', function(){
+    if (state === 'humanTurn' && selected === null) { explain('捨てる札をタップして選んでから押してね'); return; }
     if (state === 'humanTurn' && selected !== null && resolveHuman) { var f = resolveHuman, i = selected; resolveHuman = null; f({ type: 'discard', idx: i }); }
   });
   $('btnRon').addEventListener('click', function(){ if (state === 'ronPrompt' && resolveRon) { var f = resolveRon; resolveRon = null; f(true); } });
   $('btnPass').addEventListener('click', function(){ if (state === 'ronPrompt' && resolveRon) { var f = resolveRon; resolveRon = null; f(false); } });
   $('btnSteal').addEventListener('click', async function(){
+    if (state === 'humanTurn' && stealUsed) { explain('ダーク略奪は1ターンに1回までです'); return; }
+    if (state === 'humanTurn' && !E.canSteal(R, HUMAN)) { explain('まだ略奪できません。手札の中で「上がりに使わない闇カード」が3枚たまると使えます（現在 ' + E.spareDark(R.p[HUMAN].h, R.p[HUMAN].w) + '/3）'); return; }
     if (state !== 'humanTurn' || stealUsed || !E.canSteal(R, HUMAN)) return;
     var choices = E.stealChoices(R, HUMAN);
     var pick = await pickSteal(choices);
@@ -536,6 +571,41 @@
       go.removeEventListener('click', onGo);
     });
   }
+
+
+  // ---------- ルール説明 ----------
+  function showRules(){
+    var html = '<h3>📖 ルール</h3><div class="rules">'
+    + '<h4>🎯 目的</h4><p>手札9枚を<b>「3枚組」×3セット</b>にそろえて、<b>殲滅！</b>ボタンを押せば勝ち。その局の得点をゲットできます。</p>'
+    + '<h4>🃏 毎ターンやること</h4><p>① 山から1枚引く（手札10枚になる）<br>② いらない1枚を捨てる（9枚に戻る）<br>これを相手と交互にくり返します。<b>10枚のうち9枚が3組になれば上がり</b>です（余る1枚は使いません）。</p>'
+    + '<p class="small">手札の上に「上がりまであと○枚」を表示します。薄く表示される札は、今の組み方で使っていない札＝捨て候補です。</p>'
+    + '<h4>🧩 3枚組は2種類だけ</h4>'
+    + '<p><b>① 進化の階段</b>…同じキャラ・同じ系統で、段階が連続する3枚</p><div class="ex" id="exStair"></div>'
+    + '<p class="small">階段の作り方：素→光1→光2／光1→光2→光3／素→闇1→闇2／闇1→闇2→闇3</p>'
+    + '<p><b>② 3きょうだい</b>…3キャラが、同じ系統・同じ段階で1枚ずつ</p><div class="ex" id="exKyo"></div>'
+    + '<p class="small">系統（素・光・闇）が違うとNG。素だけ、光だけ、闇だけでそろえます。</p>'
+    + '<h4>🌈 涅槃（ねはん）</h4><p>山札に<b>1枚だけ</b>入っている特別なカード。<b>どのカードの代わりにもなれる</b>万能札で、点数は5点です。</p>'
+    + '<h4>⚔️ 討伐！（ロン）</h4><p>相手が捨てた札で自分が上がれるとき、<b>「討伐！」</b>ボタンが光ります。押すとその札をもらって上がり！</p>'
+    + '<h4>🌑 ダーク略奪</h4><p>手札の中に「<b>上がりに使わない闇カード</b>」が<b>3枚</b>たまったら、「ダーク略奪」ボタンが光ります。3枚をささげて、<b>相手の捨て札から好きな1枚</b>を奪えます（捨て札が無ければ相手の手札からランダム）。その後、山から2枚補充。1ターンに1回まで。</p>'
+    + '<h4>💯 点数</h4><p>基本点＝上がりに使った9枚のクラス合計。<br>素＝1／光1・闇1＝2／光2・闇2＝3／光3・闇3＝4／涅槃＝5<br>これに役のボーナスが加わります。</p>'
+    + '<table><tr><td>涅槃入り</td><td>+3</td></tr><tr><td>階段×3（3組すべて階段）</td><td>+3</td></tr><tr><td>光系（闇なし。素はOK）</td><td>+3</td></tr><tr><td>3きょうだい×3</td><td>+6</td></tr><tr><td>闇系（光なし。素はOK）</td><td>+6</td></tr><tr><td>光一色／同キャラ一色</td><td>+10</td></tr><tr><td>闇一色</td><td>+12</td></tr><tr><td>同クラス一色</td><td>+15</td></tr></table>'
+    + '<h4>🏁 勝敗</h4><p>全<b>4局</b>の合計点で勝負！ 先攻は毎局交代。山札が尽きたら流局（0点）。同点なら「引き分けバトル」（1枚ずつ引いて強い方が勝ち。涅槃＞クラス4＞3＞2＞素。ただし素は涅槃にだけ勝つ）。</p>'
+    + '</div><div class="row-btns"><button class="plain" id="rulesClose">とじる</button></div>';
+    var m = showModal(html);
+    var add = function(id, ids){
+      var box = m.box.querySelector('#' + id);
+      ids.forEach(function(x, i){
+        if (i) { var a = document.createElement('span'); a.className = 'arrow'; a.textContent = (id === 'exStair') ? '→' : '＋'; box.appendChild(a); }
+        box.appendChild(cardEl(x, { uc: 0 }));
+      });
+    };
+    add('exStair', [0, 1, 2]);   // ドラゴン 素→光1→光2
+    add('exKyo', [2, 9, 16]);    // 3体の光2
+    m.box.querySelector('#rulesClose').addEventListener('click', function(){ m.close(); });
+    try { localStorage.setItem('ken2_rules_seen', '1'); } catch (e) {}
+  }
+  $('ruleBtn').addEventListener('click', showRules);
+  try { if (!localStorage.getItem('ken2_rules_seen')) setTimeout(showRules, 400); } catch (e) {}
 
   // Xシェア（window.open方式）
   $('xShareBtn').addEventListener('click', function(){
