@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カードバトラー★ケン2 ～お前のターンもある～</title>
+<meta name="description" content="集めた仲間カードで戦う麻雀風の対戦ゲーム。3枚×3セットを揃えて殲滅！ダークを3枚集めれば相手のカードを略奪できる。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yuji+Boku&display=swap">
+<style>
+  :root{
+    --bg1:#1a0e0e; --bg2:#3a1414;
+    --ink:#2a1414;
+    --accent:#e0472c; --accent2:#f5b942;
+    --light:#f5b942; --dark:#8a5cd6; --plain:#b9b2a8;
+    --tcg-font:'Yuji Boku', "Hiragino Mincho ProN", serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 75%);
+    color:#f6ece0; display:flex; justify-content:center;
+    padding:14px 10px 20px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  h1{ text-align:center; font-size:1.2rem; margin:0; font-family:var(--tcg-font); letter-spacing:.03em; }
+  .subtitle{ text-align:center; font-size:.85rem; font-weight:900; color:var(--accent2); font-family:var(--tcg-font); margin:0 0 6px; }
+
+  /* ステータスバー */
+  .status{
+    display:flex; justify-content:space-between; align-items:center; gap:6px;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+    border-radius:12px; padding:6px 10px; font-size:.8rem; margin-bottom:8px;
+  }
+  .status b{ color:var(--accent2); font-size:1rem; }
+  .status .sc{ text-align:center; line-height:1.25; }
+
+  .area{
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+    border-radius:14px; padding:6px 8px 8px; margin-bottom:6px;
+  }
+  .area h2{ font-size:.72rem; margin:0 0 4px; opacity:.85; font-weight:700; display:flex; justify-content:space-between; }
+
+  /* ==== カード（9本目と同じTCG風の二重縁取り） ==== */
+  .card{
+    position:relative; aspect-ratio:3/4; border-radius:8px; overflow:hidden;
+    border:3px solid var(--plain); background:#231616;
+    display:flex; flex-direction:column; cursor:pointer;
+    transition:transform .12s ease;
+  }
+  .card::after{
+    content:""; position:absolute; inset:2px;
+    border:1.5px solid rgba(255,255,255,.38); border-radius:5px; pointer-events:none; z-index:2;
+  }
+  .card.light{ border-color:var(--light); }
+  .card.dark{ border-color:var(--dark); background:#1a1230; }
+  .card.ultra{ border-color:transparent; background:linear-gradient(#231616,#231616) padding-box, linear-gradient(135deg,#ff5f6d,#ffc371,#47e3a1,#4facfe,#c471f5) border-box; }
+  .card .pic{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:2px; }
+  .card .pic img{ max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; display:block; }
+  .card .lab{
+    font-size:.62rem; font-weight:900; text-align:center; padding:1px 0 2px; line-height:1.1;
+    background:rgba(0,0,0,.45); color:#fff;
+  }
+  .card.light .lab{ color:var(--light); }
+  .card.dark .lab{ color:#c9a9ff; }
+  .card.ultra .lab{ color:#ffe27a; }
+  .card.back{
+    background:repeating-linear-gradient(45deg,#4a1c1c,#4a1c1c 6px,#5c2424 6px,#5c2424 12px); border-color:#8a4a2a; cursor:default;
+  }
+  .card.back .pic{ font-size:1.1rem; opacity:.5; }
+  .card.mini{ border-width:2px; border-radius:5px; cursor:default; }
+  .card.mini::after{ inset:1px; border-width:1px; border-radius:3px; }
+  .card.mini .lab{ font-size:.5rem; }
+
+  .hand{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .hand .card.selected{ transform:translateY(-8px); box-shadow:0 0 0 2px #fff, 0 6px 12px rgba(0,0,0,.5); }
+  .hand .card.fresh{ animation:fresh 1.1s ease-in-out infinite; }
+  @keyframes fresh{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,0);} 50%{ box-shadow:0 0 10px 3px rgba(255,255,255,.85);} }
+  .backs{ display:grid; grid-template-columns:repeat(10,1fr); gap:3px; }
+  .disc{ display:grid; grid-template-columns:repeat(10,1fr); gap:3px; min-height:24px; }
+  .empty{ font-size:.7rem; opacity:.5; grid-column:1/-1; }
+
+  /* メッセージ */
+  .msg{
+    min-height:40px; display:flex; align-items:center; justify-content:center; text-align:center;
+    font-weight:900; font-size:.95rem; color:var(--accent2);
+    background:rgba(0,0,0,.25); border-radius:12px; padding:6px 10px; margin-bottom:4px; line-height:1.4;
+  }
+  .log{ font-size:.66rem; opacity:.7; line-height:1.45; margin:0 4px 6px; min-height:2.9em; }
+
+  /* ボタン */
+  .btns{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+    position:sticky; bottom:0; z-index:5; padding:8px 0 6px;
+    background:linear-gradient(to top, var(--bg1) 70%, rgba(26,14,14,0));
+  }
+  button.act{
+    font-family:var(--tcg-font); font-weight:900; font-size:.95rem; letter-spacing:.02em;
+    border:none; border-radius:14px; padding:14px 2px; color:#2a1414; background:#8d8177;
+    box-shadow:0 4px 0 rgba(0,0,0,.35); opacity:.4; cursor:default;
+  }
+  button.act.on{ opacity:1; cursor:pointer; }
+  button.act:active.on{ transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35); }
+  #btnWin.on{ background:var(--accent); color:#fff; animation:glow 0.9s ease-in-out infinite; }
+  #btnRon.on{ background:#ff8a1f; color:#fff; animation:glow 0.9s ease-in-out infinite; }
+  #btnSteal.on{ background:#6b3fc7; color:#fff; }
+  #btnSteal.on.glow{ animation:glowPurple 0.9s ease-in-out infinite; }
+  #btnDiscard.on{ background:var(--accent2); }
+  #btnPass.on{ background:#6f655c; color:#fff; }
+  @keyframes glow{ 0%,100%{ box-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 0 0 rgba(255,220,120,.0);} 50%{ box-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 16px 5px rgba(255,220,120,.9);} }
+  @keyframes glowPurple{ 0%,100%{ box-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 0 0 rgba(160,110,255,0);} 50%{ box-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 16px 5px rgba(160,110,255,.9);} }
+  .btns .span2{ grid-column:span 2; }
+  .hidden{ display:none !important; }
+
+  /* オーバーレイ */
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,4,4,.86); z-index:50;
+    display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .modal{
+    width:100%; max-width:440px; max-height:92vh; overflow:auto;
+    background:#2a1616; border:3px solid var(--accent2); border-radius:18px; padding:16px 14px 18px; text-align:center;
+  }
+  .modal h3{ margin:0 0 8px; font-family:var(--tcg-font); color:var(--accent2); font-size:1.3rem; }
+  .modal p{ font-size:.85rem; line-height:1.6; margin:6px 0; }
+  .modal .yaku{ text-align:left; background:rgba(0,0,0,.25); border-radius:10px; padding:8px 12px; margin:10px 0; font-size:.85rem; line-height:1.7; }
+  .modal .yaku .row{ display:flex; justify-content:space-between; }
+  .modal .yaku .total{ border-top:1px solid rgba(255,255,255,.25); margin-top:4px; padding-top:4px; font-weight:900; color:var(--accent2); }
+  .modal .hand-show{ display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:8px 0; }
+  .modal .pick-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:10px 0; }
+  .modal .pick-grid .card{ position:relative; }
+  .modal .pick-grid .cnt{ position:absolute; top:2px; right:4px; z-index:3; background:#000a; border-radius:8px; font-size:.65rem; padding:0 5px; }
+  .modal .row-btns{ display:flex; gap:8px; margin-top:10px; }
+  .modal .row-btns button{ flex:1; }
+  button.plain{
+    font-family:var(--tcg-font); font-weight:900; font-size:1rem; border:none; border-radius:12px; padding:10px 8px;
+    background:var(--accent2); color:#2a1414; cursor:pointer; box-shadow:0 3px 0 rgba(0,0,0,.35);
+  }
+  button.plain.sub{ background:#6f655c; color:#fff; }
+  .flash{
+    position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(20,0,30,.72); pointer-events:none; animation:flashIn .25s ease-out;
+  }
+  .flash .big{ font-family:var(--tcg-font); font-size:2.6rem; font-weight:900; color:#fff; text-shadow:0 0 18px var(--dark), 0 0 6px #000; letter-spacing:.06em; text-align:center; padding:0 12px; }
+  .flash .small{ margin-top:10px; font-size:1rem; color:var(--accent2); font-weight:900; text-align:center; padding:0 16px; }
+  @keyframes flashIn{ from{ opacity:0; transform:scale(1.15);} to{ opacity:1; transform:scale(1);} }
+  .versus{ display:flex; gap:12px; justify-content:center; margin:10px 0; }
+  .versus .side{ width:42%; }
+  .versus .side .who{ font-size:.8rem; margin-bottom:4px; }
+  .versus .card{ cursor:default; }
+
+  .flash img{ width:94%; max-width:460px; height:auto; animation:fxPop .55s cubic-bezier(.2,1.4,.4,1); filter:drop-shadow(0 0 18px rgba(0,0,0,.6)); }
+  @keyframes fxPop{ from{ transform:scale(.4); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:#f6ece0; opacity:.65; text-decoration:none; margin-bottom:6px; }
+  .back-link-btn{ display:block; background:var(--accent2); color:#2a1414; font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center; padding:14px 16px; border-radius:14px; margin-top:20px; box-shadow:0 4px 0 var(--accent); }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent); }
+  .x-share-zone{ margin-top:22px; padding-top:14px; border-top:1px dashed rgba(255,255,255,.25); text-align:center; }
+  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent2); margin-bottom:12px; }
+  .x-link-btn{ display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center; padding:14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer; font-family:inherit; }
+  .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
+  .usage-notice{ margin-top:18px; font-size:.72rem; line-height:1.8; opacity:.85; text-align:left; background:rgba(255,255,255,.06); border-radius:10px; padding:12px 14px; border:1px solid rgba(255,255,255,.16); }
+  .usage-notice .usage-title{ font-weight:bold; color:var(--accent2); display:block; margin-bottom:4px; }
+  .note{ font-size:.7rem; opacity:.6; text-align:center; margin-top:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <h1>カードバトラー★ケン2</h1>
+  <div class="subtitle">～お前のターンもある～</div>
+
+  <div class="status">
+    <div>第<b id="stRound">1</b>/<span id="stRoundMax">4</span>局</div>
+    <div class="sc">あなた <b id="stMe">0</b> － <b id="stCpu">0</b> 相手</div>
+    <div>山札 <b id="stDeck">0</b></div>
+  </div>
+
+  <div class="area">
+    <h2><span>👹 相手の手札（<span id="cpuCount">9</span>枚）</span><span id="cpuFirst"></span></h2>
+    <div class="backs" id="cpuBacks"></div>
+    <h2 style="margin-top:8px"><span>相手の捨て札</span></h2>
+    <div class="disc" id="cpuDisc"></div>
+  </div>
+
+  <div class="msg" id="msg">読み込み中…</div>
+  <div class="log" id="log"></div>
+
+  <div class="area">
+    <h2><span>あなたの捨て札</span></h2>
+    <div class="disc" id="myDisc"></div>
+  </div>
+
+  <div class="area">
+    <h2><span>🃏 あなたの手札</span><span id="handHint"></span></h2>
+    <div class="hand" id="hand"></div>
+  </div>
+
+  <div class="btns">
+    <button class="act" id="btnDiscard">これを捨てる</button>
+    <button class="act" id="btnSteal">ダーク略奪</button>
+    <button class="act" id="btnWin">殲滅！</button>
+    <button class="act hidden span2" id="btnRon">討伐！</button>
+    <button class="act hidden" id="btnPass">見送る</button>
+  </div>
+    <div class="x-share-zone">
+    <div class="x-share-title">このゲームを拡散！</div>
+    <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xでシェアする</button>
+  </div>
+
+  <div class="usage-notice">
+    <span class="usage-title">🎥 実況・動画での使用について</span>
+    「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+    ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
+    それ以外は自由に、しょーもなく広めていただけると嬉しいです。
+  </div>
+
+  <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<div id="layer"></div>
+
+<script src="engine.js"></script>
+<script>
+(function(){
+  'use strict';
+  var E = window.KenEngine;
+  var HUMAN = 0, CPU = 1, ROUNDS = 4, CPU_CAREFUL = true;
+  var GAME_URL = 'https://kanae-project.github.io/syomona-games/games/011-card-battler-ken2/';
+  var match = { round: 1, total: [0, 0] };
+  var R = null, ultraChar = 0, state = 'idle', selected = null, newIdx = null, stealUsed = false;
+  var logLines = [], resolveHuman = null, resolveRon = null;
+  var $ = function(id){ return document.getElementById(id); };
+  var sleep = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+  var URLP = new URLSearchParams(location.search);
+  var seed = URLP.get('seed'); // 開発用: ?seed=数字 で山札を固定
+  var rngFn = seed ? E.mulberry32(+seed) : Math.random;
+
+  // ---------- カード表示 ----------
+  function imgSrc(id, uc){
+    var ch = (uc === undefined ? ultraChar : uc);
+    if (id === E.ULTRA) return 'images/' + E.CHARS[ch].key + '-ultra.png';
+    var k = E.kOf(id), ext = (k === 0 || k === 3) ? 'jpg' : 'png';
+    return 'images/' + E.CHARS[E.charOf(id)].key + '-' + E.TIER_KEYS[k] + '.' + ext;
+  }
+  function cardName(id, uc){
+    if (id === E.ULTRA) return E.CHARS[uc === undefined ? ultraChar : uc].name + ' 涅槃';
+    return E.CHARS[E.charOf(id)].name + ' ' + E.TIER_NAMES[E.kOf(id)];
+  }
+  function cardEl(id, opt){
+    opt = opt || {};
+    var d = document.createElement('div');
+    var cls = 'card' + (id === E.ULTRA ? ' ultra' : E.isLight(id) ? ' light' : E.isDark(id) ? ' dark' : '') + (opt.mini ? ' mini' : '');
+    d.className = cls;
+    d.title = cardName(id, opt.uc);
+    var lab = id === E.ULTRA ? '涅槃' : E.TIER_NAMES[E.kOf(id)];
+    d.innerHTML = '<div class="pic"><img alt="" src="' + imgSrc(id, opt.uc) + '"></div><div class="lab">' + lab + '</div>';
+    return d;
+  }
+  function backEl(){ var d = document.createElement('div'); d.className = 'card back mini'; d.innerHTML = '<div class="pic">？</div>'; return d; }
+
+  // 手札の自動整列（キャラ→系統(素/光/闇)→クラス、涅槃は最後）
+  function sortedIds(p){
+    var arr = [];
+    for (var id = 0; id < 21; id++) for (var n = 0; n < p.h[id]; n++) arr.push(id);
+    arr.sort(function(a, b){
+      var ka = E.kOf(a), kb = E.kOf(b);
+      var la = ka === 0 ? 0 : ka <= 3 ? 1 : 2, lb = kb === 0 ? 0 : kb <= 3 ? 1 : 2;
+      return (E.charOf(a) - E.charOf(b)) || (la - lb) || (E.classOf(a) - E.classOf(b));
+    });
+    for (var w = 0; w < p.w; w++) arr.push(E.ULTRA);
+    return arr;
+  }
+
+  // ---------- 描画 ----------
+  function setMsg(t){ $('msg').textContent = t; }
+  function addLog(t){ logLines.push(t); if (logLines.length > 2) logLines.shift(); $('log').innerHTML = logLines.map(function(l){ return '・' + l; }).join('<br>'); }
+
+  function render(){
+    if (!R) return;
+    $('stRound').textContent = match.round; $('stRoundMax').textContent = ROUNDS;
+    $('stMe').textContent = match.total[0]; $('stCpu').textContent = match.total[1];
+    $('stDeck').textContent = R.deck.length;
+    var cpuN = E.total(R.p[CPU].h, R.p[CPU].w);
+    $('cpuCount').textContent = cpuN;
+    $('cpuFirst').textContent = R.turn === CPU ? '先攻' : '';
+    $('handHint').textContent = R.turn === HUMAN ? '先攻' : '';
+    var backs = $('cpuBacks'); backs.innerHTML = '';
+    for (var i = 0; i < cpuN; i++) backs.appendChild(backEl());
+    fillDisc($('cpuDisc'), R.p[CPU].disc); fillDisc($('myDisc'), R.p[HUMAN].disc);
+
+    var hand = $('hand'); hand.innerHTML = '';
+    var ids = sortedIds(R.p[HUMAN]);
+    var freshIdx = -1;
+    if (newIdx !== null) { for (var j = ids.length - 1; j >= 0; j--) if (ids[j] === newIdx) { freshIdx = j; break; } }
+    ids.forEach(function(id, idx){
+      var c = cardEl(id);
+      if (idx === freshIdx) c.classList.add('fresh');
+      if (selected !== null && idx === selected) c.classList.add('selected');
+      c.addEventListener('click', function(){
+        if (state !== 'humanTurn') return;
+        selected = (selected === idx) ? null : idx; render();
+      });
+      hand.appendChild(c);
+    });
+    updateButtons(ids);
+  }
+  function fillDisc(el, list){
+    el.innerHTML = '';
+    if (!list.length) { el.innerHTML = '<div class="empty">まだありません</div>'; return; }
+    list.forEach(function(id){ el.appendChild(cardEl(id, { mini: true })); });
+  }
+  function setBtn(id, on, glow){
+    var b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('glow', !!glow); b.disabled = !on;
+  }
+  function updateButtons(ids){
+    var turn = state === 'humanTurn', ron = state === 'ronPrompt';
+    $('btnRon').classList.toggle('hidden', !ron); $('btnPass').classList.toggle('hidden', !ron);
+    $('btnWin').classList.toggle('hidden', ron); $('btnSteal').classList.toggle('hidden', ron); $('btnDiscard').classList.toggle('hidden', ron);
+    if (ron) { setBtn('btnRon', true); setBtn('btnPass', true); return; }
+    var canWin = turn && E.canTsumo(R, HUMAN);
+    var canSteal = turn && !stealUsed && E.canSteal(R, HUMAN);
+    setBtn('btnWin', canWin, canWin);
+    setBtn('btnSteal', canSteal, canSteal);
+    setBtn('btnDiscard', turn && selected !== null, false);
+  }
+
+  // ---------- オーバーレイ ----------
+  var FX_IMG = { '殲滅！': 'images/fx-win.png', '討伐！': 'images/fx-ron.png', 'ダーク略奪！': 'images/fx-steal.png' };
+  function showFlash(big, small, ms){
+    var f = document.createElement('div'); f.className = 'flash';
+    var img = FX_IMG[big];
+    f.innerHTML = (img ? '<img alt="' + big + '" src="' + img + '">' : '<div class="big">' + big + '</div>') + (small ? '<div class="small">' + small + '</div>' : '');
+    var im = f.querySelector('img');
+    if (im) im.addEventListener('error', function(){ im.outerHTML = '<div class="big">' + big + '</div>'; });
+    $('layer').appendChild(f);
+    return sleep(ms || 1400).then(function(){ f.remove(); });
+  }
+  function showModal(html){
+    var o = document.createElement('div'); o.className = 'overlay';
+    var m = document.createElement('div'); m.className = 'modal'; m.innerHTML = html; o.appendChild(m);
+    $('layer').appendChild(o);
+    return { root: o, box: m, close: function(){ o.remove(); } };
+  }
+
+  // ---------- 局の進行 ----------
+  async function startRound(){
+    ultraChar = Math.floor(rngFn() * 3);
+    R = E.createRound({ rng: rngFn, first: (match.round - 1) % 2 });
+    selected = null; newIdx = null; stealUsed = false; logLines = []; $('log').innerHTML = '';
+    state = 'idle'; render();
+    setMsg('第' + match.round + '局スタート！ ' + (R.turn === HUMAN ? 'あなたの先攻' : '相手の先攻'));
+    addLog('今回の涅槃は「' + E.CHARS[ultraChar].name + '」');
+    await sleep(900);
+    turnLoop(R.turn);
+  }
+
+  async function turnLoop(pi){
+    while (true){
+      if (!R.deck.length) { return endRound(null); }
+      var res = (pi === HUMAN) ? await humanTurn() : await cpuTurnUI();
+      if (res === 'ended') return;
+      pi = 1 - pi;
+    }
+  }
+
+  async function humanTurn(){
+    stealUsed = false; selected = null;
+    var got = E.drawFor(R, HUMAN);
+    newIdx = got.length ? got[0] : null;
+    state = 'humanTurn';
+    setMsg('あなたの番：1枚引いた！ 捨てる札を選ぼう');
+    render();
+    var action = await new Promise(function(res){ resolveHuman = res; });
+    if (action.type === 'win') {
+      var sc = E.scoreWin(R.p[HUMAN].h, R.p[HUMAN].w);
+      await showFlash('殲滅！', 'あなたの上がり', 1300);
+      endRound(HUMAN, 'tsumo', sc); return 'ended';
+    }
+    // 捨てる
+    var ids = sortedIds(R.p[HUMAN]);
+    var id = ids[action.idx];
+    var ron = E.discard(R, HUMAN, id);
+    selected = null; newIdx = null; state = 'idle';
+    addLog('あなた：' + cardName(id) + ' を捨てた');
+    render();
+    if (ron) {
+      await showFlash('討伐！', '相手に上がられた…', 1400);
+      endRound(CPU, 'ron', E.takeForRon(R, CPU)); return 'ended';
+    }
+    return 'ok';
+  }
+
+  async function cpuTurnUI(){
+    state = 'idle'; render();
+    setMsg('相手の番…'); await sleep(800);
+    var r = E.cpuTurn(R, CPU, { careful: CPU_CAREFUL });
+    if (r.events && r.events.length) {
+      var st = r.events[0].result;
+      await showFlash('ダーク略奪！', '相手が' + (st.from === 'discard' ? 'あなたの捨て札から' : 'あなたの手札から') + '奪った…', 1600);
+      addLog('相手：ダーク略奪（' + (st.from === 'discard' ? '捨て札から' : '手札からランダム') + '）');
+    }
+    if (r.type === 'tsumo') {
+      render();
+      await showFlash('殲滅！', '相手の上がり', 1300);
+      endRound(CPU, 'tsumo', r.score); return 'ended';
+    }
+    addLog('相手：' + cardName(r.card) + ' を捨てた');
+    render();
+    if (r.ronPossible) {
+      state = 'ronPrompt'; render();
+      setMsg('討伐チャンス！ 相手の捨てた ' + cardName(r.card) + ' で上がれる！');
+      var take = await new Promise(function(res){ resolveRon = res; });
+      if (take) {
+        var sc = E.takeForRon(R, HUMAN);
+        state = 'idle'; render();
+        await showFlash('討伐！', 'あなたの上がり', 1300);
+        endRound(HUMAN, 'ron', sc); return 'ended';
+      }
+      state = 'idle'; render();
+    }
+    return 'ok';
+  }
+
+  // ---------- ボタン ----------
+  $('btnWin').addEventListener('click', function(){
+    if (state === 'humanTurn' && E.canTsumo(R, HUMAN) && resolveHuman) { var f = resolveHuman; resolveHuman = null; f({ type: 'win' }); }
+  });
+  $('btnDiscard').addEventListener('click', function(){
+    if (state === 'humanTurn' && selected !== null && resolveHuman) { var f = resolveHuman, i = selected; resolveHuman = null; f({ type: 'discard', idx: i }); }
+  });
+  $('btnRon').addEventListener('click', function(){ if (state === 'ronPrompt' && resolveRon) { var f = resolveRon; resolveRon = null; f(true); } });
+  $('btnPass').addEventListener('click', function(){ if (state === 'ronPrompt' && resolveRon) { var f = resolveRon; resolveRon = null; f(false); } });
+  $('btnSteal').addEventListener('click', async function(){
+    if (state !== 'humanTurn' || stealUsed || !E.canSteal(R, HUMAN)) return;
+    var choices = E.stealChoices(R, HUMAN);
+    var pick = await pickSteal(choices);
+    if (pick === 'cancel') return;
+    var st = E.steal(R, HUMAN, pick);
+    stealUsed = true; selected = null; newIdx = st.card;
+    render();
+    await showFlash('ダーク略奪！', '余りダーク3枚を捧げて ' + cardName(st.card) + ' を奪った！', 1700);
+    addLog('あなた：ダーク略奪で ' + cardName(st.card) + ' をゲット');
+    setMsg('略奪成功！ 山から2枚補充した。捨てる札を選ぼう');
+    render();
+  });
+
+  function pickSteal(choices){
+    return new Promise(function(res){
+      var html = '<h3>ダーク略奪</h3>';
+      if (choices.length) {
+        html += '<p>余りのダーク3枚を捧げて、相手の捨て札から<b>好きな1枚</b>を奪えます</p><div class="pick-grid" id="pickGrid"></div>';
+      } else {
+        html += '<p>相手の捨て札がないので、<b>相手の手札からランダムに1枚</b>奪います</p>';
+      }
+      html += '<div class="row-btns">' + (choices.length ? '' : '<button class="plain" id="pkGo">奪う！</button>') + '<button class="plain sub" id="pkCancel">やめる</button></div>';
+      var m = showModal(html);
+      if (choices.length) {
+        var counts = {}; R.p[CPU].disc.forEach(function(id){ counts[id] = (counts[id] || 0) + 1; });
+        choices.forEach(function(id){
+          var c = cardEl(id); var cnt = document.createElement('span'); cnt.className = 'cnt'; cnt.textContent = '×' + counts[id]; c.appendChild(cnt);
+          c.addEventListener('click', function(){ m.close(); res(id); });
+          m.box.querySelector('#pickGrid').appendChild(c);
+        });
+      } else {
+        m.box.querySelector('#pkGo').addEventListener('click', function(){ m.close(); res(null); });
+      }
+      m.box.querySelector('#pkCancel').addEventListener('click', function(){ m.close(); res('cancel'); });
+    });
+  }
+
+  // ---------- 局の結果 ----------
+  function endRound(winner, how, score){
+    state = 'over'; render();
+    var html = '<h3>第' + match.round + '局 結果</h3>';
+    if (winner === null) {
+      html += '<p>山札が尽きた…流局です（0点）</p>';
+    } else {
+      match.total[winner] += score.total;
+      html += '<p style="font-size:1.05rem;font-weight:900">' + (winner === HUMAN ? 'あなたの勝ち！' : '相手の勝ち…') + '（' + (how === 'ron' ? '討伐' : '殲滅') + '）</p>';
+      var p = R.p[winner], ids = sortedIds(p);
+      html += '<div class="hand-show" id="winHand"></div>';
+      html += '<div class="yaku"><div class="row"><span>基本点</span><span>' + score.base + '</span></div>';
+      score.yaku.forEach(function(y){ html += '<div class="row"><span>' + y.name + '</span><span>+' + y.bonus + '</span></div>'; });
+      html += '<div class="row total"><span>合計</span><span>' + score.total + '点</span></div></div>';
+    }
+    html += '<p>あなた <b>' + match.total[0] + '</b> － <b>' + match.total[1] + '</b> 相手</p>';
+    html += '<div class="row-btns"><button class="plain" id="nextBtn">' + (match.round < ROUNDS ? '次の局へ' : '結果発表へ') + '</button></div>';
+    var m = showModal(html);
+    if (winner !== null) {
+      var box = m.box.querySelector('#winHand');
+      var wp = R.p[winner], spare = E.bestCover(wp.h, wp.w).left.slice(), spareW = E.bestCover(wp.h, wp.w).wLeft;
+      sortedIds(wp).forEach(function(id){
+        var c = cardEl(id, { mini: true });
+        if (id === E.ULTRA ? spareW > 0 : spare[id] > 0) { if (id === E.ULTRA) spareW--; else spare[id]--; c.style.opacity = '.35'; c.title += '（余り）'; }
+        box.appendChild(c);
+      });
+      box.insertAdjacentHTML('afterend', '<p style="font-size:.7rem;opacity:.7;margin:0">※ 薄い札は上がりに使わなかった余り</p>');
+    }
+    setMsg(winner === null ? '流局' : (winner === HUMAN ? '殲滅成功！' : '殲滅されてしまった…'));
+    m.box.querySelector('#nextBtn').addEventListener('click', function(){
+      m.close();
+      if (match.round < ROUNDS) { match.round++; startRound(); } else { finalResult(); }
+    });
+  }
+
+  // ---------- 最終結果・引き分けバトル ----------
+  function finalResult(){
+    var a = match.total[0], b = match.total[1];
+    if (a !== b) { return showFinal(a > b); }
+    tieBattle();
+  }
+  function showFinal(win, battle){
+    var m = showModal('<h3>' + (win ? 'あなたの勝ち！' : '相手の勝ち…') + '</h3><p>' + (battle ? '引き分けバトルを制した！' : '合計点') + '</p><p style="font-size:1.1rem">あなた <b>' + match.total[0] + '</b> － <b>' + match.total[1] + '</b> 相手</p><div class="row-btns"><button class="plain" id="againBtn">もう一度あそぶ</button></div>');
+    m.box.querySelector('#againBtn').addEventListener('click', function(){ m.close(); match = { round: 1, total: [0, 0] }; startRound(); });
+  }
+  async function tieBattle(){
+    var deck = [];
+    for (var id = 0; id < 21; id++) for (var n = 0; n < 3; n++) deck.push(id);
+    deck.push(E.ULTRA);
+    E.shuffle(deck, rngFn);
+    var m = showModal('<h3>引き分けバトル！</h3><p>同点！ 山から1枚ずつ引いて、強い方が勝ち（素は涅槃にだけ勝てる）</p><div class="versus"><div class="side"><div class="who">あなた</div><div id="tbMe"></div></div><div class="side"><div class="who">相手</div><div id="tbCpu"></div></div></div><p id="tbMsg"></p><div class="row-btns"><button class="plain" id="tbGo">カードを引く！</button></div>');
+    var go = m.box.querySelector('#tbGo');
+    go.addEventListener('click', function onGo(){
+      var a = deck.pop(), b = deck.pop(), uc = Math.floor(rngFn() * 3);
+      var meBox = m.box.querySelector('#tbMe'), cpuBox = m.box.querySelector('#tbCpu');
+      meBox.innerHTML = ''; cpuBox.innerHTML = '';
+      meBox.appendChild(cardEl(a, { uc: uc })); cpuBox.appendChild(cardEl(b, { uc: uc }));
+      var cmp = E.battleCompare(a, b), msg = m.box.querySelector('#tbMsg');
+      if (cmp === 0) { msg.textContent = '同格！ もう一回！'; return; }
+      msg.textContent = cmp > 0 ? 'あなたの勝ち！' : '相手の勝ち…';
+      go.textContent = '結果へ';
+      go.onclick = function(){ m.close(); showFinal(cmp > 0, true); };
+      go.removeEventListener('click', onGo);
+    });
+  }
+
+  // Xシェア（window.open方式）
+  $('xShareBtn').addEventListener('click', function(){
+    var t = match.total, played = match.round > 1 || state === 'over';
+    var NL = String.fromCharCode(10);
+    var head = 'カードバトラー★ケン2 ～お前のターンもある～';
+    var text = head + NL + (played ? t[0] + '対' + t[1] + 'で対戦中！' + NL : '') + 'CMなしの0秒ブラウザゲーム！';
+    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
+  });
+
+  // 開発用フック（テスト用）
+  window.__ken2 = { get R(){ return R; }, get state(){ return state; }, match: match, startRound: startRound, tieBattle: tieBattle, finalResult: finalResult, render: render, E: E };
+  startRound();
+})();
+</script>
+</body>
+</html>
