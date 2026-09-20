@@ -22,6 +22,9 @@
   function isDark(id) { return id !== ULTRA && kOf(id) >= 4; }
   function isLight(id) { var k = kOf(id); return id !== ULTRA && k >= 1 && k <= 3; }
   function classOf(id) { return id === ULTRA ? 5 : CLASS_OF[kOf(id)]; }
+  // 得点（基本点）: 素0 / 光N・闇N = N / 涅槃4（2026-09-21変更。旧: 素1・2・3・4・涅槃5。シミュレーションで手同士の点差が同じになるよう涅槃は4）
+  var config = { points: [0, 1, 2, 3, 1, 2, 3], ultra: 4 };
+  function pointOf(id) { return id === ULTRA ? config.ultra : config.points[kOf(id)]; }
 
   // ---- 3枚組テンプレート（階段 / 3きょうだい） ----
   var TEMPLATES = (function () {
@@ -195,11 +198,11 @@
       for (var key in need) {
         var id = +key, lack = Math.max(0, need[id] - counts[id]);
         miss += lack;
-        base += (need[id] - lack) * CLASS_OF[kOf(id)];
+        base += (need[id] - lack) * pointOf(id);
         for (var q = 0; q < need[id]; q++) cards.push(id);
       }
       if (miss > w) continue;
-      base += miss * 5;
+      base += miss * config.ultra;
       var kinds = idx.map(function (t) { return TEMPLATES[t].kind; });
       var chars = {}, cls = {}, hasL = false, hasD = false, allL = true, allD = true;
       cards.forEach(function (id) {
@@ -227,8 +230,8 @@
       best.idx.forEach(function (t) {
         var cards = [], pts = 0;
         TEMPLATES[t].cards.forEach(function (x) {
-          if (avail[x] > 0) { avail[x]--; cards.push(x); pts += CLASS_OF[kOf(x)]; }
-          else { wildLeft--; cards.push(ULTRA); pts += 5; }
+          if (avail[x] > 0) { avail[x]--; cards.push(x); pts += pointOf(x); }
+          else { wildLeft--; cards.push(ULTRA); pts += config.ultra; }
         });
         groups.push({ cards: cards, kind: TEMPLATES[t].kind, points: pts, full: true });
       });
@@ -402,7 +405,7 @@
   var api = {
     ULTRA: ULTRA, CHARS: CHARS, TIER_KEYS: TIER_KEYS, TIER_NAMES: TIER_NAMES, CLASS_OF: CLASS_OF,
     HAND_SIZE: HAND_SIZE, STEAL_COST: STEAL_COST, TEMPLATES: TEMPLATES, YAKU: YAKU,
-    kOf: kOf, charOf: charOf, isDark: isDark, isLight: isLight, classOf: classOf,
+    config: config, pointOf: pointOf, kOf: kOf, charOf: charOf, isDark: isDark, isLight: isLight, classOf: classOf,
     mulberry32: mulberry32, shuffle: shuffle,
     bestCover: bestCover, layoutHand: layoutHand, waits: waits, discardWaits: discardWaits, unseenCount: unseenCount, isWinning: isWinning, spareDark: spareDark, scoreWin: scoreWin,
     battleCompare: battleCompare,
