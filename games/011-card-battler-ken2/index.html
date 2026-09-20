@@ -135,7 +135,9 @@
   .modal .yaku{ text-align:left; background:rgba(0,0,0,.25); border-radius:10px; padding:8px 12px; margin:10px 0; font-size:.85rem; line-height:1.7; }
   .modal .yaku .row{ display:flex; justify-content:space-between; }
   .modal .yaku .total{ border-top:1px solid rgba(255,255,255,.25); margin-top:4px; padding-top:4px; font-weight:900; color:var(--accent2); }
-  .modal .hand-show{ display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:8px 0; }
+  .modal .hand-show{ display:flex; flex-wrap:wrap; gap:14px 6px; justify-content:center; margin:16px 0 8px; }
+  .modal .hand-show .card{ width:44px; flex:none; }
+  .modal .legend{ font-size:.7rem; opacity:.75; margin:2px 0 6px; line-height:1.5; }
   .modal .pick-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:10px 0; }
   .modal .pick-grid .card{ position:relative; }
   .modal .pick-grid .cnt{ position:absolute; top:2px; right:4px; z-index:3; background:#000a; border-radius:8px; font-size:.65rem; padding:0 5px; }
@@ -175,6 +177,7 @@
   .rule-btn{ font-family:inherit; font-weight:900; font-size:.85rem; border:none; border-radius:999px; padding:6px 14px; background:var(--accent2); color:#2a1414; cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.35); }
   .hintbar{ font-size:.74rem; line-height:1.5; text-align:center; background:rgba(0,0,0,.28); border-radius:8px; padding:4px 8px; margin-bottom:6px; min-height:2.2em; }
   .hintbar b{ color:var(--accent2); }
+  .card.reach::before{ content:'リーチ'; position:absolute; top:-1px; left:50%; transform:translateX(-50%); z-index:4; font-size:.5rem; font-weight:900; line-height:1; padding:2px 5px; white-space:nowrap; border-radius:0 0 6px 6px; background:#ff5a36; color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.5); pointer-events:none; }
   .card.big{ border-width:4px; border-radius:14px; cursor:default; }
   .card.big::after{ inset:3px; border-radius:9px; }
   .card.big .lab{ font-size:1rem; padding:4px 0 5px; }
@@ -263,7 +266,7 @@
   var HUMAN = 0, CPU = 1, ROUNDS = 4, CPU_CAREFUL = true;
   var GAME_URL = 'https://kanae-project.github.io/syomona-games/games/011-card-battler-ken2/';
   var match = { round: 1, total: [0, 0] };
-  var R = null, ultraChar = 0, state = 'idle', selected = null, newIdx = null, stealUsed = false, handOrder = [];
+  var R = null, ultraChar = 0, state = 'idle', selected = null, newIdx = null, stealUsed = false, handOrder = [], reachAnnounced = false;
   var logLines = [], resolveHuman = null, resolveRon = null;
   var $ = function(id){ return document.getElementById(id); };
   var sleep = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
@@ -307,6 +310,15 @@
     return arr;
   }
 
+  // 待ち札の説明（見えていない残り枚数つき）
+  function waitText(list){
+    var SHORT = ['ドラゴン', 'ナイト', 'スライム'];
+    return list.map(function(id){
+      var nm = id === E.ULTRA ? '涅槃' : SHORT[E.charOf(id)] + E.TIER_NAMES[E.kOf(id)];
+      return nm + '(残' + Math.max(E.unseenCount(R, HUMAN, id), 0) + ')';
+    }).join(' ・ ');
+  }
+
   // ---------- 描画 ----------
   function setMsg(t){ $('msg').textContent = t; }
   function addLog(t){ logLines.push(t); if (logLines.length > 2) logLines.shift(); $('log').innerHTML = logLines.map(function(l){ return '・' + l; }).join('<br>'); }
@@ -329,20 +341,37 @@
     var ten = E.total(R.p[HUMAN].h, R.p[HUMAN].w) >= 10;
     var need = 9 - lay.matched, spareDark = 0;
     for (var q = 0; q < 21; q++) if (E.isDark(q)) spareDark += lay.left[q];
-    var hb = $('hintBar');
+    var hb = $('hintBar'), hintBase;
     if (state === 'humanTurn' && ten) {
-      hb.innerHTML = (need === 0 ? '✨ <b>上がれます！</b>「殲滅！」を押そう' : '上がりまで <b>あと' + need + '枚</b>（枠で囲まれた札＝つながっている札。枠の外は今使っていない札）')
-        + '<br>🌑 余りダーク <b>' + spareDark + '/3</b>' + (spareDark >= 3 ? ' → <b>ダーク略奪できる！</b>' : '（3枚たまると略奪できる）');
-    } else { hb.innerHTML = state === 'ronPrompt' ? '' : '相手の番です…'; }
+      hintBase = (need === 0 ? '✨ <b>上がれます！</b>「殲滅！」を押そう' : '上がりまで <b>あと' + need + '枚</b>')
+        + '　🌑 余りダーク <b>' + spareDark + '/3</b>' + (spareDark >= 3 ? ' → <b>略奪OK！</b>' : '');
+    } else { hintBase = state === 'ronPrompt' ? '' : '相手の番です…'; }
     handOrder = [];
     lay.groups.forEach(function(g){ g.cards.forEach(function(id){ handOrder.push(id); }); });
     lay.singles.forEach(function(id){ handOrder.push(id); });
+    // リーチ（あと1枚で上がり）の案内
+    var reachMap = null, reachHtml = '', meP = R.p[HUMAN];
+    if (state === 'humanTurn' && ten) {
+      if (need !== 0) {
+        reachMap = {}; var anyReach = false;
+        handOrder.forEach(function(id){ if (reachMap[id] === undefined) { reachMap[id] = E.discardWaits(meP.h, meP.w, id); if (reachMap[id].length) anyReach = true; } });
+        var sid = selected !== null ? handOrder[selected] : null;
+        if (sid !== null && reachMap[sid]) {
+          reachHtml = reachMap[sid].length ? '<br>🔥 <b>捨てるとリーチ！</b> 待ち：' + waitText(reachMap[sid]) : '<br>これを捨ててもリーチにはなりません';
+        } else if (anyReach) { reachHtml = '<br>💡 <b>リーチ</b>印の札を捨てるとリーチ（あと1枚で上がり）'; }
+      }
+    } else if (E.total(meP.h, meP.w) === 9) {
+      var wl = E.waits(meP.h, meP.w);
+      if (wl.length) reachHtml = (hintBase && hintBase !== '相手の番です…' ? '' : '') + '🔥 <b>リーチ中！</b> 待ち：' + waitText(wl);
+    }
+    hb.innerHTML = (state !== 'humanTurn' && reachHtml) ? reachHtml : hintBase + reachHtml;
     var freshIdx = -1;
     if (newIdx !== null) { for (var j = handOrder.length - 1; j >= 0; j--) if (handOrder[j] === newIdx) { freshIdx = j; break; } }
     var pos = 0;
     function mk(id){
       var idx = pos++, c = cardEl(id);
       if (idx === freshIdx) c.classList.add('fresh');
+      if (reachMap && reachMap[id] && reachMap[id].length) c.classList.add('reach');
       if (selected !== null && idx === selected) c.classList.add('selected');
       c.addEventListener('click', function(){
         if (state !== 'humanTurn') return;
@@ -424,7 +453,7 @@
   async function startRound(){
     ultraChar = Math.floor(rngFn() * 3);
     R = E.createRound({ rng: rngFn, first: (match.round - 1) % 2 });
-    selected = null; newIdx = null; stealUsed = false; logLines = []; $('log').innerHTML = '';
+    selected = null; newIdx = null; stealUsed = false; reachAnnounced = false; logLines = []; $('log').innerHTML = '';
     state = 'idle'; render();
     setMsg('第' + match.round + '局スタート！ ' + (R.turn === HUMAN ? 'あなたの先攻' : '相手の先攻'));
     addLog('今回の涅槃は「' + E.CHARS[ultraChar].name + '」');
@@ -465,6 +494,9 @@
       await showFlash('討伐！', '相手に上がられた…', 1400);
       endRound(CPU, 'ron', E.takeForRon(R, CPU)); return 'ended';
     }
+    var wl2 = E.waits(R.p[HUMAN].h, R.p[HUMAN].w);
+    if (wl2.length && !reachAnnounced) { reachAnnounced = true; await showFlash('リーチ！', '待ち：' + waitText(wl2), 1800); }
+    else if (!wl2.length) { reachAnnounced = false; }
     return 'ok';
   }
 
@@ -564,9 +596,9 @@
     } else {
       match.total[winner] += score.total;
       html += '<p style="font-size:1.05rem;font-weight:900">' + (winner === HUMAN ? 'あなたの勝ち！' : '相手の勝ち…') + '（' + (how === 'ron' ? '討伐' : '殲滅') + '）</p>';
-      var p = R.p[winner], ids = sortedIds(p);
       html += '<div class="hand-show" id="winHand"></div>';
-      html += '<div class="yaku"><div class="row"><span>基本点</span><span>' + score.base + '</span></div>';
+      html += '<div class="legend">金色の枠＝上がりに使った3枚組（点数は各組のクラス合計）<br>点線の枠＝使わなかった余りの札</div>';
+      html += '<div class="yaku"><div class="row"><span>基本点（3組の合計）</span><span>' + score.base + '</span></div>';
       score.yaku.forEach(function(y){ html += '<div class="row"><span>' + y.name + '</span><span>+' + y.bonus + '</span></div>'; });
       html += '<div class="row total"><span>合計</span><span>' + score.total + '点</span></div></div>';
     }
@@ -575,13 +607,18 @@
     var m = showModal(html);
     if (winner !== null) {
       var box = m.box.querySelector('#winHand');
-      var wp = R.p[winner], spare = E.bestCover(wp.h, wp.w).left.slice(), spareW = E.bestCover(wp.h, wp.w).wLeft;
-      sortedIds(wp).forEach(function(id){
-        var c = cardEl(id, { mini: true });
-        if (id === E.ULTRA ? spareW > 0 : spare[id] > 0) { if (id === E.ULTRA) spareW--; else spare[id]--; c.style.opacity = '.35'; c.title += '（余り）'; }
-        box.appendChild(c);
+      score.groups.forEach(function(g){
+        var f = document.createElement('div'); f.className = 'grp';
+        f.setAttribute('data-label', (g.kind === 'stair' ? '階段' : '3きょうだい') + ' ' + g.points + '点');
+        g.cards.forEach(function(id){ f.appendChild(cardEl(id, { mini: true })); });
+        box.appendChild(f);
       });
-      box.insertAdjacentHTML('afterend', '<p style="font-size:.7rem;opacity:.7;margin:0">※ 薄い札は上がりに使わなかった余り</p>');
+      if (score.spare.length) {
+        var sp = document.createElement('div'); sp.className = 'grp partial';
+        sp.setAttribute('data-label', '余り');
+        score.spare.forEach(function(id){ var c = cardEl(id, { mini: true }); c.style.opacity = '.55'; sp.appendChild(c); });
+        box.appendChild(sp);
+      }
     }
     setMsg(winner === null ? '流局' : (winner === HUMAN ? '殲滅成功！' : '殲滅されてしまった…'));
     m.box.querySelector('#nextBtn').addEventListener('click', function(){
@@ -635,6 +672,7 @@
     + '<p class="small">系統（素・光・闇）が違うとNG。素だけ、光だけ、闇だけでそろえます。</p>'
     + '<h4>🌈 涅槃（ねはん）</h4><p>山札に<b>1枚だけ</b>入っている特別なカード。<b>どのカードの代わりにもなれる</b>万能札で、点数は5点です。</p>'
     + '<h4>⚔️ 討伐！（ロン）</h4><p>相手が捨てた札で自分が上がれるとき、<b>「討伐！」</b>ボタンが光ります。押すとその札をもらって上がり！</p>'
+    + '<h4>🔥 リーチ</h4><p>あと1枚で上がれる状態を<b>リーチ</b>といいます。捨てる札を選ぶと「これを捨てるとリーチ！」と<b>待ち札</b>（見えていない残り枚数つき）を教えます。<b>リーチ</b>印の札を捨てるとリーチになります。待ち札が山から来れば<b>殲滅！</b>、相手が捨てれば<b>討伐！</b>です。</p>'
     + '<h4>🌑 ダーク略奪</h4><p>手札の中に「<b>上がりに使わない闇カード</b>」が<b>3枚</b>たまったら、「ダーク略奪」ボタンが光ります。3枚をささげて、<b>相手の捨て札から好きな1枚</b>を奪えます（捨て札が無ければ相手の手札からランダム）。その後、山から2枚補充。1ターンに1回まで。</p>'
     + '<h4>💯 点数</h4><p>基本点＝上がりに使った9枚のクラス合計。<br>素＝1／光1・闇1＝2／光2・闇2＝3／光3・闇3＝4／涅槃＝5<br>これに役のボーナスが加わります。</p>'
     + '<table><tr><td>涅槃入り</td><td>+3</td></tr><tr><td>階段×3（3組すべて階段）</td><td>+3</td></tr><tr><td>光系（闇なし。素はOK）</td><td>+3</td></tr><tr><td>3きょうだい×3</td><td>+6</td></tr><tr><td>闇系（光なし。素はOK）</td><td>+6</td></tr><tr><td>光一色／同キャラ一色</td><td>+10</td></tr><tr><td>闇一色</td><td>+12</td></tr><tr><td>同クラス一色</td><td>+15</td></tr></table>'

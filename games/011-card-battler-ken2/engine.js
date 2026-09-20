@@ -140,6 +140,31 @@
     return { groups: groups, singles: singles.concat(rest), matched: cv.m, left: cv.left, wLeft: cv.wLeft };
   }
 
+  // リーチ（テンパイ）: 9枚の手札に足すと上がれる札の一覧（涅槃も含む）
+  function waits(counts, w) {
+    var res = [], c = counts.slice(), id;
+    for (id = 0; id < 21; id++) {
+      c[id]++;
+      if (bestCover(c, w).m === 9) res.push(id);
+      c[id]--;
+    }
+    if (bestCover(c, w + 1).m === 9) res.push(ULTRA);
+    return res;
+  }
+  // 10枚の手札から id を捨てた後の待ち札
+  function discardWaits(counts, w, id) {
+    var c = counts.slice(), ww = w;
+    if (id === ULTRA) ww--; else c[id]--;
+    return waits(c, ww);
+  }
+  // 自分から見えていない残り枚数（山札＋相手の手札にある枚数）
+  function unseenCount(r, pi, id) {
+    var me = r.p[pi], op = r.p[1 - pi], seen = 0;
+    [me.disc, op.disc, me.spent].forEach(function (list) { list.forEach(function (x) { if (x === id) seen++; }); });
+    seen += (id === ULTRA) ? me.w : me.h[id];
+    return (id === ULTRA ? 1 : COPIES) - seen;
+  }
+
   function total(counts, w) {
     var n = w;
     for (var i = 0; i < 21; i++) n += counts[i];
@@ -193,8 +218,24 @@
       if (kinds.every(function (k) { return k === 'stair'; })) ys.push('stair3');
       if (miss > 0) ys.push('nehan');
       var bonus = ys.reduce(function (s, y) { return s + YAKU[y].bonus; }, 0);
-      var res = { base: base, bonus: bonus, total: base + bonus, yaku: ys.map(function (y) { return { id: y, name: YAKU[y].name, bonus: YAKU[y].bonus }; }) };
+      var res = { base: base, bonus: bonus, total: base + bonus, idx: idx.slice(), yaku: ys.map(function (y) { return { id: y, name: YAKU[y].name, bonus: YAKU[y].bonus }; }) };
       if (!best || res.total > best.total) best = res;
+    }
+    if (best) {
+      // 採用した3組の中身（涅槃は足りない位置に入れる）と、使わなかった余り札
+      var avail = counts.slice(), wildLeft = w, groups = [];
+      best.idx.forEach(function (t) {
+        var cards = [], pts = 0;
+        TEMPLATES[t].cards.forEach(function (x) {
+          if (avail[x] > 0) { avail[x]--; cards.push(x); pts += CLASS_OF[kOf(x)]; }
+          else { wildLeft--; cards.push(ULTRA); pts += 5; }
+        });
+        groups.push({ cards: cards, kind: TEMPLATES[t].kind, points: pts, full: true });
+      });
+      var spare = [], q;
+      for (q = 0; q < 21; q++) for (var n2 = 0; n2 < avail[q]; n2++) spare.push(q);
+      for (q = 0; q < wildLeft; q++) spare.push(ULTRA);
+      best.groups = groups; best.spare = spare;
     }
     return best;
   }
@@ -363,7 +404,7 @@
     HAND_SIZE: HAND_SIZE, STEAL_COST: STEAL_COST, TEMPLATES: TEMPLATES, YAKU: YAKU,
     kOf: kOf, charOf: charOf, isDark: isDark, isLight: isLight, classOf: classOf,
     mulberry32: mulberry32, shuffle: shuffle,
-    bestCover: bestCover, layoutHand: layoutHand, isWinning: isWinning, spareDark: spareDark, scoreWin: scoreWin,
+    bestCover: bestCover, layoutHand: layoutHand, waits: waits, discardWaits: discardWaits, unseenCount: unseenCount, isWinning: isWinning, spareDark: spareDark, scoreWin: scoreWin,
     battleCompare: battleCompare,
     createRound: createRound, drawFor: drawFor, canTsumo: canTsumo, discard: discard, canRon: canRon,
     takeForRon: takeForRon, canSteal: canSteal, stealChoices: stealChoices, steal: steal,
