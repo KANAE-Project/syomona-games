@@ -590,14 +590,100 @@
     max-width:340px;
     line-height:1.6;
   }
+
+  .help-link-btn{
+    display:block;
+    margin:0 auto 18px;
+    font-family:inherit;
+    cursor:pointer;
+    background:rgba(255,255,255,.7);
+    color:var(--accent-dark);
+    border:2px solid rgba(43,182,149,.35);
+    border-radius:999px;
+    font-size:.78rem;
+    font-weight:900;
+    padding:6px 16px;
+    transition:transform .15s ease;
+  }
+  .help-link-btn:active{ transform:scale(.96); }
+
+  /* ==== 使い方 画面 ==== */
+  .help-section{ margin-bottom:16px; }
+  .help-section h3{ font-size:.9rem; margin:0 0 4px; color:var(--accent-dark); }
+  .help-section p{ font-size:.82rem; line-height:1.7; opacity:.85; margin:0; }
+
+  /* ==== 初回チュートリアル（オーバーレイ） ==== */
+  .tutorial-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(20,50,42,.55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:100;
+  }
+  .tutorial-card{
+    width:100%;
+    max-width:360px;
+    background:var(--card);
+    border-radius:20px;
+    padding:26px 22px 20px;
+    text-align:center;
+    box-shadow:0 12px 30px rgba(0,0,0,.25);
+  }
+  .tutorial-dots{ display:flex; justify-content:center; gap:6px; margin-bottom:14px; }
+  .tutorial-dots .tdot{
+    width:7px; height:7px; border-radius:999px;
+    background:rgba(31,58,52,.18);
+  }
+  .tutorial-dots .tdot.on{ background:var(--accent); width:18px; }
+  .tutorial-card .tutorial-emoji{ font-size:2.4rem; margin-bottom:8px; }
+  .tutorial-card h2{ font-size:1.05rem; margin:0 0 10px; }
+  .tutorial-card p{ font-size:.85rem; line-height:1.7; opacity:.8; margin:0 0 20px; }
+  .tutorial-nav{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .tutorial-skip{
+    font-family:inherit; cursor:pointer; border:none; background:none;
+    color:var(--ink); opacity:.5; font-size:.78rem; font-weight:700; padding:8px;
+  }
+  .tutorial-next{
+    flex:1;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    background:var(--accent2);
+    color:#fff;
+    padding:12px 8px;
+    font-size:.9rem;
+    font-weight:900;
+    box-shadow:0 4px 0 var(--accent2-dark);
+    transition:transform .15s ease;
+  }
+  .tutorial-next:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent2-dark); }
 </style>
 </head>
 <body>
+
+<div id="tutorialOverlay" class="tutorial-overlay hidden">
+  <div class="tutorial-card">
+    <div class="tutorial-dots" id="tutorialDots"></div>
+    <div class="tutorial-emoji" id="tutorialEmoji">🛍️</div>
+    <h2 id="tutorialTitle"></h2>
+    <p id="tutorialBody"></p>
+    <div class="tutorial-nav">
+      <button type="button" id="tutorialSkipBtn" class="tutorial-skip">スキップ</button>
+      <button type="button" id="tutorialNextBtn" class="tutorial-next">次へ</button>
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
   <a href="../" class="back-link">← ジミベン トップに戻る</a>
   <h1>ループする買い物リスト</h1>
   <div class="tagline-wrap"><span class="tagline">地味に便利ツールズ</span></div>
   <div class="sub">いつもの買い物をタップするだけ。今日のリストがすぐできる</div>
+  <button type="button" id="helpBtn" class="help-link-btn">❓ 使い方を見る</button>
 
   <div class="stage">
 
@@ -695,6 +781,38 @@
         <p>全部カゴに入った！お疲れさまでした</p>
       </div>
       <button type="button" id="backToMainBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== 使い方 画面 ==== -->
+    <div id="helpScreen" class="hidden">
+      <div class="today-header">
+        <h2>❓ 使い方</h2>
+        <p>迷ったらここを見てね</p>
+      </div>
+
+      <div class="help-section">
+        <h3>① いつもの買い物を登録</h3>
+        <p>下の「＋アイテム追加」で絵文字と名前を入れて登録するか、「📋 候補から選んで追加」でたくさんの候補からタップして選ぶだけ。</p>
+      </div>
+      <div class="help-section">
+        <h3>② タップで「今日必要」に</h3>
+        <p>登録したボタンをタップすると色が変わって、今日買うものに追加されるよ。もう一度タップすると解除できる。</p>
+      </div>
+      <div class="help-section">
+        <h3>③ 🛒 今日のリストを見る</h3>
+        <p>チェックしたものだけを大きい一覧で表示。買い物中にタップすると🧺カゴに移動、全部カゴに入るとお祝い演出が出るよ。</p>
+      </div>
+      <div class="help-section">
+        <h3>④ ✏️ 編集する ／ 🔄 チェックをリセット</h3>
+        <p>「編集する」ボタンをONにすると各ボタンに✕が出て削除できる。買い物が終わったら「チェックをリセット」でチェックだけクリア、登録したボタンは消えないから次回もそのまま使えるよ。</p>
+      </div>
+      <div class="help-section">
+        <h3>🔒 データについて</h3>
+        <p>登録した内容はこの端末（ブラウザ）の中だけに保存されます。サーバーには送信・保存されません。</p>
+      </div>
+
+      <button type="button" id="replayTutorialBtn" class="candidate-open-btn">🔰 チュートリアルをもう一度見る</button>
+      <button type="button" id="backFromHelpBtn" class="back-inline">← 一覧に戻る</button>
     </div>
 
   </div>
@@ -1636,7 +1754,72 @@
     renderMain();
   });
 
+  // ==== 使い方 画面 ====
+  const helpScreen = document.getElementById("helpScreen");
+  document.getElementById("helpBtn").addEventListener("click", function(){
+    mainScreen.classList.add("hidden");
+    helpScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromHelpBtn").addEventListener("click", function(){
+    helpScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+  });
+
+  // ==== 初回チュートリアル（オーバーレイ） ====
+  const TUTORIAL_KEY = "kaimono_loop_tutorial_seen_v1";
+  const TUTORIAL_STEPS = [
+    { emoji:"🛍️", title:"「ループする買い物リスト」へようこそ",
+      body:"いつもの買い物をボタンとして登録しておけば、出かける前にタップするだけで今日のリストが完成するよ。" },
+    { emoji:"👆", title:"タップで「今日必要」に",
+      body:"メイン画面のボタンをタップすると色が変わって、今日買うものに追加されるよ。" },
+    { emoji:"🛒", title:"今日のリストを見る",
+      body:"上の「🛒 今日のリストを見る」ボタンで、チェックしたものだけのリストを表示。買ったらタップして🧺カゴへ移そう。" },
+    { emoji:"🔄", title:"次回に備えてリセット",
+      body:"買い物が終わったら「🔄 チェックをリセット」でチェックだけクリア。登録したボタンは消えないよ。迷ったら「❓ 使い方」でいつでも見返せる。" }
+  ];
+  let tutorialStep = 0;
+  const tutorialOverlay = document.getElementById("tutorialOverlay");
+  const tutorialDots = document.getElementById("tutorialDots");
+  const tutorialEmoji = document.getElementById("tutorialEmoji");
+  const tutorialTitle = document.getElementById("tutorialTitle");
+  const tutorialBody = document.getElementById("tutorialBody");
+  const tutorialNextBtn = document.getElementById("tutorialNextBtn");
+
+  function renderTutorial(){
+    const s = TUTORIAL_STEPS[tutorialStep];
+    tutorialEmoji.textContent = s.emoji;
+    tutorialTitle.textContent = s.title;
+    tutorialBody.textContent = s.body;
+    tutorialDots.innerHTML = TUTORIAL_STEPS.map(function(_, i){
+      return '<span class="tdot' + (i === tutorialStep ? ' on' : '') + '"></span>';
+    }).join("");
+    tutorialNextBtn.textContent = tutorialStep === TUTORIAL_STEPS.length - 1 ? "はじめる！" : "次へ";
+  }
+  function openTutorial(){
+    tutorialStep = 0;
+    renderTutorial();
+    tutorialOverlay.classList.remove("hidden");
+  }
+  function closeTutorial(){
+    tutorialOverlay.classList.add("hidden");
+    try{ localStorage.setItem(TUTORIAL_KEY, "1"); }catch(e){}
+  }
+  tutorialNextBtn.addEventListener("click", function(){
+    if(tutorialStep < TUTORIAL_STEPS.length - 1){
+      tutorialStep++;
+      renderTutorial();
+    }else{
+      closeTutorial();
+    }
+  });
+  document.getElementById("tutorialSkipBtn").addEventListener("click", closeTutorial);
+  document.getElementById("replayTutorialBtn").addEventListener("click", openTutorial);
+
   renderMain();
+
+  try{
+    if(!localStorage.getItem(TUTORIAL_KEY)) openTutorial();
+  }catch(e){}
 })();
 </script>
 </body>
