@@ -29,50 +29,6 @@
     --p4: #96751a; /* 字牌 */
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #12201a;
-      --surface: #182c24;
-      --surface-2: #20392f;
-      --ink: #ece6d6;
-      --ink-soft: #a49a82;
-      --border: #33473d;
-      --felt: #e0a94a;
-      --felt-soft: #eec27a;
-      --accent: #e2836b;
-      --accent-soft: #ea9c87;
-      --good: #7fa8d6;
-      --bad: #e2836b;
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-
-      --p1: #e2836b;
-      --p2: #7bc9a0;
-      --p3: #7fa8d6;
-      --p4: #d8b653;
-    }
-  }
-
-  :root[data-theme="dark"] {
-    --bg: #12201a;
-    --surface: #182c24;
-    --surface-2: #20392f;
-    --ink: #ece6d6;
-    --ink-soft: #a49a82;
-    --border: #33473d;
-    --felt: #e0a94a;
-    --felt-soft: #eec27a;
-    --accent: #e2836b;
-    --accent-soft: #ea9c87;
-    --good: #7fa8d6;
-    --bad: #e2836b;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-
-    --p1: #e2836b;
-    --p2: #7bc9a0;
-    --p3: #7fa8d6;
-    --p4: #d8b653;
-  }
-
   * { box-sizing: border-box; }
 
   body {
@@ -127,10 +83,6 @@
     margin-top: 20px;
     box-shadow: 0 4px 0 var(--accent);
   }
-  :root[data-theme="dark"] .back-link-btn { color: #1c1712; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .back-link-btn { color: #1c1712; }
-  }
   .back-link-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--accent); }
 
   /* ---- usage notice ---- */
@@ -162,16 +114,6 @@
     border-radius: 16px;
     color: var(--ink);
     box-shadow: var(--shadow);
-  }
-  :root[data-theme="dark"] header.hero {
-    background: linear-gradient(135deg, var(--felt), var(--felt-soft));
-    color: #1c1712;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) header.hero {
-      background: linear-gradient(135deg, var(--felt), var(--felt-soft));
-      color: #1c1712;
-    }
   }
   header.hero .tile {
     font-size: 34px;
@@ -354,10 +296,6 @@
     padding: 10px 18px;
     border-radius: 9px;
     cursor: pointer;
-  }
-  :root[data-theme="dark"] button.primary { color: #0f1c16; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) button.primary { color: #0f1c16; }
   }
   button:hover { transform: translateY(-1px); }
   button:active { transform: translateY(0); }
