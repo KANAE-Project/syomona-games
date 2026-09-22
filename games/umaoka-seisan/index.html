@@ -238,6 +238,57 @@
   .player-card .pt-value.neg { color: var(--bad); }
   .player-card .payout { font-size: 13px; color: var(--ink-soft); }
 
+  /* ---- チップ精算(対局のpt計算とは別枠の水色ブロック) ---- */
+  .chips-block {
+    background: #e3f2f7;
+    border: 1px solid #a9d2e0;
+    border-radius: 16px;
+    padding: 16px 18px;
+  }
+  .chips-block summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .chips-block summary::-webkit-details-marker { display: none; }
+  .chips-summary-main { display: flex; flex-direction: column; gap: 2px; }
+  .chips-summary-main h2 { font-size: 18px; color: #1b6a86; }
+  .chips-toggle-icon {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #cdeaf3;
+    color: #1b6a86;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .chips-toggle-icon::before { content: "+"; }
+  .chips-block[open] .chips-toggle-icon::before { content: "\2212"; }
+  .chips-panel {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .chip-amount-value {
+    display: inline-block;
+    font-size: 22px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    padding: 3px 14px;
+    border-radius: 10px;
+    border: 2px solid currentColor;
+  }
+  .chip-amount-value.pos { color: var(--good); }
+  .chip-amount-value.neg { color: var(--bad); }
+
   .player-card .breakdown {
     display: flex;
     flex-wrap: wrap;
@@ -551,28 +602,35 @@
 
   <!-- チップ精算 -->
   <section aria-labelledby="chips-h">
-    <div class="section-head">
-      <h2 id="chips-h">チップ精算(全対局終了後)</h2>
-      <span class="note">次回入力時も保持されます</span>
-    </div>
-    <div class="card settings-grid">
-      <div class="field">
-        <label for="chipStart">開始チップ(枚・全員共通)</label>
-        <input type="number" id="chipStart" value="20" step="1" min="0">
+    <details class="chips-block">
+      <summary class="chips-summary">
+        <span class="chips-summary-main">
+          <h2 id="chips-h">チップ精算(全対局終了後)</h2>
+          <span class="note">対局のpt計算とは別枠です・次回入力時も保持されます</span>
+        </span>
+        <span class="chips-toggle-icon" aria-hidden="true"></span>
+      </summary>
+      <div class="chips-panel">
+        <div class="card settings-grid">
+          <div class="field">
+            <label for="chipStart">開始チップ(枚・全員共通)</label>
+            <input type="number" id="chipStart" value="20" step="1" min="0">
+          </div>
+          <div class="field">
+            <label for="chipValue">チップ単価(円/枚)</label>
+            <input type="number" id="chipValue" value="100" step="10" min="0">
+          </div>
+        </div>
+
+        <div class="players-grid" id="chipsGrid"></div>
+
+        <div class="totals-banner" id="chipTotalsCheck"></div>
+
+        <div class="actions">
+          <button class="ghost" id="clearChipsBtn" type="button">チップ枚数をクリア</button>
+        </div>
       </div>
-      <div class="field">
-        <label for="chipValue">チップ単価(円/枚)</label>
-        <input type="number" id="chipValue" value="100" step="10" min="0">
-      </div>
-    </div>
-
-    <div class="players-grid" id="chipsGrid"></div>
-
-    <div class="totals-banner" id="chipTotalsCheck"></div>
-
-    <div class="actions">
-      <button class="ghost" id="clearChipsBtn" type="button">チップ枚数をクリア</button>
-    </div>
+    </details>
   </section>
 
   <!-- グレードアップ -->
@@ -895,7 +953,7 @@
         '</div>' +
         '<div class="result-row">' +
           '<span>チップ精算</span>' +
-          '<span><span class="pt-value" id="chipAmount' + i + '">-</span></span>' +
+          '<span><span class="chip-amount-value" id="chipAmount' + i + '">-</span></span>' +
         '</div>';
       chipsGrid.appendChild(card);
       var val = state.chips && state.chips[i] != null ? state.chips[i] : "";
@@ -948,12 +1006,12 @@
       if (!r) {
         diffEl.textContent = "-";
         amtEl.textContent = "-";
-        amtEl.className = "pt-value";
+        amtEl.className = "chip-amount-value";
         continue;
       }
       diffEl.textContent = (r.diff > 0 ? "+" : "") + r.diff.toLocaleString("ja-JP") + "枚";
-      amtEl.textContent = (r.amount > 0 ? "+" : "") + r.amount.toLocaleString("ja-JP") + "円";
-      amtEl.className = "pt-value " + (r.amount > 0 ? "pos" : (r.amount < 0 ? "neg" : ""));
+      amtEl.textContent = (r.amount > 0 ? "+" : "") + r.amount.toLocaleString("ja-JP");
+      amtEl.className = "chip-amount-value " + (r.amount > 0 ? "pos" : (r.amount < 0 ? "neg" : ""));
     }
 
     if (!anyChip) {
