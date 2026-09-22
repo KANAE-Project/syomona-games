@@ -289,6 +289,44 @@
   .chip-amount-value.pos { color: var(--good); }
   .chip-amount-value.neg { color: var(--bad); }
 
+  /* ---- 精算額の枠囲み表示(対局履歴・最終合計で共通利用) ---- */
+  .amount-box {
+    display: inline-block;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    padding: 1px 10px;
+    border-radius: 8px;
+    border: 2px solid currentColor;
+  }
+  .amount-box.pos { color: var(--good); }
+  .amount-box.neg { color: var(--bad); }
+
+  /* ---- 最終合計(対局精算+チップ精算をまとめた緑ブロック) ---- */
+  .final-total-block {
+    background: #e6f4e6;
+    border: 1px solid #a9d9ad;
+    border-radius: 16px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .final-total-title { font-size: 16px; font-weight: 700; color: #2f7a3d; }
+  .final-total-rows { display: flex; flex-direction: column; }
+  .final-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px dashed #bcdcc0;
+  }
+  .final-total-row:first-child { border-top: none; }
+  .final-total-name { font-weight: 700; min-width: 70px; }
+  .final-total-detail { font-size: 12px; color: var(--ink-soft); flex: 1; }
+  .final-total-value { font-size: 20px; }
+
   .player-card .breakdown {
     display: flex;
     flex-wrap: wrap;
@@ -627,10 +665,16 @@
         <div class="totals-banner" id="chipTotalsCheck"></div>
 
         <div class="actions">
+          <button class="primary" id="combineChipsBtn" type="button">チップを合算する</button>
           <button class="ghost" id="clearChipsBtn" type="button">チップ枚数をクリア</button>
         </div>
       </div>
     </details>
+
+    <div class="final-total-block" id="finalTotalBlock" style="display:none">
+      <div class="final-total-title">最終合計(本日の対局精算 + チップ精算)</div>
+      <div class="final-total-rows" id="finalTotalRows"></div>
+    </div>
   </section>
 
   <!-- グレードアップ -->
@@ -836,6 +880,9 @@
   var chipsGrid = document.getElementById("chipsGrid");
   var chipTotalsCheckEl = document.getElementById("chipTotalsCheck");
   var clearChipsBtn = document.getElementById("clearChipsBtn");
+  var combineChipsBtn = document.getElementById("combineChipsBtn");
+  var finalTotalBlock = document.getElementById("finalTotalBlock");
+  var finalTotalRowsEl = document.getElementById("finalTotalRows");
   var playersGrid = document.getElementById("playersGrid");
   var totalsCheckEl = document.getElementById("totalsCheck");
   var recordBtn = document.getElementById("recordBtn");
@@ -1045,6 +1092,52 @@
     renderChips();
   });
 
+  // 本日分の対局履歴を名前ごとに集計(グレードアップ未解除・記録なしの場合は空)
+  function computeTodayHistoryTotals() {
+    var now = new Date();
+    var todayKey = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
+    var groups = groupHistoryByDate(state.history);
+    var todayGroup = null;
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i].key === todayKey) { todayGroup = groups[i]; break; }
+    }
+    var byName = {};
+    if (todayGroup) {
+      computeDaySummary(todayGroup.records).forEach(function (s) { byName[s.name] = s; });
+    }
+    return byName;
+  }
+
+  function renderFinalTotal() {
+    var chipStart = Number(chipStartEl.value) || 0;
+    var chipValue = Number(chipValueEl.value) || 0;
+    var todayTotals = computeTodayHistoryTotals();
+    var chipCounts = [0, 1, 2, 3].map(function (i) {
+      var v = document.getElementById("chip" + i).value;
+      return v === "" ? null : Number(v);
+    });
+    var chipResults = computeChipResults(chipCounts, chipStart, chipValue);
+
+    var rowsHtml = [0, 1, 2, 3].map(function (i) {
+      var nameEl = document.getElementById("name" + i);
+      var name = (nameEl && nameEl.value.trim()) || ("プレイヤー" + (i + 1));
+      var gamePayout = todayTotals[name] ? todayTotals[name].payoutSum : 0;
+      var chipAmount = chipResults[i] ? chipResults[i].amount : 0;
+      var total = gamePayout + chipAmount;
+      var cls = total > 0 ? "pos" : (total < 0 ? "neg" : "");
+      return '<div class="final-total-row">' +
+        '<span class="final-total-name">' + escapeHtml(name) + '</span>' +
+        '<span class="final-total-detail">対局' + fmtSettlePt(gamePayout) + ' + チップ' + fmtSettlePt(chipAmount) + '</span>' +
+        '<span class="amount-box final-total-value ' + cls + '">' + fmtSettlePt(total) + '</span>' +
+      '</div>';
+    }).join("");
+
+    finalTotalRowsEl.innerHTML = rowsHtml;
+    finalTotalBlock.style.display = "flex";
+  }
+
+  combineChipsBtn.addEventListener("click", renderFinalTotal);
+
   function getCurrentSettings() {
     return {
       startPoints: Number(startPointsEl.value) || 0,
@@ -1142,6 +1235,10 @@
   function fmtSettlePt(v) {
     var r = Math.round(v);
     return (r > 0 ? "+" : "") + r.toLocaleString("ja-JP") + "円";
+  }
+  function fmtSettleBox(v) {
+    var cls = v > 0 ? "pos" : (v < 0 ? "neg" : "");
+    return '<span class="amount-box ' + cls + '">' + fmtSettlePt(v) + '</span>';
   }
   function fmtPoints(v) {
     return (v > 0 ? "+" : "") + v.toLocaleString("ja-JP") + "点";
@@ -1585,7 +1682,7 @@
           var rankStr = p.rankTop === p.rankBottom ? (p.rankTop + "位") : (p.rankTop + "〜" + p.rankBottom + "位");
           return '<div class="hi-row" style="--suit: var(--' + SUITS[i] + ')">' +
             '<span>' + escapeHtml(p.name) + ' <span style="color:var(--ink-soft)">(' + rankStr + ')</span></span>' +
-            '<span>' + p.score.toLocaleString("ja-JP") + '点 → ' + fmtPt(p.finalPt) + 'pt(精算' + fmtSettlePt(p.payout) + ')</span>' +
+            '<span>' + p.score.toLocaleString("ja-JP") + '点 → ' + fmtPt(p.finalPt) + 'pt(精算' + fmtSettleBox(p.payout) + ')</span>' +
           '</div>';
         }).join("");
 
@@ -1602,7 +1699,7 @@
         var summaryRowsHtml = summary.map(function (s) {
           return '<div class="day-summary-row"><span>' + escapeHtml(s.name) + '</span><span class="' +
             (s.ptSum > 0 ? "cell-pos" : (s.ptSum < 0 ? "cell-neg" : "")) + '">' +
-            fmtPt(s.ptSum) + 'pt(精算' + fmtSettlePt(s.payoutSum) + ')</span></div>';
+            fmtPt(s.ptSum) + 'pt(精算' + fmtSettleBox(s.payoutSum) + ')</span></div>';
         }).join("");
         summaryEl.innerHTML =
           '<div class="day-summary-title">この日の合計(' + group.records.length + '半荘)</div>' +
