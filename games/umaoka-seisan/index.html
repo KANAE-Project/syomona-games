@@ -291,10 +291,10 @@
     margin-right: 6px;
   }
   .player-card .rank-badge.first { background: var(--suit); color: var(--surface); }
-  .player-card .pt-value { font-size: 17px; font-weight: 700; }
+  .player-card .pt-value { font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .player-card .pt-value.pos { color: var(--good); }
   .player-card .pt-value.neg { color: var(--bad); }
-  .player-card .payout { font-size: 12.5px; color: var(--ink-soft); }
+  .player-card .payout { font-size: 13px; color: var(--ink-soft); }
 
   .player-card .breakdown {
     display: flex;
@@ -611,6 +611,32 @@
     </div>
   </section>
 
+  <!-- チップ精算 -->
+  <section aria-labelledby="chips-h">
+    <div class="section-head">
+      <h2 id="chips-h">チップ精算(全対局終了後)</h2>
+      <span class="note">次回入力時も保持されます</span>
+    </div>
+    <div class="card settings-grid">
+      <div class="field">
+        <label for="chipStart">開始チップ(枚・全員共通)</label>
+        <input type="number" id="chipStart" value="20" step="1" min="0">
+      </div>
+      <div class="field">
+        <label for="chipValue">チップ単価(円/枚)</label>
+        <input type="number" id="chipValue" value="100" step="10" min="0">
+      </div>
+    </div>
+
+    <div class="players-grid" id="chipsGrid"></div>
+
+    <div class="totals-banner" id="chipTotalsCheck"></div>
+
+    <div class="actions">
+      <button class="ghost" id="clearChipsBtn" type="button">チップ枚数をクリア</button>
+    </div>
+  </section>
+
   <!-- グレードアップ -->
   <section aria-labelledby="upgrade-h" id="upgradeSection">
     <div class="section-head">
@@ -750,8 +776,9 @@
     }
     if (!raw) {
       return {
-        settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50 },
+        settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50, chipStart: 20, chipValue: 100 },
         players: ["", "", "", ""],
+        chips: [null, null, null, null],
         history: []
       };
     }
@@ -759,12 +786,14 @@
       var parsed = JSON.parse(raw);
       if (!parsed.settings) parsed.settings = {};
       if (!parsed.players) parsed.players = ["", "", "", ""];
+      if (!parsed.chips) parsed.chips = [null, null, null, null];
       if (!parsed.history) parsed.history = [];
       return parsed;
     } catch (e) {
       return {
-        settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50 },
+        settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50, chipStart: 20, chipValue: 100 },
         players: ["", "", "", ""],
+        chips: [null, null, null, null],
         history: []
       };
     }
@@ -806,6 +835,11 @@
   var umaPresetEl = document.getElementById("umaPreset");
   var okaEnabledEl = document.getElementById("okaEnabled");
   var rateEl = document.getElementById("rate");
+  var chipStartEl = document.getElementById("chipStart");
+  var chipValueEl = document.getElementById("chipValue");
+  var chipsGrid = document.getElementById("chipsGrid");
+  var chipTotalsCheckEl = document.getElementById("chipTotalsCheck");
+  var clearChipsBtn = document.getElementById("clearChipsBtn");
   var playersGrid = document.getElementById("playersGrid");
   var totalsCheckEl = document.getElementById("totalsCheck");
   var recordBtn = document.getElementById("recordBtn");
@@ -835,6 +869,8 @@
   umaPresetEl.value = state.settings.umaPreset || "5-10";
   okaEnabledEl.checked = state.settings.oka !== false;
   rateEl.value = state.settings.rate != null ? state.settings.rate : 50;
+  chipStartEl.value = state.settings.chipStart != null ? state.settings.chipStart : 20;
+  chipValueEl.value = state.settings.chipValue != null ? state.settings.chipValue : 100;
 
   function persistSettings() {
     state.settings = {
@@ -842,13 +878,19 @@
       returnPoints: Number(returnPointsEl.value) || 0,
       umaPreset: umaPresetEl.value,
       oka: okaEnabledEl.checked,
-      rate: Number(rateEl.value) || 0
+      rate: Number(rateEl.value) || 0,
+      chipStart: Number(chipStartEl.value) || 0,
+      chipValue: Number(chipValueEl.value) || 0
     };
     saveData();
   }
 
   [startPointsEl, returnPointsEl, umaPresetEl, okaEnabledEl, rateEl].forEach(function (el) {
     el.addEventListener("change", function () { persistSettings(); renderPlayers(); });
+  });
+
+  [chipStartEl, chipValueEl].forEach(function (el) {
+    el.addEventListener("change", function () { persistSettings(); renderChips(); });
   });
 
   // ---------- players input ----------
@@ -885,6 +927,7 @@
       document.getElementById("name" + i).addEventListener("input", function () {
         state.players = [0, 1, 2, 3].map(function (j) { return document.getElementById("name" + j).value; });
         saveData();
+        renderChips();
       });
       document.getElementById("score" + i).addEventListener("input", renderPlayers);
     }
@@ -895,6 +938,116 @@
       document.getElementById("score" + i).value = "";
     }
   }
+
+  // ---------- チップ精算 ----------
+  function buildChipCards() {
+    chipsGrid.innerHTML = "";
+    for (var i = 0; i < 4; i++) {
+      var card = document.createElement("div");
+      card.className = "card player-card";
+      card.style.setProperty("--suit", "var(--" + SUITS[i] + ")");
+      card.innerHTML =
+        '<span class="suit-tag" id="chipNameTag' + i + '">' + SUIT_LABELS[i] + '</span>' +
+        '<div class="field">' +
+          '<label for="chip' + i + '">持ちチップ(枚)</label>' +
+          '<input type="number" id="chip' + i + '" step="1" min="0" placeholder="20">' +
+        '</div>' +
+        '<div class="breakdown" id="chipBreakdown' + i + '">' +
+          '<span>差枚 <b id="chipDiff' + i + '">-</b></span>' +
+        '</div>' +
+        '<div class="result-row">' +
+          '<span>チップ精算</span>' +
+          '<span><span class="pt-value" id="chipAmount' + i + '">-</span></span>' +
+        '</div>';
+      chipsGrid.appendChild(card);
+      var val = state.chips && state.chips[i] != null ? state.chips[i] : "";
+      document.getElementById("chip" + i).value = val;
+      document.getElementById("chip" + i).addEventListener("input", function () {
+        state.chips = [0, 1, 2, 3].map(function (j) {
+          var v = document.getElementById("chip" + j).value;
+          return v === "" ? null : Number(v);
+        });
+        saveData();
+        renderChips();
+      });
+    }
+  }
+
+  function clearChipInputs() {
+    for (var i = 0; i < 4; i++) {
+      document.getElementById("chip" + i).value = "";
+    }
+    state.chips = [null, null, null, null];
+    saveData();
+  }
+
+  function computeChipResults(chipCounts, chipStart, chipValue) {
+    return chipCounts.map(function (c) {
+      if (c == null) return null;
+      var diff = c - chipStart;
+      return { chips: c, diff: diff, amount: diff * chipValue };
+    });
+  }
+
+  function renderChips() {
+    var chipStart = Number(chipStartEl.value) || 0;
+    var chipValue = Number(chipValueEl.value) || 0;
+    var chipCounts = [];
+    for (var i = 0; i < 4; i++) {
+      var nameEl = document.getElementById("name" + i);
+      var tag = document.getElementById("chipNameTag" + i);
+      if (tag) tag.textContent = (nameEl && nameEl.value.trim()) || ("プレイヤー" + (i + 1));
+      var raw = document.getElementById("chip" + i).value;
+      chipCounts.push(raw === "" ? null : Number(raw));
+    }
+    var anyChip = chipCounts.some(function (c) { return c != null; });
+    var results = computeChipResults(chipCounts, chipStart, chipValue);
+
+    for (var j = 0; j < 4; j++) {
+      var diffEl = document.getElementById("chipDiff" + j);
+      var amtEl = document.getElementById("chipAmount" + j);
+      var r = results[j];
+      if (!r) {
+        diffEl.textContent = "-";
+        amtEl.textContent = "-";
+        amtEl.className = "pt-value";
+        continue;
+      }
+      diffEl.textContent = (r.diff > 0 ? "+" : "") + r.diff.toLocaleString("ja-JP") + "枚";
+      amtEl.textContent = (r.amount > 0 ? "+" : "") + r.amount.toLocaleString("ja-JP") + "円";
+      amtEl.className = "pt-value " + (r.amount > 0 ? "pos" : (r.amount < 0 ? "neg" : ""));
+    }
+
+    if (!anyChip) {
+      chipTotalsCheckEl.innerHTML = "";
+      chipTotalsCheckEl.className = "totals-banner";
+      return;
+    }
+    var allEntered = chipCounts.every(function (c) { return c != null; });
+    if (!allEntered) {
+      chipTotalsCheckEl.innerHTML = "";
+      chipTotalsCheckEl.className = "totals-banner";
+      return;
+    }
+    var sum = chipCounts.reduce(function (a, b) { return a + b; }, 0);
+    var expected = chipStart * 4;
+    if (sum === expected) {
+      chipTotalsCheckEl.innerHTML = '<span class="dot"></span>合計 ' + sum.toLocaleString("ja-JP") + '枚 — 基準(' + expected.toLocaleString("ja-JP") + '枚)と一致しています';
+      chipTotalsCheckEl.className = "totals-banner show";
+    } else {
+      var diff2 = sum - expected;
+      var diffLabel2 = diff2 > 0
+        ? ('基準より ' + diff2.toLocaleString("ja-JP") + '枚多い')
+        : ('基準より ' + Math.abs(diff2).toLocaleString("ja-JP") + '枚少ない');
+      chipTotalsCheckEl.innerHTML = '<span class="dot"></span>合計 ' + sum.toLocaleString("ja-JP") + '枚(基準 ' + expected.toLocaleString("ja-JP") + '枚 / ' + diffLabel2 + ')';
+      chipTotalsCheckEl.className = "totals-banner show warn";
+    }
+  }
+
+  clearChipsBtn.addEventListener("click", function () {
+    clearChipInputs();
+    renderChips();
+  });
 
   function getCurrentSettings() {
     return {
@@ -919,8 +1072,18 @@
     return entries;
   }
 
+  // 旧・手計算シート(うまおかさん.xlsx シート2)と同じ丸め方: ROUND(pt-0.1, 0)
+  // (端数0.6以上で切り上げ、0.6未満で切り捨てという独自の基準。Excelの
+  //  ROUND は0から遠ざかる方向に丸めるため、負数側もそれに合わせる)
+  function roundHalfAwayFromZero(x) {
+    return x >= 0 ? Math.floor(x + 0.5) : Math.ceil(x - 0.5);
+  }
+  function roundPtLikeSheet(x) {
+    return roundHalfAwayFromZero(x - 0.1);
+  }
+
   // core calc: returns array aligned with input order,
-  // each: { rankTop, rankBottom, uma, oka, diffPt, finalPt, payout }
+  // each: { rankTop, rankBottom, uma, oka, diffPt, finalPtRaw, finalPt, payout, isResidual }
   function computeResults(entries, settings) {
     var n = entries.length;
     var scores = entries.map(function (e) { return e.score == null ? settings.returnPoints : e.score; });
@@ -936,7 +1099,7 @@
     var umaTable = UMA_PRESETS[settings.umaPreset] || UMA_PRESETS.none;
     var okaTotal = settings.oka ? ((settings.returnPoints - settings.startPoints) * n) / 1000 : 0;
 
-    return entries.map(function (e, idx) {
+    var raw = entries.map(function (e, idx) {
       var r = ranks[idx];
       var span = r.bottom - r.top + 1;
       var umaSum = 0;
@@ -945,19 +1108,44 @@
       var okaShare = (r.top === 1) ? okaTotal / span : 0;
       var diffPoints = scores[idx] - settings.returnPoints;
       var diffPt = diffPoints / 1000;
-      var finalPt = diffPt + umaAvg + okaShare;
-      var payout = finalPt * settings.rate;
-      return { rankTop: r.top, rankBottom: r.bottom, uma: umaAvg, oka: okaShare, diffPoints: diffPoints, diffPt: diffPt, finalPt: finalPt, payout: payout };
+      var finalPtRaw = diffPt + umaAvg + okaShare;
+      return { rankTop: r.top, rankBottom: r.bottom, uma: umaAvg, oka: okaShare, diffPoints: diffPoints, diffPt: diffPt, finalPtRaw: finalPtRaw };
+    });
+
+    // 1位(残差役)以外の3人はそれぞれ独立に丸め、1位は他3人の丸め後合計の
+    // 符号反転で決める。こうすると誰かの端数処理で合計が0円からズレる
+    // ことがなくなる(旧手計算シートと同じ考え方)。
+    var residualIdx = order[0];
+    var roundedSumOthers = 0;
+    var finalPt = new Array(n);
+    for (var idx2 = 0; idx2 < n; idx2++) {
+      if (idx2 === residualIdx) continue;
+      finalPt[idx2] = roundPtLikeSheet(raw[idx2].finalPtRaw);
+      roundedSumOthers += finalPt[idx2];
+    }
+    finalPt[residualIdx] = -roundedSumOthers;
+
+    return raw.map(function (rr, idx3) {
+      var pt = finalPt[idx3];
+      return {
+        rankTop: rr.rankTop, rankBottom: rr.rankBottom,
+        uma: rr.uma, oka: rr.oka,
+        diffPoints: rr.diffPoints, diffPt: rr.diffPt,
+        finalPtRaw: rr.finalPtRaw,
+        finalPt: pt,
+        payout: pt * settings.rate,
+        isResidual: idx3 === residualIdx
+      };
     });
   }
 
   function fmtPt(v) {
-    var s = v.toFixed(1);
-    return (v > 0 ? "+" : "") + s;
+    var r = Math.round(v);
+    return (r > 0 ? "+" : "") + r.toLocaleString("ja-JP");
   }
   function fmtSettlePt(v) {
     var r = Math.round(v);
-    return (r > 0 ? "+" : "") + r.toLocaleString("ja-JP") + "pt";
+    return (r > 0 ? "+" : "") + r.toLocaleString("ja-JP") + "円";
   }
   function fmtPoints(v) {
     return (v > 0 ? "+" : "") + v.toLocaleString("ja-JP") + "点";
@@ -1028,6 +1216,8 @@
 
   buildPlayerCards();
   renderPlayers();
+  buildChipCards();
+  renderChips();
 
   // ---------- upgrade (unlock) ----------
   function applyLockState() {
