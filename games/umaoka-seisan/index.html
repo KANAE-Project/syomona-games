@@ -238,6 +238,12 @@
   .player-card .pt-value.neg { color: var(--bad); }
   .player-card .payout { font-size: 13px; color: var(--ink-soft); }
 
+  #settleCard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
   /* ---- チップ精算(対局のpt計算とは別枠の水色ブロック) ---- */
   .chips-block {
     background: #e3f2f7;
@@ -326,6 +332,32 @@
   .final-total-name { font-weight: 700; min-width: 70px; }
   .final-total-detail { font-size: 12px; color: var(--ink-soft); flex: 1; }
   .final-total-value { font-size: 20px; }
+
+  /* ---- 本日の累計(対局精算のみをまとめた黄ブロック) ---- */
+  .today-total-block {
+    background: #fdf6e0;
+    border: 1px solid #e8d99a;
+    border-radius: 16px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .today-total-title { font-size: 16px; font-weight: 700; color: #9c7a1a; }
+  .today-total-rows { display: flex; flex-direction: column; }
+  .today-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px dashed #ecdfae;
+  }
+  .today-total-row:first-child { border-top: none; }
+  .today-total-name { font-weight: 700; min-width: 70px; }
+  .today-total-detail { font-size: 12px; color: var(--ink-soft); flex: 1; }
+  .today-total-value { font-size: 18px; }
 
   .player-card .breakdown {
     display: flex;
@@ -638,52 +670,13 @@
     </div>
   </section>
 
-  <!-- チップ精算 -->
-  <section aria-labelledby="chips-h">
-    <details class="chips-block">
-      <summary class="chips-summary">
-        <span class="chips-summary-main">
-          <h2 id="chips-h">チップ精算(全対局終了後)</h2>
-          <span class="note">対局のpt計算とは別枠です・次回入力時も保持されます</span>
-        </span>
-        <span class="chips-toggle-icon" aria-hidden="true"></span>
-      </summary>
-      <div class="chips-panel">
-        <div class="card settings-grid">
-          <div class="field">
-            <label for="chipStart">開始チップ(枚・全員共通)</label>
-            <input type="number" id="chipStart" value="20" step="1" min="0">
-          </div>
-          <div class="field">
-            <label for="chipValue">チップ単価(1枚あたり)</label>
-            <input type="number" id="chipValue" value="100" step="10" min="0">
-          </div>
-        </div>
-
-        <div class="players-grid" id="chipsGrid"></div>
-
-        <div class="totals-banner" id="chipTotalsCheck"></div>
-
-        <div class="actions">
-          <button class="primary" id="combineChipsBtn" type="button">チップを合算する</button>
-          <button class="ghost" id="clearChipsBtn" type="button">チップ枚数をクリア</button>
-        </div>
-      </div>
-    </details>
-
-    <div class="final-total-block" id="finalTotalBlock" style="display:none">
-      <div class="final-total-title">最終合計(本日の対局精算 + チップ精算)</div>
-      <div class="final-total-rows" id="finalTotalRows"></div>
-    </div>
-  </section>
-
-  <!-- グレードアップ -->
+  <!-- グレードアップ(1半荘の対局計算のみ無料。ここから下は課金エリア) -->
   <section aria-labelledby="upgrade-h" id="upgradeSection">
     <div class="section-head">
-      <h2 id="upgrade-h">グレードアップ(記録・成績機能)</h2>
+      <h2 id="upgrade-h">グレードアップ(チップ精算・記録・成績機能)</h2>
     </div>
     <div class="card upgrade-card" id="upgradeCardLocked">
-      <p>対局結果の記録・メンバー別成績集計・ポイント推移グラフは、グレードアップキーワードを入力すると使えるようになります。</p>
+      <p>チップ精算・最終合計・対局結果の記録・メンバー別成績集計・ポイント推移グラフ・対局履歴は、グレードアップキーワードを入力すると使えるようになります。</p>
       <div class="grade-price">🪙 ワンコイン500円</div>
       <a href="https://note.com/kanae_project/n/n40cb06092ece" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
       <div class="upgrade-input-row">
@@ -693,7 +686,63 @@
       <span class="msg" id="upgradeMsg" style="display:none"></span>
     </div>
     <div class="card upgrade-unlocked" id="upgradeCardUnlocked" style="display:none">
-      ✅ グレードアップ済みです。記録・成績機能をご利用いただけます。
+      ✅ グレードアップ済みです。チップ精算・記録・成績機能をご利用いただけます。
+    </div>
+  </section>
+
+  <!-- チップ・最終精算(課金エリア) -->
+  <section aria-labelledby="settle-h">
+    <div class="section-head">
+      <h2 id="settle-h">チップ・最終精算(全対局終了後)</h2>
+    </div>
+    <div id="settleCard">
+      <details class="chips-block">
+        <summary class="chips-summary">
+          <span class="chips-summary-main">
+            <h2 id="chips-h">チップ精算</h2>
+            <span class="note">対局のpt計算とは別枠です・次回入力時も保持されます</span>
+          </span>
+          <span class="chips-toggle-icon" aria-hidden="true"></span>
+        </summary>
+        <div class="chips-panel">
+          <div class="card settings-grid">
+            <div class="field">
+              <label for="chipStart">開始チップ(枚・全員共通)</label>
+              <input type="number" id="chipStart" value="20" step="1" min="0">
+            </div>
+            <div class="field">
+              <label for="chipValue">チップ単価(1枚あたり)</label>
+              <input type="number" id="chipValue" value="100" step="10" min="0">
+            </div>
+          </div>
+
+          <div class="players-grid" id="chipsGrid"></div>
+
+          <div class="totals-banner" id="chipTotalsCheck"></div>
+
+          <div class="actions">
+            <button class="ghost" id="clearChipsBtn" type="button">チップ枚数をクリア</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="today-total-block" id="todayTotalBlock">
+        <div class="today-total-title">本日の累計(対局精算のみ)</div>
+        <div class="today-total-rows" id="todayTotalRows"></div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="combineChipsBtn" type="button">チップを合算する</button>
+      </div>
+
+      <div class="final-total-block" id="finalTotalBlock" style="display:none">
+        <div class="final-total-title">最終合計(本日の対局精算 + チップ精算)</div>
+        <div class="final-total-rows" id="finalTotalRows"></div>
+      </div>
+    </div>
+    <div class="locked-placeholder" id="settleLocked">
+      <span class="lock-icon">🔒</span>
+      グレードアップすると、チップ精算・本日の累計・最終合計が使えるようになります。
     </div>
   </section>
 
@@ -883,6 +932,9 @@
   var combineChipsBtn = document.getElementById("combineChipsBtn");
   var finalTotalBlock = document.getElementById("finalTotalBlock");
   var finalTotalRowsEl = document.getElementById("finalTotalRows");
+  var todayTotalRowsEl = document.getElementById("todayTotalRows");
+  var settleCardEl = document.getElementById("settleCard");
+  var settleLockedEl = document.getElementById("settleLocked");
   var playersGrid = document.getElementById("playersGrid");
   var totalsCheckEl = document.getElementById("totalsCheck");
   var recordBtn = document.getElementById("recordBtn");
@@ -971,6 +1023,7 @@
         state.players = [0, 1, 2, 3].map(function (j) { return document.getElementById("name" + j).value; });
         saveData();
         renderChips();
+        renderTodayTotal();
       });
       document.getElementById("score" + i).addEventListener("input", renderPlayers);
     }
@@ -1106,6 +1159,24 @@
       computeDaySummary(todayGroup.records).forEach(function (s) { byName[s.name] = s; });
     }
     return byName;
+  }
+
+  function renderTodayTotal() {
+    var todayTotals = computeTodayHistoryTotals();
+    var rowsHtml = [0, 1, 2, 3].map(function (i) {
+      var nameEl = document.getElementById("name" + i);
+      var name = (nameEl && nameEl.value.trim()) || ("プレイヤー" + (i + 1));
+      var t = todayTotals[name];
+      var pt = t ? t.ptSum : 0;
+      var payout = t ? t.payoutSum : 0;
+      var cls = payout > 0 ? "pos" : (payout < 0 ? "neg" : "");
+      return '<div class="today-total-row">' +
+        '<span class="today-total-name">' + escapeHtml(name) + '</span>' +
+        '<span class="today-total-detail">' + fmtPt(pt) + 'pt</span>' +
+        '<span class="amount-box today-total-value ' + cls + '">' + fmtSettlePt(payout) + '</span>' +
+      '</div>';
+    }).join("");
+    todayTotalRowsEl.innerHTML = rowsHtml;
   }
 
   function renderFinalTotal() {
@@ -1311,12 +1382,15 @@
   renderPlayers();
   buildChipCards();
   renderChips();
+  renderTodayTotal();
 
   // ---------- upgrade (unlock) ----------
   function applyLockState() {
     if (unlocked) {
       upgradeCardLocked.style.display = "none";
       upgradeCardUnlocked.style.display = "flex";
+      settleCardEl.style.display = "";
+      settleLockedEl.style.display = "none";
       statsCardEl.style.display = "";
       statsLockedEl.style.display = "none";
       historyList.style.display = "";
@@ -1324,6 +1398,8 @@
     } else {
       upgradeCardLocked.style.display = "flex";
       upgradeCardUnlocked.style.display = "none";
+      settleCardEl.style.display = "none";
+      settleLockedEl.style.display = "block";
       statsCardEl.style.display = "none";
       statsLockedEl.style.display = "block";
       historyList.style.display = "none";
@@ -1348,9 +1424,10 @@
         unlocked = true;
         try { window.localStorage.setItem(UNLOCK_STORAGE_KEY, "1"); } catch (e) {}
         applyLockState();
+        renderTodayTotal();
         renderStats();
         renderHistory();
-        showUpgradeMsg("グレードアップしました。記録・成績機能をご利用いただけます。", "success");
+        showUpgradeMsg("グレードアップしました。チップ精算・記録・成績機能をご利用いただけます。", "success");
       } else {
         showUpgradeMsg("キーワードが正しくありません。", "error");
       }
@@ -1405,6 +1482,7 @@
     showMsg("記録しました。", "success");
     clearScoreInputs();
     renderPlayers();
+    renderTodayTotal();
     renderStats();
     renderHistory();
   }
@@ -1716,6 +1794,7 @@
         if (!window.confirm("この対局記録を削除します。元に戻せません。よろしいですか?")) return;
         state.history = state.history.filter(function (r) { return r.id !== id; });
         saveData();
+        renderTodayTotal();
         renderStats();
         renderHistory();
       });
@@ -1737,8 +1816,9 @@
   resetConfirmYes.addEventListener("click", function () {
     resetConfirm.className = "confirm-inline";
     state = {
-      settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50 },
+      settings: { startPoints: 25000, returnPoints: 30000, umaPreset: "5-10", oka: true, rate: 50, chipStart: 20, chipValue: 100 },
       players: ["", "", "", ""],
+      chips: [null, null, null, null],
       history: []
     };
     saveData();
@@ -1747,8 +1827,14 @@
     umaPresetEl.value = state.settings.umaPreset;
     okaEnabledEl.checked = state.settings.oka;
     rateEl.value = state.settings.rate;
+    chipStartEl.value = state.settings.chipStart;
+    chipValueEl.value = state.settings.chipValue;
+    finalTotalBlock.style.display = "none";
     buildPlayerCards();
     renderPlayers();
+    buildChipCards();
+    renderChips();
+    renderTodayTotal();
     renderStats();
     renderHistory();
   });
