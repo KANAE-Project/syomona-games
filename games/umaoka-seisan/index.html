@@ -655,7 +655,7 @@
             <input type="number" id="chipStart" value="20" step="1" min="0">
           </div>
           <div class="field">
-            <label for="chipValue">チップ単価(円/枚)</label>
+            <label for="chipValue">チップ単価(1枚あたり)</label>
             <input type="number" id="chipValue" value="100" step="10" min="0">
           </div>
         </div>
@@ -1234,7 +1234,7 @@
   }
   function fmtSettlePt(v) {
     var r = Math.round(v);
-    return (r > 0 ? "+" : "") + r.toLocaleString("ja-JP") + "円";
+    return (r > 0 ? "+" : "") + r.toLocaleString("ja-JP");
   }
   function fmtSettleBox(v) {
     var cls = v > 0 ? "pos" : (v < 0 ? "neg" : "");
