@@ -204,6 +204,35 @@
   .rules td{ padding:2px 4px; border-bottom:1px solid rgba(255,255,255,.12); }
   .rules td:last-child{ text-align:right; white-space:nowrap; color:var(--accent2); font-weight:900; }
   .rules .small{ font-size:.72rem; opacity:.75; }
+
+  /* ==== 試合開始の全画面演出 ==== */
+  .intro{ position:fixed; inset:0; z-index:70; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; cursor:pointer;
+    background:radial-gradient(circle at 50% 40%, #4a1a1a, #0d0606 82%); animation:flashIn .25s ease-out; }
+  .intro .in-big{ font-family:var(--tcg-font); font-size:3.4rem; font-weight:900; color:#fff; letter-spacing:.06em; padding:0 10px; line-height:1.25;
+    text-shadow:0 0 22px var(--accent), 0 0 6px #000; animation:fxPop .5s cubic-bezier(.2,1.4,.4,1); }
+  .intro .in-vs{ margin-top:22px; font-size:1.25rem; font-weight:900; color:var(--accent2); }
+  .intro .in-vs b{ font-size:2.4rem; color:#fff; margin:0 4px; }
+  .intro .in-sub{ margin-top:14px; font-size:.95rem; opacity:.85; }
+  .intro .in-face{ font-size:2.6rem; font-weight:900; margin-top:6px; animation:goShake .6s ease-out; }
+  .intro.go{ background:radial-gradient(circle at 50% 45%, #7a2a10, #150707 80%); }
+  .intro.go .in-big{ font-size:4rem; color:#ffe27a; text-shadow:0 0 28px #ff6a2a, 0 0 8px #000; animation:goShake .55s ease-out; }
+  @keyframes goShake{ 0%{ transform:scale(.3) rotate(-8deg); opacity:0; } 60%{ transform:scale(1.25) rotate(3deg); opacity:1; } 100%{ transform:scale(1) rotate(0); } }
+  .intro .in-tap{ position:absolute; bottom:22px; font-size:.7rem; opacity:.5; }
+
+  /* ==== ドロー演出（山札から飛んできて、めくれる） ==== */
+  .flyer{ width:100%; animation:drawFly .45s cubic-bezier(.2,.9,.3,1) both; }
+  .flipper{ position:relative; width:100%; aspect-ratio:3/4; transform-style:preserve-3d; animation:cardFlip .6s .5s ease-in-out both; }
+  .flip3d{ perspective:900px; }
+  .flipper .face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+  .flipper .face .card{ width:100%; height:100%; animation:none; }
+  .flipper .front{ transform:rotateY(180deg); }
+  .flipper .backface .card.back{ background:repeating-linear-gradient(45deg,#4a1c1c,#4a1c1c 8px,#5c2424 8px,#5c2424 16px); border-color:#c98a3a; display:flex; align-items:center; justify-content:center; }
+  .flipper .backface .card.back .pic{ font-size:3rem; opacity:.55; }
+  @keyframes drawFly{ from{ transform:translateY(58vh) scale(.3) rotate(-14deg); opacity:.15; } to{ transform:none; opacity:1; } }
+  @keyframes cardFlip{ from{ transform:rotateY(0); } to{ transform:rotateY(180deg); } }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+  .reveal.drawmode .rv-name, .reveal.drawmode .rv-sub{ animation:fadeUp .3s 1.05s both; }
+  .reveal.drawmode .rv-title{ font-size:2.4rem; animation:fxPop .45s cubic-bezier(.2,1.4,.4,1); }
   .note{ font-size:.7rem; opacity:.6; text-align:center; margin-top:12px; }
 </style>
 </head>
@@ -214,7 +243,7 @@
   <div class="subtitle">～お前のターンもある～</div>
 
   <div class="status">
-    <div>第<b id="stRound">1</b>/<span id="stRoundMax">4</span>局</div>
+    <div>第<b id="stRound">1</b>/<span id="stRoundMax">4</span>試合</div>
     <div class="sc">あなた <b id="stMe">0</b> － <b id="stCpu">0</b> 相手</div>
     <div>山札 <b id="stDeck">0</b></div>
   </div>
@@ -277,6 +306,7 @@
   var $ = function(id){ return document.getElementById(id); };
   var sleep = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
   var URLP = new URLSearchParams(location.search);
+  var SKIP_INTRO = !!URLP.get('nointro');
   var seed = URLP.get('seed'); // 開発用: ?seed=数字 で山札を固定
   var rngFn = seed ? E.mulberry32(+seed) : Math.random;
 
@@ -444,6 +474,30 @@
       $('layer').appendChild(o);
     });
   }
+  // ドロー演出: 山札から飛んできて、めくれて表になる
+  function drawCards(ids, sub){
+    return new Promise(function(res){
+      var o = document.createElement('div'); o.className = 'overlay reveal drawmode';
+      var w = ids.length === 1 ? '62%' : ids.length === 2 ? '42%' : '29%';
+      o.innerHTML = '<div class="rv-title">ドロー！</div><div class="rv-row"></div>'
+        + '<div class="rv-name">' + ids.map(function(id){ return cardName(id); }).join(' ／ ') + '</div>'
+        + (sub ? '<div class="rv-sub">' + sub + '</div>' : '') + '<div class="rv-tap">タップで閉じる</div>';
+      var row = o.querySelector('.rv-row');
+      ids.forEach(function(id, i){
+        var wrap = document.createElement('div'); wrap.className = 'flip3d'; wrap.style.width = w;
+        var fly = document.createElement('div'); fly.className = 'flyer'; fly.style.animationDelay = (i * 0.12) + 's';
+        var fl = document.createElement('div'); fl.className = 'flipper'; fl.style.animationDelay = (0.5 + i * 0.12) + 's';
+        var back = document.createElement('div'); back.className = 'face backface'; back.innerHTML = '<div class="card back big"><div class="pic">？</div></div>';
+        var front = document.createElement('div'); front.className = 'face front';
+        var c = cardEl(id); c.classList.add('big'); front.appendChild(c);
+        fl.appendChild(back); fl.appendChild(front); fly.appendChild(fl); wrap.appendChild(fly); row.appendChild(wrap);
+      });
+      var done = false, close = function(){ if (done) return; done = true; o.remove(); res(); };
+      o.addEventListener('click', close);
+      setTimeout(close, 2300);
+      $('layer').appendChild(o);
+    }).then(function(){ return ids.indexOf(E.ULTRA) >= 0 ? showFlash('涅槃降臨！', '', 1500) : null; });
+  }
   // 涅槃が含まれていたら先に「涅槃降臨！」演出
   async function gainCards(title, ids, ms, sub){
     if (!ids || !ids.length) return;
@@ -457,15 +511,38 @@
     return { root: o, box: m, close: function(){ o.remove(); } };
   }
 
-  // ---------- 局の進行 ----------
+  // ---------- 試合開始の演出（第N試合 → レディ → ゴー！） ----------
+  var KANJI = ['', '一', '二', '三', '四', '五'];
+  function introFrame(html, ms, cls){
+    return new Promise(function(res){
+      var o = document.createElement('div'); o.className = 'intro' + (cls ? ' ' + cls : '');
+      o.innerHTML = html + '<div class="in-tap">タップでスキップ</div>';
+      var done = false, close = function(){ if (done) return; done = true; o.remove(); res(); };
+      o.addEventListener('click', close);
+      setTimeout(close, ms);
+      $('layer').appendChild(o);
+    });
+  }
+  async function introSequence(){
+    if (SKIP_INTRO) return;
+    var t = match.total, last = match.round === ROUNDS;
+    await introFrame('<div class="in-big">' + (last ? '最終試合' : '第' + KANJI[match.round] + '試合') + '</div>'
+      + '<div class="in-vs">あなた <b>' + t[0] + '</b>点 vs <b>' + t[1] + '</b>点 相手</div>'
+      + '<div class="in-sub">先攻：' + (R.turn === HUMAN ? 'あなた' : '相手') + '　／　全' + ROUNDS + '試合の合計点で勝負</div>', 1900);
+    await introFrame('<div class="in-big">レディ…</div>', 1000);
+    await introFrame('<div class="in-big">ゴー！</div><div class="in-face">٩( \'ω\' )و</div>', 1100, 'go');
+  }
+
+  // ---------- 試合の進行 ----------
   async function startRound(){
     ultraChar = Math.floor(rngFn() * 3);
     R = E.createRound({ rng: rngFn, first: (match.round - 1) % 2 });
     selected = null; newIdx = null; stealUsed = false; reachAnnounced = false; logLines = []; $('log').innerHTML = '';
     state = 'idle'; render();
-    setMsg('第' + match.round + '局スタート！ ' + (R.turn === HUMAN ? 'あなたの先攻' : '相手の先攻'));
+    setMsg('第' + match.round + '試合スタート！ ' + (R.turn === HUMAN ? 'あなたの先攻' : '相手の先攻'));
     addLog('今回の涅槃は「' + E.CHARS[ultraChar].name + '」');
-    await sleep(900);
+    await introSequence();
+    await sleep(SKIP_INTRO ? 900 : 200);
     turnLoop(R.turn);
   }
 
@@ -485,7 +562,7 @@
     state = 'humanTurn';
     setMsg('あなたの番：' + got.length + '枚引いた！ 捨てる札を選ぼう');
     render();
-    await gainCards(got.length > 1 ? '引いたカード（相手に奪われた分を補充）' : '引いたカード', got, 1400);
+    if (got.length) await drawCards(got, got.length > 1 ? '相手に奪われた分も補充した' : '');
     var action = await new Promise(function(res){ resolveHuman = res; });
     if (action.type === 'win') {
       var sc = E.scoreWin(R.p[HUMAN].h, R.p[HUMAN].w);
@@ -595,10 +672,10 @@
     });
   }
 
-  // ---------- 局の結果 ----------
+  // ---------- 試合の結果 ----------
   function endRound(winner, how, score){
     state = 'over'; render();
-    var html = '<h3>第' + match.round + '局 結果</h3>';
+    var html = '<h3>第' + match.round + '試合 結果</h3>';
     if (winner === null) {
       html += '<p>山札が尽きた…流局です（0点）</p>';
     } else {
@@ -611,7 +688,7 @@
       html += '<div class="row total"><span>合計</span><span>' + score.total + '点</span></div></div>';
     }
     html += '<p>あなた <b>' + match.total[0] + '</b> － <b>' + match.total[1] + '</b> 相手</p>';
-    html += '<div class="row-btns"><button class="plain" id="nextBtn">' + (match.round < ROUNDS ? '次の局へ' : '結果発表へ') + '</button></div>';
+    html += '<div class="row-btns"><button class="plain" id="nextBtn">' + (match.round < ROUNDS ? '次の試合へ' : '結果発表へ') + '</button></div>';
     var m = showModal(html);
     if (winner !== null) {
       var box = m.box.querySelector('#winHand');
@@ -669,8 +746,9 @@
 
   // ---------- ルール説明 ----------
   function showRules(){
+    return new Promise(function(resolveRules){
     var html = '<h3>📖 ルール</h3><div class="rules">'
-    + '<h4>🎯 目的</h4><p>手札9枚を<b>「3枚組」×3セット</b>にそろえて、<b>殲滅！</b>ボタンを押せば勝ち。その局の得点をゲットできます。</p>'
+    + '<h4>🎯 目的</h4><p>手札9枚を<b>「3枚組」×3セット</b>にそろえて、<b>殲滅！</b>ボタンを押せば勝ち。その試合の得点をゲットできます。</p>'
     + '<h4>🃏 毎ターンやること</h4><p>① 山から1枚引く（手札10枚になる）<br>② いらない1枚を捨てる（9枚に戻る）<br>これを相手と交互にくり返します。<b>10枚のうち9枚が3組になれば上がり</b>です（余る1枚は使いません）。</p>'
     + '<p class="small">手札の上に「上がりまであと○枚」を表示します。つながっているカードは金色の枠で囲んで見せます（点線の枠は「あと1枚」）。枠の外の札は今使っていない札＝捨て候補です。</p>'
     + '<h4>🧩 3枚組は2種類だけ</h4>'
@@ -684,7 +762,7 @@
     + '<h4>🌑 ダーク略奪</h4><p>手札の中に「<b>上がりに使わない闇カード</b>」が<b>3枚</b>たまったら、「ダーク略奪」ボタンが光ります。3枚をささげて、<b>相手の捨て札から好きな1枚</b>を奪えます（捨て札が無ければ相手の手札からランダム）。その後、山から2枚補充。1ターンに1回まで。</p>'
     + '<h4>💯 点数</h4><p>基本点＝上がりに使った9枚の点数の合計。カードの<b>右上の「+○」</b>が点数です。<br>素＝0／光1・闇1＝1／光2・闇2＝2／光3・闇3＝3／涅槃＝4<br>これに役のボーナスが加わります。</p><p class="small">カードの左上のマークはキャラです：🔥ドラゴン・🛡️ナイト・💧スライム（🌈は涅槃）。</p>'
     + '<table><tr><td>涅槃入り</td><td>+3</td></tr><tr><td>階段×3（3組すべて階段）</td><td>+3</td></tr><tr><td>光系（闇なし。素はOK）</td><td>+3</td></tr><tr><td>3きょうだい×3</td><td>+6</td></tr><tr><td>闇系（光なし。素はOK）</td><td>+6</td></tr><tr><td>光一色／同キャラ一色</td><td>+10</td></tr><tr><td>闇一色</td><td>+12</td></tr><tr><td>同クラス一色</td><td>+15</td></tr></table>'
-    + '<h4>🏁 勝敗</h4><p>全<b>4局</b>の合計点で勝負！ 先攻は毎局交代。山札が尽きたら流局（0点）。同点なら「引き分けバトル」（1枚ずつ引いて強い方が勝ち。涅槃＞光3・闇3＞光2・闇2＞光1・闇1＞素。ただし素は涅槃にだけ勝つ）。</p>'
+    + '<h4>🏁 勝敗</h4><p>全<b>4試合</b>の合計点で勝負！ 先攻は毎試合交代。山札が尽きたら流局（0点）。同点なら「引き分けバトル」（1枚ずつ引いて強い方が勝ち。涅槃＞光3・闇3＞光2・闇2＞光1・闇1＞素。ただし素は涅槃にだけ勝つ）。</p>'
     + '</div><div class="row-btns"><button class="plain" id="rulesClose">とじる</button></div>';
     var m = showModal(html);
     var add = function(id, ids){
@@ -696,11 +774,11 @@
     };
     add('exStair', [0, 1, 2]);   // ドラゴン 素→光1→光2
     add('exKyo', [2, 9, 16]);    // 3体の光2
-    m.box.querySelector('#rulesClose').addEventListener('click', function(){ m.close(); });
+    m.box.querySelector('#rulesClose').addEventListener('click', function(){ m.close(); resolveRules(); });
     try { localStorage.setItem('ken2_rules_seen', '1'); } catch (e) {}
+    });
   }
   $('ruleBtn').addEventListener('click', showRules);
-  try { if (!localStorage.getItem('ken2_rules_seen')) setTimeout(showRules, 400); } catch (e) {}
 
   // Xシェア（window.open方式）
   $('xShareBtn').addEventListener('click', function(){
@@ -712,8 +790,10 @@
   });
 
   // 開発用フック（テスト用）
-  window.__ken2 = { get R(){ return R; }, get state(){ return state; }, match: match, startRound: startRound, tieBattle: tieBattle, finalResult: finalResult, render: render, E: E };
-  startRound();
+  window.__ken2 = { get R(){ return R; }, get state(){ return state; }, match: match, startRound: startRound, tieBattle: tieBattle, finalResult: finalResult, render: render, E: E, introSequence: introSequence, drawCards: drawCards };
+  var rulesSeen = true;
+  try { rulesSeen = !!localStorage.getItem('ken2_rules_seen'); } catch (e) {}
+  if (rulesSeen) startRound(); else showRules().then(startRound);
 })();
 </script>
 </body>
