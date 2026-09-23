@@ -591,9 +591,16 @@
     line-height:1.6;
   }
 
+  .header-btn-row{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin:0 auto 18px;
+    flex-wrap:wrap;
+  }
   .help-link-btn{
     display:block;
-    margin:0 auto 18px;
+    margin:0;
     font-family:inherit;
     cursor:pointer;
     background:rgba(255,255,255,.7);
@@ -606,11 +613,38 @@
     transition:transform .15s ease;
   }
   .help-link-btn:active{ transform:scale(.96); }
+  .premium-link-btn{
+    display:block;
+    margin:0;
+    font-family:inherit;
+    cursor:pointer;
+    background:rgba(255,255,255,.7);
+    color:var(--accent2-dark);
+    border:2px solid rgba(255,138,101,.45);
+    border-radius:999px;
+    font-size:.78rem;
+    font-weight:900;
+    padding:6px 16px;
+    transition:transform .15s ease;
+  }
+  .premium-link-btn:active{ transform:scale(.96); }
 
   /* ==== 使い方 画面 ==== */
   .help-section{ margin-bottom:16px; }
   .help-section h3{ font-size:.9rem; margin:0 0 4px; color:var(--accent-dark); }
   .help-section p{ font-size:.82rem; line-height:1.7; opacity:.85; margin:0; }
+
+  /* ==== プレミアムって何？ 画面 ==== */
+  #premiumScreen .help-section h3{ color:var(--accent2-dark); }
+  .premium-example{
+    background:rgba(255,138,101,.1);
+    border:2px dashed rgba(255,138,101,.4);
+    border-radius:14px;
+    padding:12px 14px;
+    font-size:.8rem;
+    line-height:1.7;
+    margin-bottom:16px;
+  }
 
   /* ==== 初回チュートリアル（オーバーレイ） ==== */
   .tutorial-overlay{
@@ -683,7 +717,10 @@
   <h1>ループする買い物リスト</h1>
   <div class="tagline-wrap"><span class="tagline">地味に便利ツールズ</span></div>
   <div class="sub">いつもの買い物をタップするだけ。今日のリストがすぐできる</div>
-  <button type="button" id="helpBtn" class="help-link-btn">❓ 使い方を見る</button>
+  <div class="header-btn-row">
+    <button type="button" id="helpBtn" class="help-link-btn">❓ 使い方を見る</button>
+    <button type="button" id="premiumBtn" class="premium-link-btn">✨ プレミアムって何？</button>
+  </div>
 
   <div class="stage">
 
@@ -813,6 +850,36 @@
 
       <button type="button" id="replayTutorialBtn" class="candidate-open-btn">🔰 チュートリアルをもう一度見る</button>
       <button type="button" id="backFromHelpBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== プレミアムって何？ 画面 ==== -->
+    <div id="premiumScreen" class="hidden">
+      <div class="today-header">
+        <h2>✨ プレミアムって何？</h2>
+        <p>プレミアムで出来ること</p>
+      </div>
+
+      <div class="help-section">
+        <h3>🏪 お店で振り分け</h3>
+        <p>登録した買い物ボタンを「スーパー」「ドラッグストア」「100均」のように、お店ごとに分けて表示できるよ。お店を回る順番に登録しておけば、リストもその順番で並ぶ。</p>
+      </div>
+      <div class="help-section">
+        <h3>🗂 さらに売り場でも振り分け</h3>
+        <p>お店の中の売り場（野菜／肉／魚／お菓子…）まで、さらに細かく振り分けられる。</p>
+      </div>
+      <div class="premium-example">
+        大きいスーパーやドラッグストアで買い物する時、通路をあっちこっち行ったり来たりしなくても、売り場の順番通りにリストが並ぶからめっちゃ便利！探す手間がぐっと減るよ。
+      </div>
+      <div class="help-section">
+        <h3>💰 値段を設定する</h3>
+        <p>アイテムごとに予定の単価を設定しておくと、今日の買い物の「予定合計」と「実績合計」がひと目でわかる。差額も表示されるよ。</p>
+      </div>
+      <div class="help-section">
+        <h3>使い方</h3>
+        <p>メイン画面の「🗂 売り場順に整理する」「💰 値段を設定する」ボタンから使えるよ。</p>
+      </div>
+
+      <button type="button" id="backFromPremiumBtn" class="back-inline">← 一覧に戻る</button>
     </div>
 
   </div>
@@ -1778,6 +1845,17 @@
   });
   document.getElementById("backFromHelpBtn").addEventListener("click", function(){
     helpScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+  });
+
+  // ==== プレミアムって何？ 画面 ====
+  const premiumScreen = document.getElementById("premiumScreen");
+  document.getElementById("premiumBtn").addEventListener("click", function(){
+    mainScreen.classList.add("hidden");
+    premiumScreen.classList.remove("hidden");
+  });
+  document.getElementById("backFromPremiumBtn").addEventListener("click", function(){
+    premiumScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
   });
 
