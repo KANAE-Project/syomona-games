@@ -567,6 +567,23 @@
   }
   .back-inline:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
 
+  .back-inline-top{
+    display:inline-block;
+    font-family:inherit;
+    cursor:pointer;
+    font-size:.8rem;
+    font-weight:700;
+    color:var(--ink);
+    opacity:.7;
+    background:none;
+    border:2px dashed rgba(31,58,52,.35);
+    border-radius:999px;
+    padding:4px 14px;
+    margin-bottom:14px;
+    transition:opacity .15s ease;
+  }
+  .back-inline-top:active{ opacity:1; }
+
   .back-link{
     display:inline-block; font-size:.8rem; font-weight:700;
     color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:10px;
@@ -757,6 +774,7 @@
 
     <!-- ==== 候補から選んで追加 画面 ==== -->
     <div id="candidateScreen" class="hidden">
+      <button type="button" id="backFromCandidateBtnTop" class="back-inline-top">← 一覧に戻る</button>
       <div class="today-header">
         <h2>📋 候補から選んで追加</h2>
         <p>タップで登録・解除できるよ</p>
@@ -767,6 +785,7 @@
 
     <!-- ==== 売り場順に整理する 画面（プレミアム機能）：ボタンで選ぶ方式 ==== -->
     <div id="organizeScreen" class="hidden">
+      <button type="button" id="backFromOrganizeBtnTop" class="back-inline-top">← 一覧に戻る</button>
       <div class="today-header">
         <h2>🏪 お店・売り場で分ける</h2>
         <p>アイテムごとに、ボタンでお店・売り場を選んでね</p>
@@ -785,6 +804,7 @@
 
     <!-- ==== 値段を設定する 画面（プレミアム機能「こまかめ版」：品目ごとに単価） ==== -->
     <div id="priceScreen" class="hidden">
+      <button type="button" id="backFromPriceBtnTop" class="back-inline-top">← 一覧に戻る</button>
       <div class="today-header">
         <h2>💰 値段を設定する</h2>
         <p>だいたいの単価を入れておくと、今日の合計が分かるよ</p>
@@ -796,6 +816,7 @@
 
     <!-- ==== 今日のリスト画面（買い物中用） ==== -->
     <div id="todayScreen" class="hidden">
+      <button type="button" id="backToMainBtnTop" class="back-inline-top">← 一覧に戻る</button>
       <div class="today-header">
         <h2>🛒 今日のリスト</h2>
         <p>買ったらタップでカゴに移そう。値段の¥をタップすると金額を編集できるよ</p>
@@ -822,6 +843,7 @@
 
     <!-- ==== 使い方 画面 ==== -->
     <div id="helpScreen" class="hidden">
+      <button type="button" id="backFromHelpBtnTop" class="back-inline-top">← 一覧に戻る</button>
       <div class="today-header">
         <h2>❓ 使い方</h2>
         <p>迷ったらここを見てね</p>
@@ -854,6 +876,7 @@
 
     <!-- ==== プレミアムって何？ 画面 ==== -->
     <div id="premiumScreen" class="hidden">
+      <button type="button" id="backFromPremiumBtnTop" class="back-inline-top">← 一覧に戻る</button>
       <div class="today-header">
         <h2>✨ プレミアムって何？</h2>
         <p>プレミアムで出来ること</p>
@@ -1541,11 +1564,13 @@
     mainScreen.classList.add("hidden");
     todayScreen.classList.remove("hidden");
   });
-  document.getElementById("backToMainBtn").addEventListener("click", function(){
+  function backFromToday(){
     todayScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
     renderMain();
-  });
+  }
+  document.getElementById("backToMainBtn").addEventListener("click", backFromToday);
+  document.getElementById("backToMainBtnTop").addEventListener("click", backFromToday);
 
   // ==== 候補から選んで追加 画面 ====
   const candidateScreen = document.getElementById("candidateScreen");
@@ -1592,11 +1617,13 @@
     mainScreen.classList.add("hidden");
     candidateScreen.classList.remove("hidden");
   });
-  document.getElementById("backFromCandidateBtn").addEventListener("click", function(){
+  function backFromCandidate(){
     candidateScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
     renderMain();
-  });
+  }
+  document.getElementById("backFromCandidateBtn").addEventListener("click", backFromCandidate);
+  document.getElementById("backFromCandidateBtnTop").addEventListener("click", backFromCandidate);
 
   // ==== お店・売り場で分ける 画面（プレミアム機能。現時点では合言葉ロックは未実装、機能検証を優先） ====
   // 2026年9月12日：円へのドラッグ方式は実機（スマホ）で表示が崩れる不具合が出たため、
@@ -1788,11 +1815,13 @@
     mainScreen.classList.add("hidden");
     organizeScreen.classList.remove("hidden");
   });
-  document.getElementById("backFromOrganizeBtn").addEventListener("click", function(){
+  function backFromOrganize(){
     organizeScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
     renderMain();
-  });
+  }
+  document.getElementById("backFromOrganizeBtn").addEventListener("click", backFromOrganize);
+  document.getElementById("backFromOrganizeBtnTop").addEventListener("click", backFromOrganize);
 
   // ==== 値段を設定する 画面（プレミアム機能「こまかめ版」。現時点では合言葉ロックは未実装、比較検証中） ====
   const priceScreen = document.getElementById("priceScreen");
@@ -1831,11 +1860,13 @@
     mainScreen.classList.add("hidden");
     priceScreen.classList.remove("hidden");
   });
-  document.getElementById("backFromPriceBtn").addEventListener("click", function(){
+  function backFromPrice(){
     priceScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
     renderMain();
-  });
+  }
+  document.getElementById("backFromPriceBtn").addEventListener("click", backFromPrice);
+  document.getElementById("backFromPriceBtnTop").addEventListener("click", backFromPrice);
 
   // ==== 使い方 画面 ====
   const helpScreen = document.getElementById("helpScreen");
@@ -1843,10 +1874,12 @@
     mainScreen.classList.add("hidden");
     helpScreen.classList.remove("hidden");
   });
-  document.getElementById("backFromHelpBtn").addEventListener("click", function(){
+  function backFromHelp(){
     helpScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
-  });
+  }
+  document.getElementById("backFromHelpBtn").addEventListener("click", backFromHelp);
+  document.getElementById("backFromHelpBtnTop").addEventListener("click", backFromHelp);
 
   // ==== プレミアムって何？ 画面 ====
   const premiumScreen = document.getElementById("premiumScreen");
@@ -1854,10 +1887,12 @@
     mainScreen.classList.add("hidden");
     premiumScreen.classList.remove("hidden");
   });
-  document.getElementById("backFromPremiumBtn").addEventListener("click", function(){
+  function backFromPremium(){
     premiumScreen.classList.add("hidden");
     mainScreen.classList.remove("hidden");
-  });
+  }
+  document.getElementById("backFromPremiumBtn").addEventListener("click", backFromPremium);
+  document.getElementById("backFromPremiumBtnTop").addEventListener("click", backFromPremium);
 
   // ==== 初回チュートリアル（オーバーレイ） ====
   const TUTORIAL_KEY = "kaimono_loop_tutorial_seen_v1";
