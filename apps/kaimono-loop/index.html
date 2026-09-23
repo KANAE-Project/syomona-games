@@ -213,6 +213,50 @@
   }
   .price-open-btn{ background:#c9982e; box-shadow:0 4px 0 #a17820; }
   .price-open-btn .premium-tag{ color:#a17820; }
+  .history-open-btn{ background:#7c6fd6; box-shadow:0 4px 0 #5b4fb0; }
+  .history-open-btn .premium-tag{ color:#5b4fb0; }
+
+  /* ==== 支出履歴 画面 ==== */
+  .history-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+  .history-entry{
+    background:var(--card);
+    border:2px solid rgba(31,58,52,.1);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .history-entry-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    background:none;
+    padding:12px 14px;
+    text-align:left;
+  }
+  .history-entry-head .history-date{ font-size:.85rem; font-weight:700; flex:1; }
+  .history-entry-head .history-total{ font-size:1rem; font-weight:900; color:#5b4fb0; }
+  .history-entry-head .history-toggle{ font-size:.7rem; opacity:.5; transition:transform .15s ease; }
+  .history-entry.open .history-entry-head .history-toggle{ transform:rotate(180deg); }
+  .history-detail{ padding:0 14px 12px; }
+  .history-detail-row{ display:flex; align-items:center; gap:8px; font-size:.8rem; padding:4px 0; opacity:.85; }
+  .history-detail-row .name{ flex:1; }
+  .history-delete-btn{
+    display:block;
+    width:100%;
+    margin-top:8px;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    background:rgba(255,90,90,.12);
+    color:#c94b4b;
+    font-size:.75rem;
+    font-weight:700;
+    padding:8px;
+  }
 
   /* ==== 値段を設定する 画面 ==== */
   .price-row{
@@ -756,6 +800,7 @@
       <button type="button" id="openCandidateBtn" class="candidate-open-btn">📋 候補から選んで追加</button>
       <button type="button" id="openOrganizeBtn" class="organize-open-btn">🗂 売り場順に整理する<span class="premium-tag">✨プレミアム</span></button>
       <button type="button" id="openPriceBtn" class="organize-open-btn price-open-btn">💰 値段を設定する<span class="premium-tag">✨プレミアム</span></button>
+      <button type="button" id="openHistoryBtn" class="organize-open-btn history-open-btn">📊 支出履歴を見る<span class="premium-tag">✨プレミアム</span></button>
 
       <div class="add-form-wrap">
         <div class="add-form">
@@ -812,6 +857,18 @@
       <div id="priceList"></div>
       <div id="priceEmptyNote" class="empty-note hidden">まだアイテムが登録されていません</div>
       <button type="button" id="backFromPriceBtn" class="back-inline">← 一覧に戻る</button>
+    </div>
+
+    <!-- ==== 支出履歴 画面（プレミアム機能） ==== -->
+    <div id="historyScreen" class="hidden">
+      <button type="button" id="backFromHistoryBtnTop" class="back-inline-top">← 一覧に戻る</button>
+      <div class="today-header">
+        <h2>📊 支出履歴</h2>
+        <p>「🔄 チェックをリセット」の時に記録したものが並ぶよ</p>
+      </div>
+      <div id="historyList" class="history-list"></div>
+      <div id="historyEmptyNote" class="empty-note hidden">まだ記録がありません。買い物が終わったら「🔄 チェックをリセット」から記録してみてね</div>
+      <button type="button" id="backFromHistoryBtn" class="back-inline">← 一覧に戻る</button>
     </div>
 
     <!-- ==== 今日のリスト画面（買い物中用） ==== -->
@@ -898,8 +955,12 @@
         <p>アイテムごとに予定の単価を設定しておくと、今日の買い物の「予定合計」と「実績合計」がひと目でわかる。差額も表示されるよ。</p>
       </div>
       <div class="help-section">
+        <h3>📊 支出履歴</h3>
+        <p>「🔄 チェックをリセット」で買い物を締めくくる時に、その回の実績合計を記録できる。品目ごとの明細も残るから、家計簿代わりに使えるよ。</p>
+      </div>
+      <div class="help-section">
         <h3>使い方</h3>
-        <p>メイン画面の「🗂 売り場順に整理する」「💰 値段を設定する」ボタンから使えるよ。</p>
+        <p>メイン画面の「🗂 売り場順に整理する」「💰 値段を設定する」「📊 支出履歴を見る」ボタンから使えるよ。</p>
       </div>
 
       <button type="button" id="backFromPremiumBtn" class="back-inline">← 一覧に戻る</button>
@@ -1113,6 +1174,30 @@
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch(e){}
   }
 
+  // ==== 支出履歴（プレミアム機能）：「チェックをリセット」時に、その回の実績合計を記録していく ====
+  const HISTORY_STORAGE_KEY = "kaimono_loop_history_v1";
+  function loadHistory(){
+    try{
+      const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)) return parsed;
+      }
+    }catch(e){}
+    return [];
+  }
+  function saveHistory(h){
+    try{ localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(h)); }catch(e){}
+  }
+  function todayDateString(){
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function formatHistoryDate(dateStr){
+    const parts = dateStr.split("-");
+    return parseInt(parts[1], 10) + "/" + parseInt(parts[2], 10);
+  }
+
   // ==== お店・売り場（売り場順に整理する、プレミアム機能） ====
   // 2階層構造：お店（スーパー／ドラッグストア等、自由に追加可）＞売り場（お店ごとに違う内訳、自由に追加可）
   const STORE_STORAGE_KEY = "kaimono_loop_stores_v1";
@@ -1212,6 +1297,7 @@
 
   let items = loadItems();
   let stores = loadStores();
+  let history = loadHistory();
   let editMode = false;
   let lastToggledId = null; // 直前にチェックしたアイテムだけポップアニメーションさせるための印
 
@@ -1341,6 +1427,30 @@
   });
 
   document.getElementById("resetBtn").addEventListener("click", function(){
+    const cartItems = items.filter(function(it){ return it.checked && it.inCart; });
+    if(cartItems.length > 0){
+      const total = cartItems.reduce(function(sum, it){
+        return sum + (it.actualPrice != null ? it.actualPrice : (it.todayPlannedPrice != null ? it.todayPlannedPrice : (it.price || 0)));
+      }, 0);
+      if(total > 0){
+        const ok = confirm("¥" + total.toLocaleString() + "を今日の支出として記録しますか？\n（📊 支出履歴に残ります）");
+        if(ok){
+          history.unshift({
+            id: uid(),
+            date: todayDateString(),
+            total: total,
+            items: cartItems.map(function(it){
+              return {
+                name: it.name,
+                emoji: it.emoji,
+                price: it.actualPrice != null ? it.actualPrice : (it.todayPlannedPrice != null ? it.todayPlannedPrice : (it.price || 0))
+              };
+            })
+          });
+          saveHistory(history);
+        }
+      }
+    }
     items.forEach(function(it){ it.checked = false; it.inCart = false; });
     saveItems(items);
     renderMain();
@@ -1867,6 +1977,73 @@
   }
   document.getElementById("backFromPriceBtn").addEventListener("click", backFromPrice);
   document.getElementById("backFromPriceBtnTop").addEventListener("click", backFromPrice);
+
+  // ==== 支出履歴 画面（プレミアム機能） ====
+  const historyScreen = document.getElementById("historyScreen");
+  const historyList = document.getElementById("historyList");
+  const historyEmptyNote = document.getElementById("historyEmptyNote");
+
+  function renderHistory(){
+    historyList.innerHTML = "";
+    historyEmptyNote.classList.toggle("hidden", history.length > 0);
+    history.forEach(function(h){
+      const entry = document.createElement("div");
+      entry.className = "history-entry";
+
+      const head = document.createElement("button");
+      head.type = "button";
+      head.className = "history-entry-head";
+      head.innerHTML =
+        '<span class="history-date"></span>' +
+        '<span class="history-total"></span>' +
+        '<span class="history-toggle">▼</span>';
+      head.querySelector(".history-date").textContent = formatHistoryDate(h.date);
+      head.querySelector(".history-total").textContent = "¥" + h.total.toLocaleString();
+
+      const detail = document.createElement("div");
+      detail.className = "history-detail hidden";
+      h.items.forEach(function(it){
+        const row = document.createElement("div");
+        row.className = "history-detail-row";
+        row.innerHTML = '<span class="emoji">' + it.emoji + '</span><span class="name"></span><span class="price"></span>';
+        row.querySelector(".name").textContent = it.name;
+        row.querySelector(".price").textContent = "¥" + it.price.toLocaleString();
+        detail.appendChild(row);
+      });
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "history-delete-btn";
+      delBtn.textContent = "🗑 この記録を削除";
+      delBtn.addEventListener("click", function(){
+        if(!confirm("この記録を削除しますか？")) return;
+        history = history.filter(function(x){ return x.id !== h.id; });
+        saveHistory(history);
+        renderHistory();
+      });
+      detail.appendChild(delBtn);
+
+      head.addEventListener("click", function(){
+        entry.classList.toggle("open");
+        detail.classList.toggle("hidden");
+      });
+
+      entry.appendChild(head);
+      entry.appendChild(detail);
+      historyList.appendChild(entry);
+    });
+  }
+
+  document.getElementById("openHistoryBtn").addEventListener("click", function(){
+    renderHistory();
+    mainScreen.classList.add("hidden");
+    historyScreen.classList.remove("hidden");
+  });
+  function backFromHistory(){
+    historyScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+  }
+  document.getElementById("backFromHistoryBtn").addEventListener("click", backFromHistory);
+  document.getElementById("backFromHistoryBtnTop").addEventListener("click", backFromHistory);
 
   // ==== 使い方 画面 ====
   const helpScreen = document.getElementById("helpScreen");
