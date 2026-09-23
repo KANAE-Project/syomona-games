@@ -70,6 +70,25 @@
   }
   .today-btn:disabled{ opacity:.5; cursor:default; }
 
+  .finish-btn{
+    display:block;
+    width:100%;
+    text-align:center;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:1.02rem;
+    font-weight:900;
+    color:#fff;
+    background:#e8544a;
+    box-shadow:0 4px 0 #b83f37;
+    margin-bottom:14px;
+    transition:transform .15s ease;
+  }
+  .finish-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #b83f37; }
+
   .section-label{
     font-size:.8rem;
     font-weight:900;
@@ -813,8 +832,8 @@
 
       <div class="tool-row">
         <button type="button" id="editModeBtn" class="tool-btn">✏️ 編集する</button>
-        <button type="button" id="resetBtn" class="tool-btn">🔄 チェックをリセット</button>
       </div>
+      <button type="button" id="resetBtn" class="finish-btn">🏁 今日の買い物おわり！</button>
     </div>
 
     <!-- ==== 候補から選んで追加 画面 ==== -->
@@ -895,6 +914,7 @@
         <div class="big">🎉</div>
         <p>全部カゴに入った！お疲れさまでした</p>
       </div>
+      <button type="button" id="finishFromTodayBtn" class="finish-btn">🏁 今日の買い物おわり！</button>
       <button type="button" id="backToMainBtn" class="back-inline">← 一覧に戻る</button>
     </div>
 
@@ -1426,7 +1446,8 @@
     renderMain();
   });
 
-  document.getElementById("resetBtn").addEventListener("click", function(){
+  // 「🏁 今日の買い物おわり！」：カゴの実績合計を（必要なら）支出履歴に記録してから、チェック・カゴをリセットする
+  function finishShopping(){
     const cartItems = items.filter(function(it){ return it.checked && it.inCart; });
     if(cartItems.length > 0){
       const total = cartItems.reduce(function(sum, it){
@@ -1453,6 +1474,16 @@
     }
     items.forEach(function(it){ it.checked = false; it.inCart = false; });
     saveItems(items);
+  }
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    finishShopping();
+    renderMain();
+  });
+  document.getElementById("finishFromTodayBtn").addEventListener("click", function(){
+    finishShopping();
+    todayScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
     renderMain();
   });
 
