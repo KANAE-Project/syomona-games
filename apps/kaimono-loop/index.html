@@ -791,12 +791,12 @@
       </div>
 
       <div class="help-section">
-        <h3>① いつもの買い物を登録</h3>
-        <p>下の「＋アイテム追加」で絵文字と名前を入れて登録するか、「📋 候補から選んで追加」でたくさんの候補からタップして選ぶだけ。</p>
+        <h3>① まずは「いつもの買い物」をひたすら登録</h3>
+        <p>「📋 候補から選んで追加」を開いて、今すぐ必要じゃなくても、よく買うものをどんどんタップして登録しよう。候補にないものは、下の「＋アイテム追加」から名前を入力して追加もできるよ。</p>
       </div>
       <div class="help-section">
-        <h3>② タップで「今日必要」に</h3>
-        <p>登録したボタンをタップすると色が変わって、今日買うものに追加されるよ。もう一度タップすると解除できる。</p>
+        <h3>② 今日買いたいものだけタップ</h3>
+        <p>登録が終わったら、メイン画面で今日買いたいものだけタップ。色が変わって「今日必要」に追加されるよ。もう一度タップすると解除できる。</p>
       </div>
       <div class="help-section">
         <h3>③ 🛒 今日のリストを見る</h3>
@@ -1341,6 +1341,16 @@
     const todayPlanned = it.todayPlannedPrice != null ? it.todayPlannedPrice : (it.price || 0); // 今回の買い物用の予定額（スナップショット）
     const currentPrice = inCart ? (it.actualPrice != null ? it.actualPrice : todayPlanned) : todayPlanned;
     priceBadge.textContent = "¥" + currentPrice.toLocaleString();
+
+    // カゴに入れた実際の金額を反映する（次回の予定価格を更新するか確認するところまで込み）
+    function applyActualPrice(v){
+      it.actualPrice = v;
+      if(v !== todayPlanned){
+        const ok = confirm("次回からの予定価格も¥" + v.toLocaleString() + "に更新しますか？\n（今回の予定：¥" + todayPlanned.toLocaleString() + "）");
+        if(ok){ it.price = v; } // 次回以降のデフォルトのみ更新。今回の予定合計（todayPlannedPrice）は変えない
+      }
+    }
+
     priceBadge.addEventListener("click", function(e){
       e.stopPropagation(); // 親のタップ（カゴへ移動/戻す）を誘発しないように
       const input = prompt(inCart ? "実際に払った金額は？" : "予定の金額は？", String(currentPrice));
@@ -1348,11 +1358,7 @@
       const v = parseInt(input, 10);
       if(isNaN(v) || v < 0) return;
       if(inCart){
-        it.actualPrice = v;
-        if(v !== todayPlanned){
-          const ok = confirm("次回からの予定価格も¥" + v.toLocaleString() + "に更新しますか？\n（今回の予定：¥" + todayPlanned.toLocaleString() + "）");
-          if(ok){ it.price = v; } // 次回以降のデフォルトのみ更新。今回の予定合計（todayPlannedPrice）は変えない
-        }
+        applyActualPrice(v);
       } else {
         it.price = v; // まだ買っていない段階の「予定の金額」編集は、次回以降のデフォルトにもそのまま反映する
         it.todayPlannedPrice = v; // 今回の予定合計にも即反映
@@ -1362,6 +1368,16 @@
     });
 
     row.addEventListener("click", function(){
+      if(!it.inCart){
+        // まだ買うもの→カゴへ移す瞬間に、実際の金額を聞く（キャンセルでスキップ可）
+        const input = prompt("実際に払った金額は？（スキップする場合はキャンセル）", String(todayPlanned));
+        if(input !== null){
+          const v = parseInt(input, 10);
+          if(!isNaN(v) && v >= 0){
+            applyActualPrice(v);
+          }
+        }
+      }
       it.inCart = !it.inCart;
       saveItems(items);
       renderToday();
@@ -1770,8 +1786,10 @@
   const TUTORIAL_STEPS = [
     { emoji:"🛍️", title:"「ループする買い物リスト」へようこそ",
       body:"いつもの買い物をボタンとして登録しておけば、出かける前にタップするだけで今日のリストが完成するよ。" },
-    { emoji:"👆", title:"タップで「今日必要」に",
-      body:"メイン画面のボタンをタップすると色が変わって、今日買うものに追加されるよ。" },
+    { emoji:"📋", title:"まずは「いつもの買い物」を登録",
+      body:"「📋 候補から選んで追加」を開いて、今すぐ必要じゃなくても、よく買うものをどんどんタップして登録しよう。候補にないものは名前を入力して追加もできるよ。" },
+    { emoji:"👆", title:"今日買いたいものだけタップ",
+      body:"登録が終わったら、メイン画面で今日買いたいものだけタップ。色が変わって「今日必要」に追加されるよ。" },
     { emoji:"🛒", title:"今日のリストを見る",
       body:"上の「🛒 今日のリストを見る」ボタンで、チェックしたものだけのリストを表示。買ったらタップして🧺カゴへ移そう。" },
     { emoji:"🔄", title:"次回に備えてリセット",
