@@ -336,7 +336,7 @@
   <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
 </div>
 
-<script src="engine.js"></script>
+<script src="engine.js?v=20260927"></script>
 <script>
 (function(){
   const E = window.MjEngine;
@@ -566,6 +566,7 @@
     return partsHtml(q) + '<span class="seat' + (q.dealer ? ' dealer' : '') + '">' + q.seat + '</span>';
   }
   function tableHtml(t){
+    if(!t || !t.rows || !t.active) return "";
     const cell = function(row, kind){
       const on = (t.active.who === row.who && t.active.kind === kind);
       return '<td' + (on ? ' class="active"' : '') + '>' + escapeHtml(row[kind]) + '</td>';
@@ -648,7 +649,7 @@
     playJudgeSound(ok);
     $("fbQ").innerHTML = questionHtml(item.q);
     $("fbSteps").innerHTML = ex.steps.map(function(s){ return "<li>" + escapeHtml(s) + "</li>"; }).join("");
-    $("fbTable").innerHTML = tableHtml(ex.table);
+    try{ $("fbTable").innerHTML = tableHtml(ex.table); }catch(e){ $("fbTable").innerHTML = ""; }
     $("nextBtn").textContent = (quiz.idx === TOTAL - 1) ? "結果を見る" : "次の問題へ";
     $("feedback").classList.remove("hidden");
     $("feedback").scrollIntoView({ behavior:"smooth", block:"nearest" });
