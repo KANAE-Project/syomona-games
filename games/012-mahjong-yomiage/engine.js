@@ -296,8 +296,10 @@
 
       const parts = [], sp = [];
       if (!menzen) { parts.push('鳴き'); sp.push('ナキ'); }
+      // リーチ・ダブルリーチはロン/ツモの前に読む
+      yaku.forEach(function (y) { if (y.id === 'riichi' || y.id === 'dblriichi') { parts.push(y.name); sp.push(y.speech); } });
       parts.push(agariWord(tsumo)); sp.push(agariWord(tsumo));
-      yaku.forEach(function (y) { parts.push(y.name); sp.push(y.speech); });
+      yaku.forEach(function (y) { if (y.id !== 'riichi' && y.id !== 'dblriichi') { parts.push(y.name); sp.push(y.speech); } });
       if (omote) { parts.push(doraLabel(omote)); sp.push(DORA_SPEECH[omote]); }
       if (aka) { parts.push(multiLabel('赤', aka)); sp.push(AKA_SPEECH[aka]); }
       if (ura) { parts.push(multiLabel('裏', ura)); sp.push(URA_SPEECH[ura]); }
