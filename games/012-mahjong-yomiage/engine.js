@@ -4,7 +4,7 @@
  * 固定ルール（関東一般・テンパネ考慮なし・符は「最低ライン」で固定）
  *   ピンフ ツモ 20符 / ピンフ ロン 30符 / 七対子 25符
  *   門前ロン（ピンフ以外）40符 / 門前ツモ（ピンフ以外）30符 / 鳴き 30符
- *   満貫以上は符不要、切り上げ満貫なし、門前ツモは自動で1翻
+ *   満貫以上は符不要、切り上げ満貫あり（30符4翻＝1920→2000）、門前ツモは自動で1翻
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -130,8 +130,9 @@
 
   function ceil100(x) { return Math.ceil(x / 100) * 100; }
 
-  function calcScore(han, fu, dealer, tsumo, yakumanCount) {
-    let base, rank = null;
+  // noKiriage=true：切り上げ満貫を使わない計算（4択の「うっかり」誤答を作る用）
+  function calcScore(han, fu, dealer, tsumo, yakumanCount, noKiriage) {
+    let base, rank = null, kiriage = false;
     if (yakumanCount > 0) { base = 8000 * yakumanCount; rank = yakumanCount > 1 ? yakumanCount + '倍役満' : '役満'; }
     else if (han >= 13) { base = 8000; rank = '数え役満'; }
     else if (han >= 11) { base = 6000; rank = '三倍満'; }
@@ -141,9 +142,10 @@
     else {
       const raw = fu * Math.pow(2, han + 2);
       if (raw >= 2000) { base = 2000; rank = '満貫'; }
+      else if (raw === 1920 && !noKiriage) { base = 2000; rank = '満貫'; kiriage = true; } // 30符4翻の切り上げ満貫
       else base = raw;
     }
-    const r = { base: base, rank: rank, dealer: dealer, tsumo: tsumo };
+    const r = { base: base, rank: rank, kiriage: kiriage, dealer: dealer, tsumo: tsumo };
     if (!tsumo) {
       r.rawRon = base * (dealer ? 6 : 4);
       r.ron = ceil100(r.rawRon);
@@ -195,7 +197,7 @@
 
   function pickYakuSet(ctx, rng) {
     const r = rng();
-    const target = r < 0.35 ? 1 : r < 0.7 ? 2 : r < 0.9 ? 3 : 4;
+    const target = r < 0.4 ? 1 : r < 0.75 ? 2 : r < 0.93 ? 3 : 4;
     const chosen = [];
     const ids = function () { return chosen.map(function (y) { return y.id; }); };
     pickWeighted(candidatesFor(ctx), rng).forEach(function (y) {
@@ -237,9 +239,9 @@
     if (ym.tsumoOnly) tsumo = true;
     const menzen = ym.closedOnly ? true : rng() < 0.5;
     const score = calcScore(0, 0, dealer, tsumo, 1);
-    const parts = [agariWord(tsumo)];
-    const sp = [agariWord(tsumo)];
+    const parts = [], sp = [];
     if (!menzen) { parts.push('鳴き'); sp.push('ナキ'); }
+    parts.push(agariWord(tsumo)); sp.push(agariWord(tsumo));
     parts.push(ym.name); sp.push(ym.speech);
     return {
       dealer: dealer, tsumo: tsumo, menzen: menzen,
@@ -251,9 +253,13 @@
     };
   }
 
+  // 満貫以上が出すぎないよう調整（役満の出題率／満貫以上になった時に採用する確率）
+  const YAKUMAN_RATE = 0.03;
+  const LIMIT_ACCEPT = 0.12;
+
   function generate(rng) {
     rng = rng || Math.random;
-    if (rng() < 0.08) return generateYakuman(rng);
+    if (rng() < YAKUMAN_RATE) return generateYakuman(rng);
     for (let attempt = 0; attempt < 200; attempt++) {
       const dealer = rng() < 0.4;
       const tsumo = rng() < 0.5;
@@ -265,9 +271,9 @@
 
       const ids = yaku.map(function (y) { return y.id; });
       const riichi = ids.indexOf('riichi') >= 0 || ids.indexOf('dblriichi') >= 0;
-      const omote = weightedInt(rng, [40, 25, 15, 10, 10]);
-      const aka = weightedInt(rng, [60, 25, 10, 5]);
-      const ura = riichi ? weightedInt(rng, [55, 25, 12, 8]) : 0;
+      const omote = weightedInt(rng, [50, 25, 13, 7, 5]);
+      const aka = weightedInt(rng, [70, 20, 7, 3]);
+      const ura = riichi ? weightedInt(rng, [60, 25, 10, 5]) : 0;
 
       const lines = [];
       let han = 0;
@@ -286,10 +292,11 @@
       const chiitoi = ids.indexOf('chiitoi') >= 0;
       const fu = fuFor({ pinfu: pinfu, chiitoi: chiitoi, menzen: menzen, tsumo: tsumo });
       const score = calcScore(han, fu, dealer, tsumo, 0);
+      if (score.rank && rng() > LIMIT_ACCEPT) continue; // 満貫以上は間引く
 
-      const parts = [agariWord(tsumo)];
-      const sp = [agariWord(tsumo)];
+      const parts = [], sp = [];
       if (!menzen) { parts.push('鳴き'); sp.push('ナキ'); }
+      parts.push(agariWord(tsumo)); sp.push(agariWord(tsumo));
       yaku.forEach(function (y) { parts.push(y.name); sp.push(y.speech); });
       if (omote) { parts.push(doraLabel(omote)); sp.push(DORA_SPEECH[omote]); }
       if (aka) { parts.push(multiLabel('赤', aka)); sp.push(AKA_SPEECH[aka]); }
@@ -305,6 +312,13 @@
       };
     }
     throw new Error('generate: 出題に失敗しました');
+  }
+
+  // 満貫・跳満などの呼び名（なければ空文字）
+  function rankLabel(q) {
+    const s = q.score;
+    if (!s.rank) return '';
+    return s.kiriage ? '切り上げ満貫' : s.rank;
   }
 
   function questionText(q) { return q.parts.join('、') + '　' + q.seat; }
@@ -331,6 +345,7 @@
     } else {
       const h = q.han, f = q.fu;
       const altTsumoFu = fuFor({ pinfu: q.pinfu, chiitoi: q.chiitoi, menzen: q.menzen, tsumo: !t });
+      if (q.score.kiriage) tier1.push(calcScore(h, f, d, t, 0, true).text); // 切り上げ忘れ（7700など）
       push(tier1, h - 1, f, d, t, 0);
       push(tier1, h + 1, f, d, t, 0);
       push(tier1, h, f, !d, t, 0);
@@ -384,6 +399,9 @@
       out.steps.push('翻数：' + q.lines.map(function (l) { return l.label + '（' + l.han + '翻）'; }).join(' ＋ ') + ' ＝ ' + q.han + '翻');
       if (s.rank && q.han >= 5) {
         out.steps.push(s.rank + ' → 基本点 ' + s.base + '（符は不要）');
+      } else if (s.kiriage) {
+        out.steps.push('符：' + q.fu + '符（' + fuReason(q) + '）');
+        out.steps.push(q.fu + '符' + q.han + '翻 → ' + q.fu + '×2^(' + q.han + '+2) ＝ ' + (q.fu * Math.pow(2, q.han + 2)) + ' → 切り上げ満貫 → 基本点 2000');
       } else if (s.rank) {
         out.steps.push('符：' + q.fu + '符（' + fuReason(q) + '）');
         out.steps.push(q.fu + '符' + q.han + '翻 → ' + q.fu + '×2^(' + q.han + '+2) ＝ ' + (q.fu * Math.pow(2, q.han + 2)) + ' が2000を超えるので満貫 → 基本点 2000');
@@ -420,6 +438,6 @@
     YAKU: YAKU, YAKUMAN: YAKUMAN, CONFLICT: CONFLICT,
     validSet: validSet, fuFor: fuFor, calcScore: calcScore,
     generate: generate, choicesFor: choicesFor, explain: explain,
-    questionText: questionText, questionSpeech: questionSpeech, titleFor: titleFor
+    rankLabel: rankLabel, questionText: questionText, questionSpeech: questionSpeech, titleFor: titleFor
   };
 });

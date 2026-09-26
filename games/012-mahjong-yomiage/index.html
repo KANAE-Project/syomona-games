@@ -7,11 +7,13 @@
 <meta name="description" content="牌なし！読み上げられた役だけで点数を答える、耳と暗算の麻雀点数計算ゲーム">
 <style>
   :root{
-    --bg1:#eefaf1;
-    --bg2:#c9e8d3;
+    --bg1:#050806;
+    --bg2:#14241b;
     --card:#ffffff;
     --ink:#1b2b21;
+    --fg:#eaf5ee;
     --accent:#1f7a4d;
+    --accent-text:#5ee6a0;
     --accent-dark:#155a37;
     --accent2:#e0a100;
     --ok:#1f9d55;
@@ -22,24 +24,27 @@
     margin:0;
     min-height:100vh;
     font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
-    background:linear-gradient(160deg,var(--bg1),var(--bg2));
-    color:var(--ink);
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 75%);
+    color:var(--fg);
     display:flex;
     justify-content:center;
     padding:24px 14px 60px;
   }
   .wrap{ width:100%; max-width:480px; }
   h1{ text-align:center; font-size:1.35rem; margin:0 0 4px; }
-  .tagline{ text-align:center; font-size:.95rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
+  .tagline{ text-align:center; font-size:.95rem; font-weight:900; color:var(--accent-text); margin-bottom:6px; }
   .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:14px; }
   .hero-tiles{ text-align:center; font-size:2.2rem; letter-spacing:.2em; margin-bottom:6px; }
 
   .stage{
-    background:rgba(255,255,255,.65);
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
     border-radius:22px;
     padding:20px 16px 24px;
-    box-shadow:0 8px 24px rgba(20,80,45,.15);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
   }
+  /* 白いカード類の中は暗い文字色に戻す */
+  .bubble,.caution,details.rules,.qcard,.feedback,.review li,.grade-cta,.usage-notice{ color:var(--ink); }
   .sound-notice{
     display:block;
     text-align:center;
@@ -127,8 +132,8 @@
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
   }
   .qtext{ font-size:1.35rem; font-weight:900; line-height:1.5; word-break:keep-all; overflow-wrap:anywhere; }
-  .qtext .seat{ display:inline-block; background:var(--accent); color:#fff; border-radius:10px; padding:0 10px; margin-left:6px; font-size:1.1rem; }
-  .qtext .seat.dealer{ background:#c0392b; }
+  .seat{ display:inline-block; background:var(--accent); color:#fff; border-radius:10px; padding:0 10px; margin-left:6px; font-size:.9em; }
+  .seat.dealer{ background:#c0392b; }
   .qear{ font-size:1rem; font-weight:900; color:var(--accent); }
   .choices{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
   .choice{
@@ -149,16 +154,18 @@
   .fb-q{ font-size:.9rem; font-weight:bold; margin-bottom:6px; }
   .steps{ margin:0 0 6px; padding-left:1.2em; font-size:.8rem; line-height:1.8; }
 
+  .naki{ display:inline-block; background:#ff8a00; color:#fff; border-radius:8px; padding:0 9px; margin-right:6px; font-size:.95em; }
+  .rank{ display:inline-block; background:#f5b942; color:#3a2a00; border-radius:8px; padding:0 9px; margin-left:4px; font-size:.85em; font-weight:900; }
   .quiz-note{ font-size:.7rem; opacity:.75; text-align:center; line-height:1.6; margin-top:10px; }
 
-  .score-big{ text-align:center; font-size:2.6rem; font-weight:900; color:var(--accent); line-height:1.2; }
+  .score-big{ text-align:center; font-size:2.6rem; font-weight:900; color:var(--accent-text); line-height:1.2; }
   .score-title{ text-align:center; font-size:1.15rem; font-weight:900; margin:4px 0 12px; }
   .review{ list-style:none; margin:10px 0 6px; padding:0; }
   .review li{ background:var(--card); border-radius:10px; padding:7px 10px; margin-bottom:6px; font-size:.8rem; line-height:1.6; border-left:6px solid var(--ok); }
   .review li.ng{ border-left-color:var(--ng); }
   .review b{ font-size:.85rem; }
 
-  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed #a9cdb6; text-align:center; }
+  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(255,255,255,.22); text-align:center; }
   .grade-cta{
     background:linear-gradient(160deg,#fffbe8,#e9f8ee);
     border:3px dashed var(--accent2); border-radius:18px; padding:18px 14px;
@@ -186,8 +193,8 @@
   .unlocked-badge{ display:inline-block; background:var(--accent); color:#fff; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; }
   .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
 
-  .x-share-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed #a9cdb6; text-align:center; }
-  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:12px; }
+  .x-share-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(255,255,255,.22); text-align:center; }
+  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent-text); margin-bottom:12px; }
   .x-link-btn{
     display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center;
     padding:14px 14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none;
@@ -201,7 +208,7 @@
   }
   .usage-notice .usage-title{ font-weight:bold; color:var(--accent); display:block; margin-bottom:4px; }
 
-  .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--ink); opacity:.65; text-decoration:none; margin-bottom:10px; }
+  .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--fg); opacity:.7; text-decoration:none; margin-bottom:10px; }
   .back-link:hover{ opacity:1; }
   .back-link-btn{
     display:block; background:var(--accent); color:#fff; font-size:1.05rem; font-weight:900;
@@ -225,7 +232,7 @@
 
     <!-- ==== 画面1：スタート ==== -->
     <div id="screenIntro" class="screen">
-      <div class="bubble">「ツモ、ピンフ、子」<br>「ロン、タンヤオ、ドラドラ、親」<br>のように読み上げられます。点数はいくつ？</div>
+      <div class="bubble">「ツモ、ピンフ、子」<br>「ロン、タンヤオ、ドラドラ、親」<br>「<span class="naki">鳴き</span>ロン、役牌中、ドラ、子」<br>のように読み上げられます。点数はいくつ？</div>
       <div class="caution">※テンパネ（符ハネ）は考慮せず、基本点のみで計算します。符は下の表の「最低ライン」で固定です。実際の対局では加符でこれより高くなることがあります。</div>
       <div class="rules-slot"></div>
 
@@ -340,10 +347,11 @@
     '<ul>' +
     '<li>テンパネ（符ハネ）は考慮せず、基本点のみ。上の符は最低ラインで固定です</li>' +
     '<li>門前ツモは自動で1翻（読み上げの「ツモ」に含まれます）</li>' +
-    '<li>「鳴き」と読まれたら副露あり。食い下がる役は翻が下がり、リーチ・ピンフなどは付きません</li>' +
+    '<li>「鳴き」と読まれたら副露あり（ロン・ツモの前にオレンジ色で表示・読み上げ）。食い下がる役は翻が下がり、リーチ・ピンフなどは付きません</li>' +
     '<li>ドラ・赤・裏ドラは1枚1翻。場風・自風は各1翻</li>' +
     '<li>基本点＝符×2^(翻+2)。ロンは子×4・親×6、ツモは子＝「子の支払い/親の支払い」、親＝「〇〇オール」</li>' +
-    '<li>基本点は2000で頭打ち＝満貫。切り上げ満貫はなし（30符4翻は子7700／親11600）</li>' +
+    '<li>基本点は2000で頭打ち＝満貫。<b>切り上げ満貫あり</b>：30符4翻（基本点1920）は2000に切り上げて満貫として扱います（子7700→8000、2000/3900→2000/4000、親11600→12000、3900オール→4000オール）</li>' +
+    '<li>満貫＝5翻（と切り上げ）／跳満＝6〜7翻／倍満＝8〜10翻／三倍満＝11〜12翻／役満。答え合わせで呼び名も表示します</li>' +
     '<li>支払いは100点単位で切り上げ。本場・供託は考慮しません</li>' +
     '</ul></details>';
   document.querySelectorAll(".rules-slot").forEach(function(el){ el.innerHTML = RULES_HTML; });
@@ -432,8 +440,17 @@
   function escapeHtml(s){
     return String(s).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; });
   }
+  // 「鳴き」はロン・ツモの前にオレンジのバッジで表示する
+  function partsHtml(q){
+    const rest = q.parts.filter(function(p){ return p !== "鳴き"; });
+    return (q.menzen ? "" : '<span class="naki">鳴き</span>') + escapeHtml(rest.join("、"));
+  }
   function questionHtml(q){
-    return escapeHtml(q.parts.join("、")) + '<span class="seat' + (q.dealer ? ' dealer' : '') + '">' + q.seat + '</span>';
+    return partsHtml(q) + '<span class="seat' + (q.dealer ? ' dealer' : '') + '">' + q.seat + '</span>';
+  }
+  function rankHtml(q){
+    const r = E.rankLabel(q);
+    return r ? '<span class="rank">' + escapeHtml(r) + '</span>' : "";
   }
 
   function startQuiz(){
@@ -496,8 +513,8 @@
 
     const ex = E.explain(item.q);
     $("fbHead").className = "fb-head " + (ok ? "ok" : "ng");
-    $("fbHead").textContent = ok ? "⭕ 正解！ " + item.q.score.text : "❌ 残念… 正解は " + item.q.score.text;
-    $("fbQ").textContent = E.questionText(item.q);
+    $("fbHead").innerHTML = (ok ? "⭕ 正解！ " : "❌ 残念… 正解は ") + escapeHtml(item.q.score.text) + rankHtml(item.q);
+    $("fbQ").innerHTML = questionHtml(item.q);
     $("fbSteps").innerHTML = ex.steps.map(function(s){ return "<li>" + escapeHtml(s) + "</li>"; }).join("");
     $("nextBtn").textContent = (quiz.idx === TOTAL - 1) ? "結果を見る" : "次の問題へ";
     $("feedback").classList.remove("hidden");
@@ -511,7 +528,7 @@
     $("review").innerHTML = quiz.list.map(function(item, k){
       const ok = item.picked === item.ch.correctIndex;
       return '<li class="' + (ok ? "ok" : "ng") + '"><b>' + (ok ? "⭕" : "❌") + " 第" + (k + 1) + "問</b> " +
-        escapeHtml(E.questionText(item.q)) + " ＝ <b>" + escapeHtml(item.q.score.text) + "</b>" +
+        questionHtml(item.q) + " ＝ <b>" + escapeHtml(item.q.score.text) + "</b>" + rankHtml(item.q) +
         (ok ? "" : "（あなたの答え：" + escapeHtml(item.ch.options[item.picked]) + "）") + "</li>";
     }).join("");
     showScreen("screenResult");
