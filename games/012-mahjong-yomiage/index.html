@@ -141,6 +141,7 @@
   .choice.correct{ background:#dbeafe; border-color:var(--ok); }
   .choice.wrong{ background:#fde0e0; border-color:var(--ng); }
   .choice.faded{ opacity:.45; }
+  .choice.hint::after{ content:" ★"; color:#e0a100; }
 
   .feedback{ background:var(--card); border:3px solid var(--ink); border-radius:16px; padding:12px 14px; margin-top:6px; }
   .fb-head{ font-size:1.25rem; font-weight:900; margin-bottom:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -334,6 +335,8 @@
   const E = window.MjEngine;
   const GAME_URL = "https://kanae-project.github.io/syomona-games/games/012-mahjong-yomiage/";
   const TOTAL = 10;
+  // 動作確認用：URLに ?debug=1 を付けると正解の選択肢に★が付く
+  const DEBUG = /[?&]debug=1(&|$)/.test(location.search);
 
   // ==== 合言葉：note有料部分に載せる文字列。仮の値、正式決定まで暫定（note記事執筆時に確定させること） ====
   const PASSWORD = "点数は暗算派（仮）";
@@ -596,6 +599,7 @@
       b.type = "button";
       b.className = "choice";
       b.textContent = txt;
+      if(DEBUG && i === item.ch.correctIndex) b.classList.add("hint");
       b.addEventListener("click", function(){ answer(i); });
       box.appendChild(b);
     });
