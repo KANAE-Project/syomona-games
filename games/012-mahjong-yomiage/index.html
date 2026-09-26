@@ -170,6 +170,12 @@
     50%{ transform:translate3d(var(--dx),55vh,0) rotate(200deg); }
     100%{ transform:translate3d(calc(var(--dx) * -.6),112vh,0) rotate(420deg); opacity:.9; }
   }
+  .score-table{ width:100%; border-collapse:collapse; margin:4px 0 10px; font-size:.85rem; text-align:center; }
+  .score-table caption{ text-align:left; font-weight:900; font-size:.8rem; margin-bottom:4px; }
+  .score-table th, .score-table td{ border:1px solid #cfe5d7; padding:6px 4px; }
+  .score-table th{ background:#e7f5ec; }
+  .score-table td.active{ background:#dbeafe; color:#1565c0; font-weight:900; box-shadow:inset 0 0 0 2px #1e88e5; }
+  .table-note{ font-size:.68rem; opacity:.7; margin:-6px 0 8px; line-height:1.5; }
   .quiz-note{ font-size:.7rem; opacity:.75; text-align:center; line-height:1.6; margin-top:10px; }
 
   .score-big{ text-align:center; font-size:2.6rem; font-weight:900; color:var(--accent); line-height:1.2; }
@@ -280,6 +286,7 @@
         <div id="fbHead" class="fb-head"></div>
         <div id="fbQ" class="fb-q"></div>
         <ul id="fbSteps" class="steps"></ul>
+        <div id="fbTable"></div>
         <button type="button" id="nextBtn" class="primary-btn" style="margin-top:8px;">次の問題へ</button>
       </div>
       <div class="caution quiz-note-box" style="margin-top:12px;">※テンパネは考慮せず基本点のみ。符は最低ライン固定です。「鳴き」以外は門前です。</div>
@@ -558,6 +565,16 @@
   function questionHtml(q){
     return partsHtml(q) + '<span class="seat' + (q.dealer ? ' dealer' : '') + '">' + q.seat + '</span>';
   }
+  function tableHtml(t){
+    const cell = function(row, kind){
+      const on = (t.active.who === row.who && t.active.kind === kind);
+      return '<td' + (on ? ' class="active"' : '') + '>' + escapeHtml(row[kind]) + '</td>';
+    };
+    return '<table class="score-table"><caption>' + escapeHtml(t.caption) + '</caption>' +
+      '<tr><th></th><th>ロン</th><th>ツモ</th></tr>' +
+      t.rows.map(function(r){ return '<tr><th>' + r.who + '</th>' + cell(r, "ron") + cell(r, "tsumo") + '</tr>'; }).join("") +
+      '</table><div class="table-note">※同じ翻数・符のまま、ロン／ツモ・親／子だけを入れ替えた場合の点数です</div>';
+  }
   function rankHtml(q){
     const r = E.rankLabel(q);
     return r ? '<span class="rank">' + escapeHtml(r) + '</span>' : "";
@@ -631,6 +648,7 @@
     playJudgeSound(ok);
     $("fbQ").innerHTML = questionHtml(item.q);
     $("fbSteps").innerHTML = ex.steps.map(function(s){ return "<li>" + escapeHtml(s) + "</li>"; }).join("");
+    $("fbTable").innerHTML = tableHtml(ex.table);
     $("nextBtn").textContent = (quiz.idx === TOTAL - 1) ? "結果を見る" : "次の問題へ";
     $("feedback").classList.remove("hidden");
     $("feedback").scrollIntoView({ behavior:"smooth", block:"nearest" });

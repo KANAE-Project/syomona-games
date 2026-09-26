@@ -390,35 +390,38 @@
     return '鳴きは最低30符';
   }
 
+  // 答え合わせの解説：翻数・符のところまでを文章で、あとは「親/子 × ロン/ツモ」の点数表を返す
   function explain(q) {
     const s = q.score;
-    const out = { steps: [], hanLines: q.lines, total: null };
+    const out = { steps: [], hanLines: q.lines, total: null, table: null };
+    let caption;
     if (q.yakumanCount > 0) {
       out.total = '役満';
-      out.steps.push('役満 → 基本点 8000（符・翻は不要）');
+      out.steps.push('役満（符・翻は不要）');
+      caption = '役満の点数';
     } else {
       out.total = q.han + '翻';
       out.steps.push('翻数：' + q.lines.map(function (l) { return l.label + '（' + l.han + '翻）'; }).join(' ＋ ') + ' ＝ ' + q.han + '翻');
       if (s.rank && q.han >= 5) {
-        out.steps.push(s.rank + ' → 基本点 ' + s.base + '（符は不要）');
-      } else if (s.kiriage) {
-        out.steps.push('符：' + q.fu + '符（' + fuReason(q) + '）');
-        out.steps.push(q.fu + '符' + q.han + '翻 → ' + q.fu + '×2^(' + q.han + '+2) ＝ ' + (q.fu * Math.pow(2, q.han + 2)) + ' → 切り上げ満貫 → 基本点 2000');
-      } else if (s.rank) {
-        out.steps.push('符：' + q.fu + '符（' + fuReason(q) + '）');
-        out.steps.push(q.fu + '符' + q.han + '翻 → ' + q.fu + '×2^(' + q.han + '+2) ＝ ' + (q.fu * Math.pow(2, q.han + 2)) + ' が2000を超えるので満貫 → 基本点 2000');
+        out.steps.push(s.rank + '（符は不要）');
+        caption = s.rank + 'の点数';
       } else {
         out.steps.push('符：' + q.fu + '符（' + fuReason(q) + '）');
-        out.steps.push(q.fu + '符' + q.han + '翻 → 基本点 ' + q.fu + '×2^(' + q.han + '+2) ＝ ' + s.base);
+        caption = q.fu + '符' + q.han + '翻の点数';
+        if (s.kiriage) { out.steps.push(q.fu + '符' + q.han + '翻は切り上げ満貫（基本点1920→2000）'); caption = q.fu + '符' + q.han + '翻（切り上げ満貫）の点数'; }
+        else if (s.rank) { out.steps.push(q.fu + '符' + q.han + '翻は基本点が2000を超えるので満貫'); caption = q.fu + '符' + q.han + '翻（満貫）の点数'; }
       }
     }
-    if (!q.tsumo) {
-      out.steps.push((q.dealer ? '親' : '子') + 'ロン → ' + s.base + '×' + (q.dealer ? 6 : 4) + ' ＝ ' + s.rawRon + ' → 100点単位で切り上げ → ' + s.ron);
-    } else if (q.dealer) {
-      out.steps.push('親ツモ → ' + s.base + '×2 ＝ ' + s.rawAll + ' → 100点単位で切り上げ → ' + s.all + 'オール');
-    } else {
-      out.steps.push('子ツモ → 子の支払い ' + s.base + (s.ko !== s.base ? ' → 切り上げ ' + s.ko : '') + '、親の支払い ' + s.base + '×2 ＝ ' + (s.base * 2) + (s.oya !== s.base * 2 ? ' → 切り上げ ' + s.oya : '') + '（' + s.text + '）');
-    }
+    const ym = q.yakumanCount;
+    const at = function (dealer, tsumo) { return q.yakumanCount > 0 ? calcScore(0, 0, dealer, tsumo, ym).text : calcScore(q.han, q.fu, dealer, tsumo, 0).text; };
+    out.table = {
+      caption: caption,
+      rows: [
+        { who: '親', ron: at(true, false), tsumo: at(true, true) },
+        { who: '子', ron: at(false, false), tsumo: at(false, true) }
+      ],
+      active: { who: q.dealer ? '親' : '子', kind: q.tsumo ? 'tsumo' : 'ron' }
+    };
     return out;
   }
 
