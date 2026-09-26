@@ -14,7 +14,7 @@
     --accent:#1f7a4d;
     --accent-dark:#155a37;
     --accent2:#e0a100;
-    --ok:#1f9d55;
+    --ok:#1e88e5;
     --ng:#d64545;
   }
   *{box-sizing:border-box;}
@@ -138,12 +138,13 @@
   }
   .choice:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.25); }
   .choice[disabled]{ cursor:default; }
-  .choice.correct{ background:#d5f5e0; border-color:var(--ok); }
+  .choice.correct{ background:#dbeafe; border-color:var(--ok); }
   .choice.wrong{ background:#fde0e0; border-color:var(--ng); }
   .choice.faded{ opacity:.45; }
 
   .feedback{ background:var(--card); border:3px solid var(--ink); border-radius:16px; padding:12px 14px; margin-top:6px; }
-  .fb-head{ font-size:1.15rem; font-weight:900; margin-bottom:4px; }
+  .fb-head{ font-size:1.25rem; font-weight:900; margin-bottom:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .fb-head svg{ flex:none; }
   .fb-head.ok{ color:var(--ok); }
   .fb-head.ng{ color:var(--ng); }
   .fb-q{ font-size:.9rem; font-weight:bold; margin-bottom:6px; }
@@ -152,6 +153,10 @@
   .naki{ display:inline-block; background:#ff8a00; color:#fff; border-radius:8px; padding:0 9px; margin-right:6px; font-size:.95em; }
   .riichi{ display:inline-block; background:#1e88e5; color:#fff; border-radius:8px; padding:0 9px; margin-right:6px; font-size:.95em; }
   .rank{ display:inline-block; background:#f5b942; color:#3a2a00; border-radius:8px; padding:0 9px; margin-left:4px; font-size:.85em; font-weight:900; }
+  /* 正解／不正解の大きなマーク（画面中央にポップ） */
+  .judge{ position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+  .judge svg{ width:min(62vw,260px); height:min(62vw,260px); filter:drop-shadow(0 6px 14px rgba(0,0,0,.3)); animation:judgePop 1s ease-out forwards; }
+  @keyframes judgePop{ 0%{ transform:scale(.3); opacity:0; } 18%{ transform:scale(1.15); opacity:1; } 30%{ transform:scale(1); } 75%{ opacity:1; } 100%{ transform:scale(1); opacity:0; } }
   .quiz-note{ font-size:.7rem; opacity:.75; text-align:center; line-height:1.6; margin-top:10px; }
 
   .score-big{ text-align:center; font-size:2.6rem; font-weight:900; color:var(--accent); line-height:1.2; }
@@ -215,6 +220,7 @@
 </style>
 </head>
 <body>
+<div id="judge" class="judge hidden"></div>
 <div class="wrap">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
   <div class="hero-tiles">🀄︎🀇🀙🀐</div>
@@ -399,6 +405,54 @@
     renderQuestionText();
   });
 
+  // ==== 正解／不正解の効果音（Web Audio）とマーク ====
+  let audioCtx = null;
+  function getCtx(){
+    try{
+      if(!audioCtx){ const AC = window.AudioContext || window.webkitAudioContext; if(AC) audioCtx = new AC(); }
+      if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    }catch(e){ audioCtx = null; }
+    return audioCtx;
+  }
+  function tone(ctx, type, freq, start, dur, vol){
+    const t0 = ctx.currentTime + start;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.05);
+  }
+  function playJudgeSound(ok){
+    if(!isSoundOn()) return;
+    try{
+      const ctx = getCtx(); if(!ctx) return;
+      if(ok){ // ピンポーン
+        tone(ctx, "sine", 1568, 0, 0.18, 0.35);
+        tone(ctx, "sine", 1175, 0.16, 0.6, 0.35);
+      } else { // ブブー
+        tone(ctx, "sawtooth", 130, 0, 0.3, 0.22);
+        tone(ctx, "sawtooth", 130, 0.36, 0.5, 0.22);
+      }
+    }catch(e){}
+  }
+  function markSvg(ok, size){
+    const st = size ? ' style="width:' + size + 'px;height:' + size + 'px"' : "";
+    return ok
+      ? '<svg viewBox="0 0 100 100"' + st + '><circle cx="50" cy="50" r="38" fill="none" stroke="#1e88e5" stroke-width="12"/></svg>'
+      : '<svg viewBox="0 0 100 100"' + st + '><path d="M20 20L80 80M80 20L20 80" stroke="#d64545" stroke-width="14" stroke-linecap="round"/></svg>';
+  }
+  let judgeTimer = null;
+  function showJudge(ok){
+    const el = $("judge");
+    el.innerHTML = markSvg(ok);
+    el.classList.remove("hidden");
+    clearTimeout(judgeTimer);
+    judgeTimer = setTimeout(function(){ el.classList.add("hidden"); }, 1000);
+  }
+
   // ==== 耳だけモード・速度 ====
   function isEarOnly(){ return safeGet(EAR_KEY) === "1"; }
   // 音声OFFの時に問題文まで隠すと解けないので、その場合は文字を出す
@@ -514,7 +568,10 @@
 
     const ex = E.explain(item.q);
     $("fbHead").className = "fb-head " + (ok ? "ok" : "ng");
-    $("fbHead").innerHTML = (ok ? "⭕ 正解！ " : "❌ 残念… 正解は ") + escapeHtml(item.q.score.text) + rankHtml(item.q);
+    $("fbHead").innerHTML = markSvg(ok, 40) + "<span>" + (ok ? "正解！ " : "残念… 正解は ") + escapeHtml(item.q.score.text) + "</span>" + rankHtml(item.q);
+    try{ if("speechSynthesis" in window) window.speechSynthesis.cancel(); }catch(e){}
+    showJudge(ok);
+    playJudgeSound(ok);
     $("fbQ").innerHTML = questionHtml(item.q);
     $("fbSteps").innerHTML = ex.steps.map(function(s){ return "<li>" + escapeHtml(s) + "</li>"; }).join("");
     $("nextBtn").textContent = (quiz.idx === TOTAL - 1) ? "結果を見る" : "次の問題へ";
@@ -528,7 +585,7 @@
     $("resTitle").textContent = "称号：" + title;
     $("review").innerHTML = quiz.list.map(function(item, k){
       const ok = item.picked === item.ch.correctIndex;
-      return '<li class="' + (ok ? "ok" : "ng") + '"><b>' + (ok ? "⭕" : "❌") + " 第" + (k + 1) + "問</b> " +
+      return '<li class="' + (ok ? "ok" : "ng") + '"><b>' + (ok ? '<span style="color:#1e88e5">○</span>' : '<span style="color:#d64545">✖</span>') + " 第" + (k + 1) + "問</b> " +
         questionHtml(item.q) + " ＝ <b>" + escapeHtml(item.q.score.text) + "</b>" + rankHtml(item.q) +
         (ok ? "" : "（あなたの答え：" + escapeHtml(item.ch.options[item.picked]) + "）") + "</li>";
     }).join("");
