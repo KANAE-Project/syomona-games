@@ -7,13 +7,11 @@
 <meta name="description" content="牌なし！読み上げられた役だけで点数を答える、耳と暗算の麻雀点数計算ゲーム">
 <style>
   :root{
-    --bg1:#050806;
-    --bg2:#14241b;
+    --bg1:#eefaf1;
+    --bg2:#c9e8d3;
     --card:#ffffff;
     --ink:#1b2b21;
-    --fg:#eaf5ee;
     --accent:#1f7a4d;
-    --accent-text:#5ee6a0;
     --accent-dark:#155a37;
     --accent2:#e0a100;
     --ok:#1f9d55;
@@ -24,27 +22,24 @@
     margin:0;
     min-height:100vh;
     font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
-    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 75%);
-    color:var(--fg);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
     display:flex;
     justify-content:center;
     padding:24px 14px 60px;
   }
   .wrap{ width:100%; max-width:480px; }
   h1{ text-align:center; font-size:1.35rem; margin:0 0 4px; }
-  .tagline{ text-align:center; font-size:.95rem; font-weight:900; color:var(--accent-text); margin-bottom:6px; }
+  .tagline{ text-align:center; font-size:.95rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
   .sub{ text-align:center; font-size:.8rem; opacity:.7; margin-bottom:14px; }
   .hero-tiles{ text-align:center; font-size:2.2rem; letter-spacing:.2em; margin-bottom:6px; }
 
   .stage{
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.65);
     border-radius:22px;
     padding:20px 16px 24px;
-    box-shadow:0 10px 30px rgba(0,0,0,.35);
+    box-shadow:0 8px 24px rgba(20,80,45,.15);
   }
-  /* 白いカード類の中は暗い文字色に戻す */
-  .bubble,.caution,details.rules,.qcard,.feedback,.review li,.grade-cta,.usage-notice{ color:var(--ink); }
   .sound-notice{
     display:block;
     text-align:center;
@@ -158,14 +153,14 @@
   .rank{ display:inline-block; background:#f5b942; color:#3a2a00; border-radius:8px; padding:0 9px; margin-left:4px; font-size:.85em; font-weight:900; }
   .quiz-note{ font-size:.7rem; opacity:.75; text-align:center; line-height:1.6; margin-top:10px; }
 
-  .score-big{ text-align:center; font-size:2.6rem; font-weight:900; color:var(--accent-text); line-height:1.2; }
+  .score-big{ text-align:center; font-size:2.6rem; font-weight:900; color:var(--accent); line-height:1.2; }
   .score-title{ text-align:center; font-size:1.15rem; font-weight:900; margin:4px 0 12px; }
   .review{ list-style:none; margin:10px 0 6px; padding:0; }
   .review li{ background:var(--card); border-radius:10px; padding:7px 10px; margin-bottom:6px; font-size:.8rem; line-height:1.6; border-left:6px solid var(--ok); }
   .review li.ng{ border-left-color:var(--ng); }
   .review b{ font-size:.85rem; }
 
-  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(255,255,255,.22); text-align:center; }
+  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed #a9cdb6; text-align:center; }
   .grade-cta{
     background:linear-gradient(160deg,#fffbe8,#e9f8ee);
     border:3px dashed var(--accent2); border-radius:18px; padding:18px 14px;
@@ -193,8 +188,8 @@
   .unlocked-badge{ display:inline-block; background:var(--accent); color:#fff; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; }
   .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
 
-  .x-share-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(255,255,255,.22); text-align:center; }
-  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent-text); margin-bottom:12px; }
+  .x-share-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed #a9cdb6; text-align:center; }
+  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:12px; }
   .x-link-btn{
     display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center;
     padding:14px 14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none;
@@ -208,7 +203,7 @@
   }
   .usage-notice .usage-title{ font-weight:bold; color:var(--accent); display:block; margin-bottom:4px; }
 
-  .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--fg); opacity:.7; text-decoration:none; margin-bottom:10px; }
+  .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--ink); opacity:.65; text-decoration:none; margin-bottom:10px; }
   .back-link:hover{ opacity:1; }
   .back-link-btn{
     display:block; background:var(--accent); color:#fff; font-size:1.05rem; font-weight:900;
@@ -221,7 +216,7 @@
 <body>
 <div class="wrap">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
-  <div class="hero-tiles">🀄🀇🀙🀐</div>
+  <div class="hero-tiles">🀄︎🀇🀙🀐</div>
   <h1>麻雀 読み上げ点数計算</h1>
   <div class="tagline">牌なし！耳と暗算だけで点数を答えろ</div>
   <div class="sub">読み上げられた役から、点数を4択で答えます（時間制限なし）</div>
