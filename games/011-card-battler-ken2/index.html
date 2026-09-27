@@ -162,9 +162,39 @@
 
   .flash img{ width:94%; max-width:460px; height:auto; animation:fxPop .55s cubic-bezier(.2,1.4,.4,1); filter:drop-shadow(0 0 18px rgba(0,0,0,.6)); }
   @keyframes fxPop{ from{ transform:scale(.4); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  /* ==== グレードアップ限定：涅槃降臨演出の豪華版（2026年9月27日決定） ==== */
+  .flash.grand::before{
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(circle, rgba(255,213,74,.45), transparent 62%);
+    animation:grandGlow 1.6s ease-out;
+  }
+  @keyframes grandGlow{ 0%{ opacity:0; } 25%{ opacity:1; } 100%{ opacity:0; } }
+  .flash.grand img{
+    width:118%; max-width:560px;
+    animation:fxPopGrand .9s cubic-bezier(.2,1.4,.4,1);
+    filter:drop-shadow(0 0 28px #ffd54a) drop-shadow(0 0 56px #ff8c42);
+  }
+  @keyframes fxPopGrand{
+    0%{ transform:scale(.3) rotate(-8deg); opacity:0; }
+    55%{ transform:scale(1.16) rotate(3deg); opacity:1; }
+    100%{ transform:scale(1) rotate(0deg); opacity:1; }
+  }
   .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:#f6ece0; opacity:.65; text-decoration:none; margin-bottom:6px; }
   .back-link-btn{ display:block; background:var(--accent2); color:#2a1414; font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center; padding:14px 16px; border-radius:14px; margin-top:20px; box-shadow:0 4px 0 var(--accent); }
   .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent); }
+  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(255,255,255,.25); text-align:center; }
+  .grade-cta{ background:rgba(245,185,66,.08); border:3px dashed var(--accent2); border-radius:18px; padding:18px 14px; }
+  .grade-headline{ font-size:1.15rem; font-weight:bold; color:var(--accent2); margin-bottom:6px; }
+  .grade-price{ display:inline-block; background:rgba(255,255,255,.1); color:#fff; font-size:.85rem; font-weight:bold; padding:4px 14px; border-radius:999px; margin-bottom:10px; border:1px solid var(--accent2); }
+  .note-link-btn{ display:block; background:#41c9b4; color:#fff; font-size:1.15rem; font-weight:900; text-decoration:none; text-align:center; padding:16px 14px; border-radius:14px; margin-bottom:14px; box-shadow:0 4px 0 #2e9c8c; }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{ font-size:.85rem; font-weight:bold; color:#f6ece0; margin-bottom:14px; }
+  .grade-form{ display:flex; flex-direction:column; gap:10px; max-width:320px; margin:0 auto; }
+  .grade-form input[type=text]{ text-align:center; padding:10px 12px; border-radius:12px; border:2px solid var(--accent2); font-size:1rem; }
+  .grade-form #unlockBtn{ font-size:1.05rem; padding:13px 16px; background:var(--accent); color:#fff; font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:bold; }
+  .grade-msg{ font-size:.8rem; margin-top:8px; }
+  .unlocked-badge{ display:inline-block; background:var(--accent); color:#fff; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; }
+  .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; margin-bottom:12px; }
   .x-share-zone{ margin-top:22px; padding-top:14px; border-top:1px dashed rgba(255,255,255,.25); text-align:center; }
   .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent2); margin-bottom:12px; }
   .x-link-btn{ display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center; padding:14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer; font-family:inherit; }
@@ -276,7 +306,25 @@
     <button class="act hidden span2" id="btnRon">討伐！</button>
     <button class="act hidden" id="btnPass">見送る</button>
   </div>
-    <div class="x-share-zone">
+    <div class="grade-zone">
+    <div class="grade-cta" id="gradeForm">
+      <div class="grade-headline">損しかない課金はこちら💁</div>
+      <div class="grade-price">🪙 ワンコイン500円</div>
+      <a href="https://note.com/kanae_project" id="noteLinkBtn" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
+      <div class="grade-teaser">課金すると「涅槃降臨！」の演出が豪華になります……それだけです。本当にお金をドブに捨てる気ですか？</div>
+      <div class="grade-form">
+        <input type="text" id="passwordInput" placeholder="合言葉">
+        <button type="button" id="unlockBtn">解放する</button>
+      </div>
+    </div>
+    <div id="gradeMsg" class="grade-msg"></div>
+    <div id="unlockedZone" class="hidden">
+      <span class="unlocked-badge">グレードアップ解放済み</span>
+      <div class="unlocked-note">「涅槃降臨！」の演出が豪華になりました。それだけです。</div>
+    </div>
+  </div>
+
+  <div class="x-share-zone">
     <div class="x-share-title">このゲームを拡散！</div>
     <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xでシェアする</button>
   </div>
@@ -300,6 +348,14 @@
   var E = window.KenEngine;
   var HUMAN = 0, CPU = 1, ROUNDS = 4, CPU_CAREFUL = true;
   var GAME_URL = 'https://kanae-project.github.io/syomona-games/games/011-card-battler-ken2/';
+  // ==== 合言葉：2026年9月27日、本番値に確定 ====
+  var PASSWORD = '涅槃降臨';
+  // ==== 全ゲーム共通「金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
+  var MASTER_PASSWORD = '金ドブ全開放';
+  var STORAGE_KEY = 'card_battler_ken2_unlocked';
+  function safeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
+  function safeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
+  function isGraded(){ return safeGet(STORAGE_KEY) === '1'; }
   var match = { round: 1, total: [0, 0] };
   var R = null, ultraChar = 0, state = 'idle', selected = null, newIdx = null, stealUsed = false, handOrder = [], reachAnnounced = false;
   var logLines = [], resolveHuman = null, resolveRon = null;
@@ -451,6 +507,8 @@
   var FX_IMG = { '殲滅！': 'images/fx-win.png', '討伐！': 'images/fx-ron.png', 'ダーク略奪！': 'images/fx-steal.png', '涅槃降臨！': 'images/fx-nehan.png' };
   function showFlash(big, small, ms){
     var f = document.createElement('div'); f.className = 'flash';
+    // グレードアップ限定：涅槃降臨演出の豪華版（2026年9月27日決定、それ以外の演出やゲームバランスには一切影響しない）
+    if (big === '涅槃降臨！' && isGraded()) { f.className += ' grand'; ms = (ms || 1400) + 1200; }
     var img = FX_IMG[big];
     f.innerHTML = (img ? '<img alt="' + big + '" src="' + img + '">' : '<div class="big">' + big + '</div>') + (small ? '<div class="small">' + small + '</div>' : '');
     var im = f.querySelector('img');
@@ -788,6 +846,26 @@
     var text = head + NL + (played ? t[0] + '対' + t[1] + 'で対戦中！' + NL : '') + 'CMなしの0秒ブラウザゲーム！';
     window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
   });
+
+  // ==== グレードアップ（合言葉）まわり ====
+  (function(){
+    var gradeForm = $('gradeForm'), gradeMsg = $('gradeMsg'), unlockedZone = $('unlockedZone');
+    function setUnlocked(){
+      gradeForm.classList.add('hidden');
+      gradeMsg.textContent = '';
+      unlockedZone.classList.remove('hidden');
+    }
+    if (isGraded()) { setUnlocked(); }
+    $('unlockBtn').addEventListener('click', function(){
+      var val = $('passwordInput').value.trim();
+      if (val === PASSWORD || val === MASTER_PASSWORD) {
+        safeSet(STORAGE_KEY, '1');
+        setUnlocked();
+      } else {
+        gradeMsg.textContent = '違うようです、もう一度確認してください…';
+      }
+    });
+  })();
 
   // 開発用フック（テスト用）
   window.__ken2 = { get R(){ return R; }, get state(){ return state; }, match: match, startRound: startRound, tieBattle: tieBattle, finalResult: finalResult, render: render, E: E, introSequence: introSequence, drawCards: drawCards };

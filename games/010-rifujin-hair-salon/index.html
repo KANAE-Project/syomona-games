@@ -427,8 +427,7 @@
         <div class="grade-headline">損しかない課金はこちら💁</div>
         <div class="grade-price">🪙 ワンコイン500円</div>
         <a href="https://note.com/kanae_project" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
-        <!-- TODO: グレードアップの中身は検討中。note記事執筆前に確定させ、下の説明文とPASSWORDを更新すること -->
-        <div class="grade-teaser">課金するとおばちゃんの理不尽度がさらに増す……らしい（内容は検討中）</div>
+        <div class="grade-teaser">課金すると、完成画像に謎の「パーマ屋公認」スタンプが大きく合成されます（それだけ）</div>
         <div class="grade-form">
           <input type="text" id="passwordInput" placeholder="合言葉">
           <button type="button" id="unlockBtn">解放する</button>
@@ -437,7 +436,7 @@
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
         <span class="unlocked-badge">グレードアップ解放済み</span>
-        <div class="unlocked-note">（グレードアップの中身は近日実装予定です）</div>
+        <div class="unlocked-note">（完成画像に「パーマ屋公認」スタンプが合成されるようになりました。それだけです）</div>
       </div>
     </div>
 
@@ -461,8 +460,8 @@
 (function(){
   const GAME_URL = "https://kanae-project.github.io/syomona-games/games/010-rifujin-hair-salon/";
 
-  // ==== 合言葉：note有料部分に載せる文字列。仮の値、正式決定まで暫定（note記事執筆時に確定させること） ====
-  const PASSWORD = "パーマ暴走（仮）";
+  // ==== 合言葉：note有料部分に載せる文字列。2026年9月27日、本番値に確定 ====
+  const PASSWORD = "パーマ暴走";
   // ==== 全ゲーム共通「ブルジョワ改め金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
   const MASTER_PASSWORD = "金ドブ全開放";
   const STORAGE_KEY = "hair_salon_unlocked";
@@ -757,6 +756,30 @@
       ctx.drawImage(hairImg, -hairImg.naturalWidth / 2, -hairImg.naturalHeight / 2);
       ctx.restore();
     }
+    drawGradeStamp(ctx, RES);
+  }
+
+  // ==== グレードアップ（課金）の中身：完成画像に謎の「パーマ屋公認」スタンプを合成する ====
+  // 2026年9月27日決定：実用性が下がる（=損しかない課金）方向で、あえて目立つ位置に大きく焼き込む
+  function drawGradeStamp(ctx, RES){
+    if(safeGet(STORAGE_KEY) !== "1") return;
+    ctx.save();
+    ctx.translate(RES * 0.76, RES * 0.80);
+    ctx.rotate(-18 * Math.PI / 180);
+    ctx.globalAlpha = 0.85;
+    const r = RES * 0.17;
+    ctx.lineWidth = r * 0.14;
+    ctx.strokeStyle = "#c8102e";
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "#c8102e";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "bold " + Math.round(r * 0.46) + "px 'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Yu Gothic',sans-serif";
+    ctx.fillText("パーマ屋", 0, -r * 0.30);
+    ctx.fillText("公認", 0, r * 0.32);
+    ctx.restore();
   }
 
   document.getElementById("finishBtn").addEventListener("click", function(){
@@ -808,6 +831,10 @@
     gradeForm.classList.add("hidden");
     gradeMsg.textContent = "";
     unlockedZone.classList.remove("hidden");
+    // 結果画面を見ている最中に解放した場合は、その場でスタンプを焼き直す
+    if(resultCanvas.width && !document.getElementById("screenResult").classList.contains("hidden")){
+      bakeResult();
+    }
   }
   if(safeGet(STORAGE_KEY) === "1"){ setUnlocked(); }
 

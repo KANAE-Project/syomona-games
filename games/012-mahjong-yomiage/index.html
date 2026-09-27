@@ -306,8 +306,7 @@
         <div class="grade-headline">損しかない課金はこちら💁</div>
         <div class="grade-price">🪙 ワンコイン500円</div>
         <a href="https://note.com/kanae_project" target="_blank" rel="noopener" class="note-link-btn">📝 noteで合言葉をゲットする</a>
-        <!-- TODO: グレードアップの中身は検討中。note記事執筆前に確定させ、下の説明文とPASSWORDを更新すること -->
-        <div class="grade-teaser">課金すると読み上げがさらにしょーもなくなる……らしい（内容は検討中）</div>
+        <div class="grade-teaser">課金すると、読み上げ声がおばちゃん風になります（それだけです）</div>
         <div class="grade-form">
           <input type="text" id="passwordInput" placeholder="合言葉">
           <button type="button" id="unlockBtn">解放する</button>
@@ -316,7 +315,7 @@
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
         <span class="unlocked-badge">グレードアップ解放済み</span>
-        <div class="unlocked-note">（グレードアップの中身は近日実装予定です）</div>
+        <div class="unlocked-note">（読み上げ声がおばちゃん風になりました。それだけです）</div>
       </div>
     </div>
 
@@ -345,8 +344,8 @@
   // 動作確認用：URLに ?debug=1 を付けると正解の選択肢に★が付く
   const DEBUG = /[?&]debug=1(&|$)/.test(location.search);
 
-  // ==== 合言葉：note有料部分に載せる文字列。仮の値、正式決定まで暫定（note記事執筆時に確定させること） ====
-  const PASSWORD = "点数は暗算派（仮）";
+  // ==== 合言葉：note有料部分に載せる文字列。2026年9月27日、本番値に確定 ====
+  const PASSWORD = "点数は暗算派";
   // ==== 全ゲーム共通「金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
   const MASTER_PASSWORD = "金ドブ全開放";
   const STORAGE_KEY = "mj_yomiage_unlocked";
@@ -356,6 +355,7 @@
 
   function safeGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
   function safeSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
+  function isGraded(){ return safeGet(STORAGE_KEY) === "1"; }
   function $(id){ return document.getElementById(id); }
 
   // ==== ルール表（導入画面と出題画面で共用） ====
@@ -411,6 +411,11 @@
       u.rate = getRate();
       const voice = pickJapaneseVoice();
       if(voice) u.voice = voice;
+      // グレードアップ限定：読み上げ声がおばちゃん風になる（2026年9月27日決定）。ピッチとテンポを変えるだけで、判定・点数計算には一切影響しない
+      if(isGraded()){
+        u.pitch = 1.55;
+        u.rate = Math.min(1.3, u.rate * 0.92);
+      }
       window.speechSynthesis.speak(u);
     }catch(e){}
   }
