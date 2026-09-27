@@ -513,6 +513,21 @@
   }
   .back-inline:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
 
+  /* ==== 損しかない課金（合言葉ロック：中身は検討中、基盤のみ） ==== */
+  .grade-zone{ margin:18px 0 4px; padding-top:16px; border-top:1px dashed rgba(26,47,69,.18); text-align:center; }
+  .grade-cta{ background:rgba(52,84,168,.08); border:3px dashed var(--accent2); border-radius:18px; padding:16px 14px; }
+  .grade-headline{ font-size:1.02rem; font-weight:900; color:var(--accent2-dark); margin-bottom:6px; }
+  .grade-price{ display:inline-block; background:rgba(255,255,255,.7); color:var(--accent2-dark); font-size:.8rem; font-weight:900; padding:4px 14px; border-radius:999px; margin-bottom:10px; border:1px solid var(--accent2); }
+  .grade-zone .note-link-btn{ display:block; background:#41c9b4; color:#fff; font-size:1rem; font-weight:900; text-decoration:none; text-align:center; padding:14px; border-radius:14px; margin-bottom:12px; box-shadow:0 4px 0 #2e9c8c; }
+  .grade-zone .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{ font-size:.8rem; font-weight:700; color:var(--ink); opacity:.85; margin-bottom:12px; }
+  .grade-form{ display:flex; flex-direction:column; gap:8px; max-width:280px; margin:0 auto; }
+  .grade-form input[type=text]{ text-align:center; padding:9px 12px; border-radius:12px; border:2px solid var(--accent2); font-size:.92rem; font-family:inherit; }
+  .grade-form button{ font-size:.95rem; padding:11px 14px; background:var(--accent2); color:#fff; font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:900; }
+  .grade-msg{ font-size:.76rem; margin-top:6px; min-height:1.2em; }
+  .unlocked-badge{ display:inline-block; background:var(--accent2); color:#fff; font-size:.68rem; padding:3px 10px; border-radius:999px; margin-top:6px; }
+  .unlocked-note{ font-size:.78rem; opacity:.8; margin-top:8px; }
+
   .back-link{
     display:inline-block; font-size:.8rem; font-weight:700;
     color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:10px;
@@ -574,6 +589,24 @@
       <div class="tool-row">
         <button type="button" id="editModeBtn" class="tool-btn">✏️ 編集する</button>
         <button type="button" id="resetBtn" class="tool-btn">🔄 チェックをリセット</button>
+      </div>
+
+      <div class="grade-zone" id="gradeZone">
+        <div class="grade-cta" id="gradeForm">
+          <div class="grade-headline">損しかない課金はこちら💁</div>
+          <div class="grade-price">🪙 ワンコイン500円</div>
+          <a href="#" id="noteLinkBtn" class="note-link-btn">📝 note記事は準備中です</a>
+          <div class="grade-teaser">プレミアム機能の中身は検討中です（近日公開予定）</div>
+          <div class="grade-form">
+            <input type="text" id="passwordInput" placeholder="合言葉">
+            <button type="button" id="unlockBtn">解放する</button>
+          </div>
+        </div>
+        <div id="gradeMsg" class="grade-msg"></div>
+        <div id="unlockedZone" class="hidden">
+          <span class="unlocked-badge">グレードアップ解放済み</span>
+          <div class="unlocked-note">（プレミアム機能の中身は近日実装予定です）</div>
+        </div>
       </div>
     </div>
 
@@ -639,6 +672,12 @@
 <script>
 (function(){
   const STORAGE_KEY = "yarukoto_loop_tasks_v1";
+  // ==== 合言葉：中身は検討中のため、値も未定のプレースホルダー（決まり次第、本番値に更新すること） ====
+  const GRADE_PASSWORD = "＜合言葉は検討中＞";
+  // ==== 全ゲーム共通「金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
+  const GRADE_MASTER_PASSWORD = "金ドブ全開放";
+  const GRADE_KEY = "yarukoto_loop_unlocked_v1";
+  function isGraded(){ try{ return localStorage.getItem(GRADE_KEY) === "1"; }catch(e){ return false; } }
   const CATEGORY_STORAGE_KEY = "yarukoto_loop_categories_v1";
 
   // ==== 初回起動時のデフォルト仕事カテゴリ＆仮タスク ====
@@ -905,6 +944,28 @@
     saveTasks(tasks);
     renderMain();
   });
+
+  // ==== 損しかない課金（合言葉ロック：中身は検討中のため、現時点では基盤のみ） ====
+  (function(){
+    const gradeForm = document.getElementById("gradeForm");
+    const gradeMsg = document.getElementById("gradeMsg");
+    const unlockedZone = document.getElementById("unlockedZone");
+    function setGraded(){
+      gradeForm.classList.add("hidden");
+      gradeMsg.textContent = "";
+      unlockedZone.classList.remove("hidden");
+    }
+    if(isGraded()){ setGraded(); }
+    document.getElementById("unlockBtn").addEventListener("click", function(){
+      const val = document.getElementById("passwordInput").value.trim();
+      if(val === GRADE_PASSWORD || val === GRADE_MASTER_PASSWORD){
+        try{ localStorage.setItem(GRADE_KEY, "1"); }catch(e){}
+        setGraded();
+      } else {
+        gradeMsg.textContent = "違うようです、もう一度確認してください…";
+      }
+    });
+  })();
 
   const emojiInput = document.getElementById("emojiInput");
   const nameInput = document.getElementById("nameInput");
