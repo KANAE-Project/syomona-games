@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>開かずの金庫｜しょーもなゲームズ</title>
-<meta name="description" content="タップで図や記号を動かして錠を開ける、ちょっと考える錠前パズル。1-1から3-10まで30問">
+<title>どうぶつまみれ｜しょーもなゲームズ</title>
+<meta name="description" content="ねむっている動物たちの錠を、タップで動かして開けていく動物パズル。動物だらけのマップを進もう">
 <style>
   :root{
     --bg1:#262c42; --bg2:#141827; --card:#323a57; --ink:#f4efe2;
@@ -104,6 +104,9 @@
   .car{ position:absolute; border:none; padding:0; background:none; cursor:pointer; font-family:inherit; }
   .car > span{ display:flex; align-items:center; justify-content:center; position:absolute; inset:3px; border-radius:9px; font-size:1.2rem; box-shadow:inset 0 -3px 0 rgba(0,0,0,.25); }
   .car.sel > span{ outline:3px solid #fff; }
+  .cbody{ display:flex; flex-direction:row; width:100%; height:100%; }
+  .cbody.v{ flex-direction:column; }
+  .cbody i{ flex:1; display:flex; align-items:center; justify-content:center; font-style:normal; line-height:1; font-size:calc(var(--cell, 48px) * .58); }
   .car.key > span{ background:var(--accent); color:#3a2c00; }
   .dot{ position:absolute; border:none; padding:0; background:none; cursor:pointer; z-index:5; }
   .dot > span{ position:absolute; left:50%; top:50%; width:34%; height:34%; transform:translate(-50%,-50%); background:rgba(255,255,255,.75); border-radius:50%; }
@@ -206,8 +209,8 @@
 <body>
 <div class="wrap">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
-  <div class="vault-icon">🔐</div>
-  <h1>開かずの金庫</h1>
+  <div class="vault-icon">🐱🐶🐰🐼🐸</div>
+  <h1>どうぶつまみれ</h1>
   <div class="tagline">タップで動かして、動物たちの錠を開けろ</div>
 
   <!-- ==== マップ ==== -->
@@ -333,8 +336,8 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   ];
   var MECH = {
     lights:  { name: 'スイッチ錠', icon: '💡', rule: 'ねむっている動物（💤）を、全員起こそう！ マスをタップすると、そのマスと上下左右の動物が「起きる／ねむる」入れ替わります。全員起きると錠が開きます。' },
-    symbols: { name: '記号錠',     icon: '🔣', rule: 'ヒントをすべて満たす並びにすると開錠。記号を1つタップして選び、となりの記号をタップすると入れ替わります。' },
-    slide:   { name: 'スライド錠', icon: '🚪', rule: '棒をタップして選び、行き先の●をタップでスライド。鍵🔑を右の出口まで出そう。何マス動かしても1手です。' }
+    symbols: { name: '並び替え錠', icon: '🔀', rule: '動物たちを、ヒントをすべて満たす並びにしよう。動物を1匹タップして選び、となりの動物をタップすると入れ替わります。' },
+    slide:   { name: 'スライド錠', icon: '🚪', rule: 'ぎゅうぎゅうの動物の行列。動物をタップして選び、行き先の●をタップでスライド。鍵🔑をもった動物を、右の出口まで連れ出そう。何マス動かしても1手です。' }
   };
   var COLLAR_NAME = { 1: '首輪なし', 2: '銀の首輪', 3: '金の首輪' };
   var COLLAR_ICON = { 1: '', 2: '🥈 ', 3: '🏅 ' };
@@ -557,15 +560,18 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     }
   };
 
-  // ---- 2) 記号錠 ----
+  // ---- 2) 並び替え錠 ----
+  // 問題データの記号（★●▲■◆♥♣）を、表示のときだけ動物に差し替える（判定・最短手数は記号のまま検証済み）
+  var SYM_ANIMAL = { '★': '🐱', '●': '🐶', '▲': '🐰', '■': '🐼', '◆': '🐸', '♥': '🐵', '♣': '🐧' };
+  function sym(x){ return SYM_ANIMAL[x] || x; }
   function clueText(c){
     switch (c[0]) {
-      case 'left': return c[1] + 'は' + c[2] + 'より左';
-      case 'adj': return c[1] + 'と' + c[2] + 'は隣どうし';
-      case 'notadj': return c[1] + 'と' + c[2] + 'は隣ではない';
-      case 'pos': return c[1] + 'は左から' + (c[2] + 1) + '番目';
-      case 'end': return c[1] + 'は端（いちばん左かいちばん右）';
-      case 'between': return c[1] + 'は' + c[2] + 'と' + c[3] + 'のあいだ';
+      case 'left': return sym(c[1]) + 'は' + sym(c[2]) + 'より左';
+      case 'adj': return sym(c[1]) + 'と' + sym(c[2]) + 'は隣どうし';
+      case 'notadj': return sym(c[1]) + 'と' + sym(c[2]) + 'は隣ではない';
+      case 'pos': return sym(c[1]) + 'は左から' + (c[2] + 1) + '番目';
+      case 'end': return sym(c[1]) + 'は端（いちばん左かいちばん右）';
+      case 'between': return sym(c[1]) + 'は' + sym(c[2]) + 'と' + sym(c[3]) + 'のあいだ';
     }
     return '';
   }
@@ -600,7 +606,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
         var b = document.createElement('button'); b.type = 'button';
         var hi = g.hint && (g.hint.a === i || g.hint.b === i);
         b.className = 'sym' + (i === g.sel ? ' sel' : '') + (hi ? ' hint-pulse' : '');
-        b.textContent = s; b.setAttribute('data-i', i);
+        b.textContent = sym(s); b.setAttribute('data-i', i);
         b.addEventListener('click', function(e){
           var k = +e.currentTarget.getAttribute('data-i');
           if (g.sel < 0) { g.sel = k; refresh(); return; }
@@ -659,6 +665,18 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     return null;
   }
   var CAR_COLORS = ['#f0b429', '#5aa9e6', '#e8788a', '#7bc67e', '#b58be0', '#e8a25a', '#5cc7c0', '#c9c26a', '#d98fd0', '#8aa0e8', '#e57f5b'];
+  // 棒の長さ分、同じ動物が並ぶ。長さ3の棒は体の長い動物、長さ2の棒は小さめの動物。鍵の棒は「この面の動物＋🔑」
+  var LONG_ANIMALS = ['🐍', '🐊', '🦒', '🐛', '🐘', '🦕', '🦎'];
+  var SHORT_ANIMALS = ['🐢', '🦔', '🐙', '🦆', '🐝', '🦉', '🐌', '🐭'];
+  function slideAnimals(ctx, keyEm){
+    var li = 0, si = 0;
+    return ctx.cars.map(function(c, k){
+      if (k === 0) return [keyEm, '🔑'];
+      var em = c.L >= 3 ? LONG_ANIMALS[li++ % LONG_ANIMALS.length] : SHORT_ANIMALS[si++ % SHORT_ANIMALS.length];
+      var cells = []; for (var x = 0; x < c.L; x++) cells.push(em);
+      return cells;
+    });
+  }
   TYPES.slide = {
     init: function(lv){
       var cars = lv.cars.map(function(c){ return { L: c[2], o: c[3], fixed: c[3] === 'H' ? c[0] : c[1] }; });
@@ -674,12 +692,16 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       var ctx = g.ctx, wrap = document.createElement('div'); wrap.className = 'slide-wrap';
       var board = document.createElement('div'); board.className = 'slide-board';
       var pct = 100 / SN;
+      var animals = slideAnimals(ctx, g.theme ? g.theme.em : '🐱');
       function place(el, r, c, h, w){ el.style.left = (c * pct) + '%'; el.style.top = (r * pct) + '%'; el.style.width = (w * pct) + '%'; el.style.height = (h * pct) + '%'; }
       ctx.cars.forEach(function(c, k){
         var b = document.createElement('button'); b.type = 'button';
         var r = c.o === 'H' ? c.fixed : g.state[k], cc = c.o === 'H' ? g.state[k] : c.fixed;
         b.className = 'car' + (k === 0 ? ' key' : '') + (g.sel === k ? ' sel' : '') + (g.hint && g.hint.car === k ? ' hint-car' : '');
-        var sp = document.createElement('span'); sp.style.background = k === 0 ? '' : CAR_COLORS[k % CAR_COLORS.length]; sp.textContent = k === 0 ? '🔑' : '';
+        var sp = document.createElement('span'); sp.style.background = k === 0 ? '' : CAR_COLORS[k % CAR_COLORS.length];
+        var body = document.createElement('span'); body.className = 'cbody' + (c.o === 'V' ? ' v' : '');
+        animals[k].forEach(function(em){ var i = document.createElement('i'); i.textContent = em; body.appendChild(i); });
+        sp.appendChild(body);
         b.appendChild(sp);
         place(b, r, cc, c.o === 'V' ? c.L : 1, c.o === 'H' ? c.L : 1);
         b.setAttribute('data-k', k);
@@ -700,9 +722,10 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
         });
       }
       wrap.appendChild(board);
+      box.appendChild(wrap);
+      board.style.setProperty('--cell', (board.clientWidth / SN) + 'px');   // 絵文字の大きさをマスの大きさに合わせる
       var ex = document.createElement('div'); ex.className = 'exit-mark'; ex.style.top = (2 * pct + pct / 2 - 1.2) + '%'; ex.innerHTML = '▶<br>出口';
       wrap.appendChild(ex);
-      box.appendChild(wrap);
     }
   };
 
@@ -864,7 +887,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   $('xShareBtn').addEventListener('click', function(){
     var t = totals(), NL = String.fromCharCode(10);
     var body = t.cleared ? '動物' + zukanOwned() + '匹が仲間に！ ★' + t.stars + '/' + t.max + '（' + t.cleared + '問クリア）' : 'タップで動かして動物たちの錠を開ける錠前パズル！';
-    var text = '「開かずの金庫」' + NL + body + NL + 'CMなしの0秒ブラウザゲーム！' + NL + '#しょーもなゲームズ';
+    var text = '「どうぶつまみれ」' + NL + body + NL + 'CMなしの0秒ブラウザゲーム！' + NL + '#しょーもなゲームズ';
     window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
   });
 
