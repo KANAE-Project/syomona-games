@@ -7,14 +7,63 @@
 <meta name="description" content="ねむっている動物たちの錠を、タップで動かして開けていく動物パズル。動物だらけのマップを進もう">
 <style>
   :root{
-    --bg1:#262c42; --bg2:#141827; --card:#323a57; --ink:#f4efe2;
-    --accent:#f0b429; --accent-dark:#b9840f; --on:#f0b429; --off:#46506f; --ok:#4cc38a; --lock:#2b3149;
+    /* 既定＝草原。周回ごとに body[data-theme] で上書き（grass=草原 / savanna=サバンナ / ice=氷面）。配色はコントラスト比を計算して決定済み */
+    --bg1:#26803c; --bg2:#12502a; --card:#174a2c; --ink:#f4fff0;
+    --accent:#ffd54a; --accent-dark:#c79a12; --on:#ffd54a; --off:#2f6e45; --ok:#7ee787; --lock:#123b23;
+    --mute:#b4dbbf; --mute2:#7fb08a; --board:#103820; --cleared:#3d5a2b; --ring:#2a6b40;
+    --deco1:#66bb6a; --deco2:#3f9a4a; --hill1:#2f9a48; --hill2:#3aa856;
   }
+  body[data-theme=savanna]{
+    --bg1:#a8611c; --bg2:#6b3c11; --card:#5b3512; --ink:#fff6e5;
+    --accent:#ffe08a; --accent-dark:#c9a03a; --on:#ffe08a; --off:#8a5f2c; --ok:#b6f28a; --lock:#46280e;
+    --mute:#e0c08a; --mute2:#b08a55; --board:#3e240c; --cleared:#6a4d1f; --ring:#7a5326;
+    --deco1:#d9a441; --deco2:#b9812a; --hill1:#c07a2a; --hill2:#d08f36; }
+  body[data-theme=ice]{
+    --bg1:#2f7fb0; --bg2:#1a5079; --card:#17446a; --ink:#f2fbff;
+    --accent:#ffe27a; --accent-dark:#c9aa3a; --on:#ffe27a; --off:#33739b; --ok:#7ff0c0; --lock:#123957;
+    --mute:#b6ddf1; --mute2:#7fb3d3; --board:#0f3554; --cleared:#2f6488; --ring:#2a6690;
+    --deco1:#dff4ff; --deco2:#a9dcf5; --hill1:#5aa8d0; --hill2:#7dc0e0; }
   *{box-sizing:border-box;}
   body{ margin:0; min-height:100vh; font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
     background:linear-gradient(160deg,var(--bg1),var(--bg2)); color:var(--ink); display:flex; justify-content:center; padding:24px 14px 60px; }
   .wrap{ width:100%; max-width:480px; }
   .hidden{ display:none !important; }
+  /* ---- 背景の装飾レイヤー（画面の背面に固定） ---- */
+  body{ position:relative; }
+  #bgDeco{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .wrap{ position:relative; z-index:1; }
+  #bgDeco .blades{ position:absolute; left:0; right:0; bottom:0; height:110px; background-repeat:repeat-x; background-size:150px 110px; }
+  #bgDeco .blades.back{ height:140px; opacity:.7; background-position:60px 0; background-size:190px 140px; }
+  #bgDeco .hills{ position:absolute; left:0; right:0; bottom:0; height:46vh; background:radial-gradient(ellipse 70% 100% at 20% 100%, var(--hill1) 0 60%, transparent 61%), radial-gradient(ellipse 80% 90% at 85% 100%, var(--hill2) 0 60%, transparent 61%); opacity:.55; }
+  #bgDeco .sky{ position:absolute; inset:0; }
+  #bgDeco .snow{ position:absolute; inset:0; display:none; }
+  #bgDeco .snow i{ position:absolute; top:-30px; font-style:normal; color:#fff; opacity:.85; animation:snowFall linear infinite; }
+  @keyframes snowFall{ from{ transform:translateY(-30px) rotate(0); } to{ transform:translateY(112vh) rotate(300deg); } }
+  /* 草原：雲・草・花 */
+  body[data-theme=grass] #bgDeco .sky{ background:
+    radial-gradient(ellipse 90px 26px at 18% 7%, rgba(255,255,255,.45), transparent 70%),
+    radial-gradient(ellipse 120px 30px at 78% 12%, rgba(255,255,255,.4), transparent 70%),
+    radial-gradient(ellipse 80px 22px at 55% 4%, rgba(255,255,255,.35), transparent 70%); }
+  body[data-theme=grass] #bgDeco .blades.front{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M4 64 Q6 30 12 10 Q16 32 18 64Z M26 64 Q28 34 36 16 Q38 36 40 64Z M50 64 Q52 28 58 6 Q64 30 64 64Z M72 64 Q74 32 82 14 Q84 34 86 64Z' fill='%2366bb6a'/%3E%3Cpath d='M14 64 Q16 44 22 30 Q24 46 26 64Z M60 64 Q62 46 68 34 Q70 48 72 64Z' fill='%233f9a4a'/%3E%3Ccircle cx='30' cy='14' r='4' fill='%23ffeb3b'/%3E%3Ccircle cx='76' cy='12' r='4' fill='%23ff8fb3'/%3E%3C/svg%3E"); }
+  body[data-theme=grass] #bgDeco .blades.back{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='84' viewBox='0 0 120 84'%3E%3Cpath d='M6 84 Q8 40 16 14 Q22 42 24 84Z M40 84 Q42 44 52 20 Q56 46 58 84Z M78 84 Q80 38 90 10 Q96 40 98 84Z' fill='%23a5d6a7'/%3E%3C/svg%3E"); }
+  /* サバンナ：太陽・アカシア・乾いた草 */
+  body[data-theme=savanna] #bgDeco .sky{ background:
+    radial-gradient(circle 120px at 88% 6%, rgba(255,232,150,.95) 0 34%, rgba(255,200,80,.5) 36% 56%, transparent 72%),
+    radial-gradient(ellipse 110px 24px at 20% 9%, rgba(255,235,200,.28), transparent 70%); }
+  body[data-theme=savanna] #bgDeco .blades.front{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M4 64 Q10 30 8 8 Q18 34 18 64Z M28 64 Q34 36 34 14 Q42 38 42 64Z M52 64 Q58 26 56 4 Q66 30 66 64Z M74 64 Q80 34 80 12 Q88 36 88 64Z' fill='%23d9a441'/%3E%3Cpath d='M16 64 Q20 46 20 32 Q28 48 28 64Z M62 64 Q66 48 66 36 Q74 50 74 64Z' fill='%23b9812a'/%3E%3C/svg%3E"); }
+  body[data-theme=savanna] #bgDeco .blades.back{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='84' viewBox='0 0 120 84'%3E%3Cpath d='M6 84 Q12 42 10 16 Q22 44 24 84Z M44 84 Q50 46 50 22 Q60 48 60 84Z M82 84 Q88 40 86 12 Q98 42 100 84Z' fill='%23e8c777'/%3E%3C/svg%3E"); }
+  body[data-theme=savanna] #bgDeco .tree{ display:block; }
+  #bgDeco .tree{ display:none; position:absolute; left:-10px; bottom:34px; width:150px; height:110px; opacity:.55; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='110' viewBox='0 0 150 110'%3E%3Cpath d='M72 110 L74 60 Q72 48 58 40 M74 60 Q80 46 96 38' stroke='%233b2208' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Cellipse cx='70' cy='30' rx='62' ry='16' fill='%233b2208'/%3E%3Cellipse cx='104' cy='42' rx='30' ry='9' fill='%233b2208'/%3E%3C/svg%3E") no-repeat center bottom / contain; }
+  /* 氷面：雪・氷の山 */
+  body[data-theme=ice] #bgDeco .snow{ display:block; }
+  body[data-theme=ice] #bgDeco .sky{ background:
+    radial-gradient(ellipse 140px 30px at 25% 5%, rgba(255,255,255,.28), transparent 70%),
+    radial-gradient(ellipse 110px 24px at 80% 10%, rgba(255,255,255,.22), transparent 70%); }
+  body[data-theme=ice] #bgDeco .blades.front{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M0 64 L14 20 L28 64Z M22 64 L40 8 L58 64Z M52 64 L68 26 L84 64Z M76 64 L90 34 L104 64Z' fill='%23dff4ff'/%3E%3Cpath d='M40 8 L48 30 L36 30Z M14 20 L19 34 L9 34Z' fill='%23ffffff'/%3E%3C/svg%3E"); }
+  body[data-theme=ice] #bgDeco .blades.back{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='84' viewBox='0 0 120 84'%3E%3Cpath d='M0 84 L26 24 L52 84Z M40 84 L70 10 L100 84Z M90 84 L112 40 L134 84Z' fill='%23a9dcf5'/%3E%3C/svg%3E"); }
+  /* 頭まわりの読みやすさ用プレート（背景が明るくても文字が読める） */
+  .top-plate{ background:rgba(3,25,12,.34); border-radius:18px; padding:8px 12px 6px; margin-bottom:12px; }
+  @media (prefers-reduced-motion: reduce){ #bgDeco .snow i{ animation:none; } }
   h1{ text-align:center; font-size:1.5rem; margin:6px 0 4px; letter-spacing:.06em; }
   .tagline{ text-align:center; font-size:.9rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
   .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:14px; line-height:1.6; }
@@ -22,7 +71,7 @@
   .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:8px; }
   .back-link-btn{ display:block; background:var(--accent); color:#2a2208; font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center; padding:14px 16px; border-radius:14px; margin-top:20px; box-shadow:0 4px 0 var(--accent-dark); }
   .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
-  .panel{ background:var(--card); border-radius:20px; padding:16px 14px 18px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+  .panel{ background:color-mix(in srgb, var(--card) 88%, transparent); border-radius:20px; padding:16px 14px 18px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
 
   /* 目次 */
   .total-stars{ text-align:center; font-size:1rem; font-weight:900; color:var(--accent); margin-bottom:12px; }
@@ -34,10 +83,10 @@
   .lv-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
   .lv{ border:none; border-radius:12px; padding:8px 0 6px; font-family:inherit; cursor:pointer; background:var(--off); color:var(--ink); font-weight:900; font-size:.95rem; line-height:1.2; }
   .lv:active{ transform:scale(.94); }
-  .lv .st{ display:block; font-size:.62rem; letter-spacing:-.02em; margin-top:2px; color:#8a93b3; }
+  .lv .st{ display:block; font-size:.62rem; letter-spacing:-.02em; margin-top:2px; color:var(--mute); }
   .lv .st b{ color:var(--accent); font-weight:900; }
-  .lv.cleared{ background:#4a4a3a; }
-  .lv.locked{ background:var(--lock); color:#6b7392; cursor:default; }
+  .lv.cleared{ background:var(--cleared); }
+  .lv.locked{ background:var(--lock); color:var(--mute2); cursor:default; }
   .lv.locked:active{ transform:none; }
   .world.soon{ opacity:.55; }
 
@@ -76,7 +125,7 @@
   .zk-card.c3 .zk-em{ border-color:#f0b429; box-shadow:0 0 14px rgba(240,180,41,.75); }
   .zk-card.lock .zk-em span{ filter:brightness(0) opacity(.55); }
   .zk-name{ font-size:.95rem; font-weight:900; }
-  .zk-collar{ font-size:.72rem; font-weight:900; margin:2px 0 4px; color:#8a93b3; }
+  .zk-collar{ font-size:.72rem; font-weight:900; margin:2px 0 4px; color:var(--mute); }
   .zk-card.c2 .zk-collar{ color:#d6dae6; }
   .zk-card.c3 .zk-collar{ color:var(--accent); }
   .zk-flavor{ font-size:.72rem; line-height:1.55; opacity:.85; min-height:3.1em; }
@@ -93,12 +142,12 @@
   .sym-row{ display:flex; gap:6px; justify-content:center; }
   .sym{ flex:1; max-width:64px; aspect-ratio:1/1; border:3px solid transparent; border-radius:14px; cursor:pointer; font-family:inherit; font-size:1.6rem; background:var(--off); color:var(--ink); transition:transform .1s ease; padding:0; }
   .sym:active{ transform:scale(.92); }
-  .sym.sel{ border-color:var(--accent); background:#5a5238; }
+  .sym.sel{ border-color:var(--accent); background:var(--ring); }
   .sym-hint{ text-align:center; font-size:.74rem; opacity:.65; margin-top:8px; }
 
   /* スライド */
   .slide-wrap{ position:relative; max-width:372px; margin:0 auto; padding-right:24px; }
-  .slide-board{ position:relative; width:100%; aspect-ratio:1/1; background:#1c2136; border-radius:12px; overflow:hidden;
+  .slide-board{ position:relative; width:100%; aspect-ratio:1/1; background:var(--board); border-radius:12px; overflow:hidden;
     background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
     background-size:calc(100%/6) calc(100%/6); }
   .exit-mark{ position:absolute; right:0; font-size:.72rem; font-weight:900; color:var(--accent); width:24px; text-align:center; line-height:1.1; }
@@ -110,7 +159,7 @@
   .gear-row{ display:flex; align-items:center; gap:6px; }
   .gear-btn{ flex:none; width:40px; height:48px; border:none; border-radius:12px; cursor:pointer; font-family:inherit; font-size:1.2rem; font-weight:900; color:var(--ink); background:var(--off); }
   .gear-btn:active{ transform:scale(.9); }
-  .gear-btn.hint-pulse{ background:#6b6238; border:3px solid #fff; }
+  .gear-btn.hint-pulse{ background:var(--ring); border:3px solid #fff; }
   .gear-lane{ flex:1; display:grid; gap:3px; position:relative; }
   .gear-cell{ height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); font-size:1.5rem; line-height:1; }
   .gear-cell.keycol{ background:rgba(240,180,41,.13); box-shadow:inset 0 0 0 2px rgba(240,180,41,.55); }
@@ -130,7 +179,7 @@
   /* 結果 */
   /* クリア演出：全画面オーバーレイ（#resultBox） */
   .result{ position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    padding:18px; text-align:center; background:rgba(10,12,22,.96); overflow-y:auto; animation:fadeIn .25s ease; }
+    padding:18px; text-align:center; background:rgba(4,20,10,.96); overflow-y:auto; animation:fadeIn .25s ease; }
   @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
   .result-inner{ width:100%; max-width:380px; }
   .mark-box{ width:min(64vw,250px); height:min(64vw,250px); margin:0 auto 4px; }
@@ -145,7 +194,7 @@
   @keyframes titleIn{ from{ transform:translateY(12px) scale(.9); opacity:0; } to{ transform:none; opacity:1; } }
   .result-stars{ font-size:2.4rem; letter-spacing:.14em; color:var(--accent); margin:6px 0 2px; }
   .result-stars .star{ display:inline-block; opacity:0; animation:starIn .45s cubic-bezier(.2,1.6,.4,1) forwards; }
-  .result-stars .star.off{ color:#5a6386; }
+  .result-stars .star.off{ color:var(--mute2); }
   @keyframes starIn{ from{ transform:scale(.2) rotate(-40deg); opacity:0; } to{ transform:scale(1) rotate(0); opacity:1; } }
   .result-sub{ font-size:.9rem; opacity:.9; line-height:1.7; margin-bottom:4px; }
   .confetti{ position:absolute; top:-20px; width:9px; height:14px; border-radius:2px; opacity:0; animation:confettiFall linear forwards; pointer-events:none; }
@@ -185,7 +234,12 @@
   .status-chip b{ color:var(--accent); font-size:1.05rem; }
   .daily-msg{ text-align:center; font-size:.8rem; font-weight:900; color:var(--ok); margin:0 0 8px; }
   .daily-msg:empty{ display:none; }
-  .map-round{ font-size:.92rem; font-weight:900; color:var(--accent); margin:16px 0 6px; text-align:center; letter-spacing:.06em; }
+  .map-round{ text-align:center; margin:18px 0 10px; padding:8px 6px 8px; border-radius:14px; background:rgba(0,0,0,.2); border:2px solid rgba(255,255,255,.12); }
+  .map-round[data-w=grass]{ background:linear-gradient(180deg, rgba(102,187,106,.28), rgba(0,0,0,.18)); }
+  .map-round[data-w=savanna]{ background:linear-gradient(180deg, rgba(233,180,80,.3), rgba(0,0,0,.18)); }
+  .map-round[data-w=ice]{ background:linear-gradient(180deg, rgba(190,235,255,.3), rgba(0,0,0,.18)); }
+  .mr-strip{ font-size:1.15rem; letter-spacing:.2em; line-height:1.3; }
+  .mr-title{ font-size:.95rem; font-weight:900; color:var(--accent); letter-spacing:.05em; margin-top:2px; }
   .map-round.sub{ opacity:.6; }
   .node-row{ position:relative; display:flex; align-items:center; gap:14px; margin:0 0 22px; cursor:pointer; }
   .node-row.right{ flex-direction:row-reverse; text-align:right; }
@@ -194,20 +248,20 @@
   .node-row:not(.right):not(.last)::after{ left:37px; }
   .node-row.right:not(.last)::after{ right:37px; }
   .node{ position:relative; flex:none; width:76px; height:76px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.4rem;
-    background:rgba(255,255,255,.08); border:4px solid var(--nc, #46506f); }
+    background:rgba(255,255,255,.08); border:4px solid var(--nc, var(--off)); }
   .node.done{ box-shadow:0 0 14px var(--nc); }
   .node.now{ animation:nodePulse 1.4s ease-in-out infinite; background:rgba(255,255,255,.16); }
   @keyframes nodePulse{ 0%,100%{ box-shadow:0 0 0 0 var(--nc); } 50%{ box-shadow:0 0 0 9px rgba(255,255,255,.18); } }
-  .node.locked{ border-color:#3a4260; }
+  .node.locked{ border-color:var(--lock); }
   .node.locked .em{ filter:brightness(0) opacity(.5); }
   .node .badge{ position:absolute; right:-6px; bottom:-4px; font-size:1.05rem; background:var(--card); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; }
   .node-info{ flex:1; min-width:0; }
   .node-name{ font-size:1rem; font-weight:900; }
   .node-mech{ font-size:.74rem; opacity:.75; margin:1px 0 3px; }
   .node-prog{ font-size:.78rem; font-weight:900; color:var(--accent); }
-  .node-row.locked .node-name, .node-row.locked .node-mech, .node-row.locked .node-prog{ color:#6b7392; opacity:.8; }
+  .node-row.locked .node-name, .node-row.locked .node-mech, .node-row.locked .node-prog{ color:var(--mute2); opacity:.8; }
   .map-end{ text-align:center; font-size:.85rem; opacity:.7; margin:6px 0 4px; }
-  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:rgba(10,12,22,.95); color:var(--ink); border:2px solid var(--accent); border-radius:999px; padding:10px 18px; font-size:.85rem; font-weight:900; z-index:60; max-width:90vw; text-align:center; animation:fadeIn .2s ease; }
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:rgba(4,20,10,.95); color:var(--ink); border:2px solid var(--accent); border-radius:999px; padding:10px 18px; font-size:.85rem; font-weight:900; z-index:60; max-width:90vw; text-align:center; animation:fadeIn .2s ease; }
   /* ===== パック画面 ===== */
   .pack-hero{ text-align:center; margin-bottom:8px; }
   .pack-hero .em{ font-size:3rem; line-height:1.1; }
@@ -220,12 +274,15 @@
   .zk-lv span{ background:rgba(255,255,255,.08); border-radius:8px; padding:1px 6px; }
 </style>
 </head>
-<body>
+<body data-theme="grass">
+<div id="bgDeco" aria-hidden="true"><div class="sky"></div><div class="hills"></div><div class="tree"></div><div class="blades back"></div><div class="blades front"></div><div class="snow" id="snowLayer"></div></div>
 <div class="wrap">
+  <div class="top-plate">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
   <div class="vault-icon">🐱🐶🐰🐼🐸</div>
   <h1>どうぶつまみれ</h1>
   <div class="tagline">タップで動かして、動物たちの錠を開けろ</div>
+  </div>
 
   <!-- ==== マップ ==== -->
   <div id="screenMap" class="panel">
@@ -235,6 +292,7 @@
       <div class="status-chip">★ <b id="starCount">0</b> / <span id="starMax">0</span></div>
     </div>
     <div class="daily-msg" id="dailyMsg"></div>
+    <div class="daily-msg" id="openAllMsg" style="color:var(--accent)"></div>
     <button type="button" class="zukan-btn" id="zukanBtn">📖 どうぶつ図鑑 <span class="zk-count" id="zukanCount"></span></button>
     <div id="mapList"></div>
   </div>
@@ -354,6 +412,25 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     gear:    { name: '歯車錠',     icon: '⚙️', rule: 'ぐるぐる回る動物のレーン。◀▶で1本のレーンを回すと、すぐ下のレーンが「逆向き」に回ります（⇅）。すべての動物を、🔑のあいている列にそろえよう。1回に1マス回して1手です。' },
     slide:   { name: 'スライド錠', icon: '🚪', rule: 'ぎゅうぎゅうの動物の行列。動物をタップして選び、行き先の●をタップでスライド。鍵🔑をもった動物を、右の出口まで連れ出そう。何マス動かしても1手です。' }
   };
+  // 周回ごとの世界。周回が増えたら、この一覧を伸ばす（足りない分は先頭から繰り返す）
+  var WORLDS = [
+    { key: 'grass',   name: '草原',       icon: '🌱', strip: '🌼🌿🌷🌿🌼🌿🌷' },
+    { key: 'savanna', name: 'サバンナ',   icon: '🌾', strip: '🌾🌵🌾☀️🌾🌵🌾' },
+    { key: 'ice',     name: '氷の世界',   icon: '❄️', strip: '❄️🧊❄️⛄❄️🧊❄️' }
+  ];
+  function worldOf(r){ return WORLDS[(r - 1) % WORLDS.length]; }
+  function setTheme(r){ document.body.setAttribute('data-theme', worldOf(r).key); }
+  (function buildSnow(){   // 雪の粒（氷の世界のときだけ表示）
+    var layer = document.getElementById('snowLayer'); if (!layer) return;
+    for (var i = 0; i < 16; i++) {
+      var f = document.createElement('i'); f.textContent = i % 3 ? '❄' : '❅';
+      f.style.left = (Math.random() * 100) + '%'; f.style.fontSize = (10 + Math.random() * 14) + 'px';
+      f.style.animationDuration = (7 + Math.random() * 8) + 's'; f.style.animationDelay = (-Math.random() * 12) + 's';
+      layer.appendChild(f);
+    }
+  })();
+  // お試しモード：URLに ?open=all を付けると全パックが開き、記録は保存されない（歯車錠など先の内容を見たい時用）
+  var OPEN_ALL = /[?&]open=all(&|$)/.test(location.search);
   var COLLAR_NAME = { 1: '首輪なし', 2: '銀の首輪', 3: '金の首輪' };
   var COLLAR_ICON = { 1: '', 2: '🥈 ', 3: '🏅 ' };
   function hexToRgba(h, a){ var n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
@@ -362,7 +439,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   var prog = { p: {}, hints: 5, day: '', flags: {} };
   try { var sv = JSON.parse(safeGet(PROG_KEY) || 'null'); if (sv && sv.p) prog = sv; } catch(e){}
   if (!prog.flags) prog.flags = {};
-  function saveProg(){ safeSet(PROG_KEY, JSON.stringify(prog)); }
+  function saveProg(){ if (!OPEN_ALL) safeSet(PROG_KEY, JSON.stringify(prog)); }
   function isUnlimited(){ return safeGet(STORAGE_KEY) === '1'; }
   function pid(r, a, j){ return r + '-' + a + '-' + j; }
   function starsOf(r, a, j){ var x = prog.p[pid(r, a, j)]; return x ? x.stars : 0; }
@@ -372,7 +449,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   function packClearedCount(r, a){ var n = 0; for (var j = 0; j < PER; j++) if (starsOf(r, a, j)) n++; return n; }
   function packCollar(r, a){ if (!packDone(r, a)) return 0; var s = packStars(r, a); return s >= PER * 3 ? 3 : (s >= Math.ceil(PER * 2)) ? 2 : 1; }
   function prevPack(r, a){ return a > 0 ? [r, a - 1] : (r > 1 ? [r - 1, ANIMALS_N - 1] : null); }
-  function packUnlocked(r, a){ var p = prevPack(r, a); return !p || packDone(p[0], p[1]); }
+  function packUnlocked(r, a){ if (OPEN_ALL) return true; var p = prevPack(r, a); return !p || packDone(p[0], p[1]); }
   function totals(){
     var s = 0, c = 0, max = ROUNDS * ANIMALS_N * PER * 3, r, a, j;
     for (r = 1; r <= ROUNDS; r++) for (a = 0; a < ANIMALS_N; a++) for (j = 0; j < PER; j++) { var st = starsOf(r, a, j); s += st; if (st) c++; }
@@ -399,8 +476,12 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   // ---------- 画面切り替え ----------
   var SCREENS = ['screenMap', 'screenPack', 'screenZukan', 'screenPlay'];
   function show(id){ SCREENS.forEach(function(s){ $(s).classList.toggle('hidden', s !== id); }); window.scrollTo(0, 0); }
-  function showMap(){ $('screenPlay').style.borderTop = ''; renderMap(); show('screenMap'); }
-  function showPack(r, a){ renderPack(r, a); show('screenPack'); }
+  function currentRound(){   // マップの背景：いまの挑戦中（最初の未クリアのパック）の周回。全部クリア済みなら最後の周回
+    for (var r = 1; r <= ROUNDS; r++) for (var a = 0; a < ANIMALS_N; a++) if (packUnlocked(r, a) && !packDone(r, a)) return r;
+    return ROUNDS;
+  }
+  function showMap(){ $('screenPlay').style.borderTop = ''; setTheme(currentRound()); renderMap(); show('screenMap'); }
+  function showPack(r, a){ setTheme(r); renderPack(r, a); show('screenPack'); }
   function showZukan(){ renderZukan(); show('screenZukan'); }
 
   // ---------- マップ ----------
@@ -410,11 +491,17 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     $('hintCount').textContent = hintLabel();
     $('starCount').textContent = t.stars; $('starMax').textContent = t.max;
     $('dailyMsg').textContent = dailyText;
+    $('openAllMsg').textContent = OPEN_ALL ? '🔓 お試しモード：ぜんぶ遊べます（この画面での記録は保存されません）' : '';
     $('zukanCount').textContent = zukanOwned() + ' / ' + ANIMALS_N;
     var list = $('mapList'); list.innerHTML = '';
     var nowFound = false;
     for (var r = 1; r <= ROUNDS; r++) {
-      var h = document.createElement('div'); h.className = 'map-round'; h.textContent = '━━ 周回' + r + '（Lv' + r + '） ━━'; list.appendChild(h);
+      var wd = worldOf(r);
+      var h = document.createElement('div'); h.className = 'map-round'; h.setAttribute('data-w', wd.key);
+      h.innerHTML = '<div class="mr-strip"></div><div class="mr-title"></div>';
+      h.querySelector('.mr-strip').textContent = wd.strip;
+      h.querySelector('.mr-title').textContent = wd.icon + ' 周回' + r + '（Lv' + r + '）　' + wd.name;
+      list.appendChild(h);
       for (var a = 0; a < ANIMALS_N; a++) {
         (function(r, a){
           var an = ANIMALS[a], pk = packOf(r, a), ok = packUnlocked(r, a), done = packDone(r, a);
@@ -845,6 +932,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
           moves: 0, hist: [], hintUsed: false, hint: null, done: false, start: null, theme: ANIMALS[a] };
     g.start = (typeof init.state === 'object') ? init.state.slice() : init.state;
     cur = { r: r, a: a };
+    setTheme(r);
     $('playTitle').textContent = g.theme.em + ' ' + g.theme.name + ' Lv' + r + '　' + (j + 1) + '/' + PER;
     $('screenPlay').style.borderTop = '5px solid ' + g.theme.color;
     $('playRule').textContent = MECH[pk.mech].rule;
@@ -1008,6 +1096,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     else { gradeMsg.textContent = '違うようです、もう一度確認してください…'; }
   });
 
+  setTheme(currentRound());   // 起動直後も、いまの挑戦中の周回の世界にする（開き直した時に草原へ戻らないように）
   renderMap();
 })();
 </script>
