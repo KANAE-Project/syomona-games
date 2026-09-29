@@ -161,6 +161,46 @@
   .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
   .usage-notice{ margin-top:18px; font-size:.72rem; line-height:1.8; opacity:.85; text-align:left; background:rgba(255,255,255,.06); border-radius:10px; padding:12px 14px; border:1px solid rgba(255,255,255,.16); }
   .usage-notice .usage-title{ font-weight:bold; color:var(--accent); display:block; margin-bottom:4px; }
+
+  /* ===== 動物マップ ===== */
+  .status-row{ display:flex; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .status-chip{ flex:1; text-align:center; background:rgba(0,0,0,.22); border-radius:12px; padding:8px 4px; font-size:.82rem; font-weight:900; }
+  .status-chip b{ color:var(--accent); font-size:1.05rem; }
+  .daily-msg{ text-align:center; font-size:.8rem; font-weight:900; color:var(--ok); margin:0 0 8px; }
+  .daily-msg:empty{ display:none; }
+  .map-round{ font-size:.92rem; font-weight:900; color:var(--accent); margin:16px 0 6px; text-align:center; letter-spacing:.06em; }
+  .map-round.sub{ opacity:.6; }
+  .node-row{ position:relative; display:flex; align-items:center; gap:14px; margin:0 0 22px; cursor:pointer; }
+  .node-row.right{ flex-direction:row-reverse; text-align:right; }
+  .node-row.locked{ cursor:default; }
+  .node-row:not(.last)::after{ content:''; position:absolute; top:78px; height:24px; border-left:3px dotted rgba(244,239,226,.28); }
+  .node-row:not(.right):not(.last)::after{ left:37px; }
+  .node-row.right:not(.last)::after{ right:37px; }
+  .node{ position:relative; flex:none; width:76px; height:76px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.4rem;
+    background:rgba(255,255,255,.08); border:4px solid var(--nc, #46506f); }
+  .node.done{ box-shadow:0 0 14px var(--nc); }
+  .node.now{ animation:nodePulse 1.4s ease-in-out infinite; background:rgba(255,255,255,.16); }
+  @keyframes nodePulse{ 0%,100%{ box-shadow:0 0 0 0 var(--nc); } 50%{ box-shadow:0 0 0 9px rgba(255,255,255,.18); } }
+  .node.locked{ border-color:#3a4260; }
+  .node.locked .em{ filter:brightness(0) opacity(.5); }
+  .node .badge{ position:absolute; right:-6px; bottom:-4px; font-size:1.05rem; background:var(--card); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; }
+  .node-info{ flex:1; min-width:0; }
+  .node-name{ font-size:1rem; font-weight:900; }
+  .node-mech{ font-size:.74rem; opacity:.75; margin:1px 0 3px; }
+  .node-prog{ font-size:.78rem; font-weight:900; color:var(--accent); }
+  .node-row.locked .node-name, .node-row.locked .node-mech, .node-row.locked .node-prog{ color:#6b7392; opacity:.8; }
+  .map-end{ text-align:center; font-size:.85rem; opacity:.7; margin:6px 0 4px; }
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:rgba(10,12,22,.95); color:var(--ink); border:2px solid var(--accent); border-radius:999px; padding:10px 18px; font-size:.85rem; font-weight:900; z-index:60; max-width:90vw; text-align:center; animation:fadeIn .2s ease; }
+  /* ===== パック画面 ===== */
+  .pack-hero{ text-align:center; margin-bottom:8px; }
+  .pack-hero .em{ font-size:3rem; line-height:1.1; }
+  .pack-hero .nm{ font-size:1.1rem; font-weight:900; }
+  .pack-hero .mc{ font-size:.8rem; opacity:.8; }
+  .pack-bonus{ background:rgba(0,0,0,.2); border-radius:12px; padding:9px 12px; font-size:.78rem; line-height:1.7; margin:10px 0 12px; }
+  .pack-bonus .got{ color:var(--ok); }
+  .lv .em2{ display:block; font-size:.7rem; opacity:.7; font-weight:700; }
+  .zk-lv{ display:flex; justify-content:center; gap:6px; margin:3px 0 4px; font-size:.7rem; font-weight:900; }
+  .zk-lv span{ background:rgba(255,255,255,.08); border-radius:8px; padding:1px 6px; }
 </style>
 </head>
 <body>
@@ -168,23 +208,36 @@
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
   <div class="vault-icon">🔐</div>
   <h1>開かずの金庫</h1>
-  <div class="tagline">タップで動かして、鍵を開けろ</div>
+  <div class="tagline">タップで動かして、動物たちの錠を開けろ</div>
 
-  <!-- ==== 目次 ==== -->
-  <div id="screenToc" class="panel">
-    <div class="sub">図や記号を動かして錠を開けるパズル。<br>手数が少ないほど星が増える！ 詰まったら💡ヒントもOK。</div>
-    <div class="total-stars" id="totalStars"></div>
+  <!-- ==== マップ ==== -->
+  <div id="screenMap" class="panel">
+    <div class="sub">ねむっている動物たちの錠を、順番に開けていこう。<br>手数が少ないほど★が増えて、ヒントがもらえる！</div>
+    <div class="status-row">
+      <div class="status-chip">💡 ヒント <b id="hintCount">0</b></div>
+      <div class="status-chip">★ <b id="starCount">0</b> / <span id="starMax">0</span></div>
+    </div>
+    <div class="daily-msg" id="dailyMsg"></div>
     <button type="button" class="zukan-btn" id="zukanBtn">📖 どうぶつ図鑑 <span class="zk-count" id="zukanCount"></span></button>
-    <div id="worldList"></div>
+    <div id="mapList"></div>
+  </div>
+
+  <!-- ==== パック（動物ごとの問題一覧） ==== -->
+  <div id="screenPack" class="panel hidden">
+    <div class="pack-hero"><div class="em" id="packEm"></div><div class="nm" id="packName"></div><div class="mc" id="packMech"></div></div>
+    <div class="play-rule" id="packRule"></div>
+    <div class="lv-grid" id="packGrid"></div>
+    <div class="pack-bonus" id="packBonus"></div>
+    <div class="tool-row"><button type="button" class="tool-btn" id="packBackBtn">🗺 マップにもどる</button></div>
   </div>
 
   <!-- ==== 図鑑 ==== -->
   <div id="screenZukan" class="panel hidden">
     <div class="play-head"><div class="play-title">📖 どうぶつ図鑑</div><div class="play-count" id="zukanTotal"></div></div>
-    <div class="play-rule">ワールド1をクリアすると、その動物が仲間になります。星が多いほど首輪が豪華に！（★2＝銀の首輪、★3＝金の首輪）</div>
+    <div class="play-rule">動物のLv1をすべて解くと、その動物が仲間になります。Lvごとに、★の合計で首輪が決まります（全部★3＝金の首輪、合計が2/3以上＝銀の首輪）。</div>
     <div class="zk-banner" id="zukanBanner"></div>
     <div class="zk-grid" id="zukanGrid"></div>
-    <div class="tool-row"><button type="button" class="tool-btn" id="zukanBackBtn">☰ 目次にもどる</button></div>
+    <div class="tool-row"><button type="button" class="tool-btn" id="zukanBackBtn">🗺 マップにもどる</button></div>
   </div>
 
   <!-- ==== プレイ画面 ==== -->
@@ -197,7 +250,7 @@
       <button type="button" class="tool-btn hint-btn" id="hintBtn">💡 ヒント</button>
       <button type="button" class="tool-btn" id="undoBtn">↶ 1手戻す</button>
       <button type="button" class="tool-btn" id="retryBtn">↺ やり直す</button>
-      <button type="button" class="tool-btn" id="tocBtn">☰ 目次</button>
+      <button type="button" class="tool-btn" id="tocBtn">☰ もどる</button>
     </div>
     <div class="result hidden" id="resultBox">
       <div class="result-inner">
@@ -206,9 +259,9 @@
         <div class="result-stars" id="resultStars"></div>
         <div class="result-sub" id="resultSub"></div>
         <div class="result-zukan" id="resultZukan"></div>
-        <button type="button" class="primary-btn" id="nextBtn">次の錠へ →</button>
+        <button type="button" class="primary-btn" id="nextBtn">次のパズルへ →</button>
         <button type="button" class="primary-btn sub-btn" id="againBtn">もう一度この錠を解く</button>
-        <button type="button" class="primary-btn sub-btn" id="tocBtn2">目次へ戻る</button>
+        <button type="button" class="primary-btn sub-btn" id="tocBtn2">動物のページへ戻る</button>
       </div>
     </div>
   </div>
@@ -218,7 +271,7 @@
       <div class="grade-headline">損しかない課金はこちら💁</div>
       <div class="grade-price">🪙 ワンコイン500円</div>
       <a href="#" id="noteLinkBtn" class="note-link-btn">📝 note記事は準備中です</a>
-      <div class="grade-teaser">グレードアップの中身は検討中（お楽しみに）</div>
+      <div class="grade-teaser">課金すると、💡ヒントが使い放題になります（数を気にせず、何回でも）。本当にお金をドブに捨てる気ですか？</div>
       <div class="grade-form">
         <input type="text" id="passwordInput" placeholder="合言葉">
         <button type="button" id="unlockBtn">解放する</button>
@@ -227,7 +280,7 @@
     <div id="gradeMsg" class="grade-msg"></div>
     <div id="unlockedZone" class="hidden">
       <span class="unlocked-badge">グレードアップ解放済み</span>
-      <div class="unlocked-note">（グレードアップの中身は近日実装予定です）</div>
+      <div class="unlocked-note">💡ヒントが使い放題になりました。</div>
     </div>
   </div>
 
@@ -247,148 +300,177 @@
 </div>
 
 <script>
-/* 問題データ（tools/akazu-gen で生成・全問BFSで解けることと最短手数を検証済み） */
-var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111","011","011"],"min":2},{"n":3,"rows":["001","010","101"],"min":4},{"n":4,"rows":["0001","1110","1010","0110"],"min":4},{"n":4,"rows":["1001","0011","1110","0001"],"min":6},{"n":5,"rows":["11100","11011","10011","00001","00110"],"min":5},{"n":5,"rows":["10001","01001","11110","10000","10011"],"min":8},{"n":6,"rows":["000011","000001","110100","101110","001000","010000"],"min":7},{"n":6,"rows":["100000","010000","000001","110001","100110","000000"],"min":10},{"n":7,"rows":["1111000","1100100","1011100","1111111","0101111","1111000","0011011"],"min":12}],"w2":[{"syms":["★","●","▲","■"],"clues":[["notadj","●","★"],["notadj","▲","●"],["left","▲","■"],["between","▲","★","■"]],"start":["■","★","●","▲"],"target":["★","▲","■","●"],"min":3},{"syms":["★","●","▲","■"],"clues":[["end","▲"],["notadj","■","★"],["between","★","●","▲"],["left","▲","★"]],"start":["●","★","■","▲"],"target":["▲","★","●","■"],"min":4},{"syms":["★","●","▲","■"],"clues":[["adj","★","●"],["left","●","▲"],["end","★"],["notadj","■","●"]],"start":["■","●","▲","★"],"target":["★","●","▲","■"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["between","★","■","◆"],["left","■","▲"],["adj","★","■"],["notadj","◆","●"],["end","●"],["notadj","◆","▲"]],"start":["■","▲","★","◆","●"],"target":["◆","★","■","▲","●"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["left","■","★"],["adj","●","★"],["notadj","●","▲"],["notadj","▲","★"],["between","▲","★","◆"],["notadj","■","●"]],"start":["★","◆","●","■","▲"],"target":["◆","▲","■","★","●"],"min":6},{"syms":["★","●","▲","■","◆"],"clues":[["end","▲"],["between","◆","★","●"],["adj","▲","★"],["notadj","★","■"],["adj","◆","■"],["left","▲","◆"]],"start":["●","▲","■","◆","★"],"target":["▲","★","◆","■","●"],"min":7},{"syms":["★","●","▲","■","◆"],"clues":[["between","●","★","▲"],["adj","●","★"],["left","■","◆"],["notadj","★","◆"],["between","■","★","▲"],["notadj","◆","▲"]],"start":["●","★","■","◆","▲"],"target":["▲","■","◆","●","★"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","■","★"],["between","◆","●","■"],["notadj","★","◆"],["notadj","●","★"],["left","■","●"],["left","■","▲"],["left","●","♥"],["adj","■","▲"]],"start":["★","▲","■","●","♥","◆"],"target":["■","▲","◆","●","♥","★"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","★","●","♥"],["left","■","♥"],["left","■","●"],["notadj","★","◆"],["notadj","◆","●"],["between","▲","●","■"],["between","♥","■","◆"],["notadj","★","♥"]],"start":["★","●","■","◆","▲","♥"],"target":["■","♥","◆","▲","★","●"],"min":10},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","■","★"],["between","★","■","♥"],["notadj","■","◆"],["left","♥","★"],["adj","★","●"],["notadj","◆","♥"],["adj","●","♥"]],"start":["■","★","▲","◆","♥","●"],"target":["♥","●","★","◆","▲","■"],"min":12}],"w3":[{"cars":[[2,1,2,"H"],[1,0,3,"V"],[5,4,2,"H"],[0,1,2,"V"],[4,1,2,"V"],[0,5,3,"V"]],"min":3},{"cars":[[2,1,2,"H"],[4,2,2,"H"],[0,2,3,"H"],[3,4,2,"H"],[1,5,2,"V"],[1,4,2,"V"]],"min":4},{"cars":[[2,0,2,"H"],[4,2,2,"H"],[0,2,2,"H"],[5,3,2,"H"],[1,2,2,"V"],[2,4,3,"V"]],"min":5},{"cars":[[2,2,2,"H"],[1,2,2,"H"],[4,3,2,"V"],[0,4,3,"V"],[4,0,2,"V"],[4,4,2,"H"]],"min":6},{"cars":[[2,0,2,"H"],[4,3,2,"H"],[3,2,2,"V"],[1,2,2,"V"],[5,3,2,"H"],[0,4,3,"V"]],"min":7},{"cars":[[2,0,2,"H"],[0,2,3,"V"],[4,3,3,"H"],[5,0,3,"H"],[1,4,2,"V"],[1,5,3,"V"]],"min":9},{"cars":[[2,1,2,"H"],[4,1,2,"V"],[0,3,3,"V"],[4,3,2,"H"],[1,5,3,"V"],[5,4,2,"H"]],"min":11},{"cars":[[2,0,2,"H"],[1,3,2,"V"],[0,5,2,"V"],[3,5,2,"V"],[0,3,2,"H"],[3,0,3,"H"],[3,3,2,"V"],[0,1,2,"V"],[4,4,2,"V"]],"min":13},{"cars":[[2,0,2,"H"],[5,3,2,"H"],[4,4,2,"H"],[1,4,2,"V"],[1,2,2,"V"],[1,3,3,"V"],[2,5,2,"V"],[4,1,2,"V"],[0,5,2,"V"],[0,1,3,"H"]],"min":15},{"cars":[[2,0,2,"H"],[0,4,2,"V"],[0,0,3,"H"],[5,2,3,"H"],[3,5,2,"V"],[1,2,2,"H"],[4,1,2,"V"],[2,2,2,"V"],[3,4,2,"V"],[4,2,2,"H"]],"min":18}]};
+/* 問題データ（tools/akazu-gen で生成。全問、BFS・GF(2)・総当たりで「必ず解ける」ことと最短手数を検証済み） */
+var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11"],"min":1},{"n":2,"rows":["11","00"],"min":2},{"n":3,"rows":["100","110","100"],"min":1},{"n":3,"rows":["010","011","100"],"min":2},{"n":3,"rows":["110","101","011"],"min":2}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■"],"clues":[["left","●","■"],["notadj","★","▲"],["between","●","▲","■"],["end","★"]],"start":["▲","★","■","●"],"target":["▲","●","■","★"],"min":3},{"syms":["★","●","▲","■"],"clues":[["left","★","▲"],["notadj","●","★"],["end","■"],["between","▲","●","■"]],"start":["■","●","▲","★"],"target":["■","★","▲","●"],"min":3},{"syms":["★","●","▲","■"],"clues":[["adj","▲","●"],["between","▲","★","●"],["left","★","■"],["adj","▲","■"]],"start":["▲","■","●","★"],"target":["★","■","▲","●"],"min":4},{"syms":["★","●","▲","■"],"clues":[["notadj","●","★"],["notadj","★","▲"],["adj","●","■"],["left","●","▲"]],"start":["●","▲","★","■"],"target":["★","■","●","▲"],"min":4},{"syms":["★","●","▲","■"],"clues":[["adj","▲","■"],["left","■","▲"],["left","★","▲"],["between","●","★","▲"]],"start":["■","▲","●","★"],"target":["★","●","■","▲"],"min":5}]},{"mech":"slide","puzzles":[{"cars":[[2,2,2,"H"],[3,3,2,"H"],[1,1,3,"H"],[2,5,3,"V"],[3,1,2,"H"],[4,2,2,"H"],[0,3,2,"H"],[0,5,2,"V"],[1,0,3,"V"]],"min":2},{"cars":[[2,1,2,"H"],[1,1,3,"H"],[2,4,2,"V"],[3,2,2,"H"],[0,5,3,"V"],[0,0,2,"V"],[5,2,3,"H"],[4,1,2,"V"]],"min":3},{"cars":[[2,1,2,"H"],[1,1,3,"H"],[2,4,2,"V"],[3,2,2,"H"],[0,5,3,"V"],[1,0,2,"V"],[5,2,3,"H"],[4,1,2,"V"]],"min":3},{"cars":[[2,1,2,"H"],[3,3,3,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[1,0,2,"V"],[3,0,2,"H"],[5,0,2,"H"],[4,0,3,"H"],[1,2,3,"H"]],"min":4},{"cars":[[2,1,2,"H"],[0,1,2,"V"],[3,1,2,"H"],[4,4,2,"V"],[0,5,3,"V"],[4,1,3,"H"],[2,0,2,"V"],[1,2,3,"H"],[0,3,2,"H"],[2,3,2,"V"]],"min":4}]},{"mech":"lights","puzzles":[{"n":3,"rows":["010","001","011"],"min":3},{"n":3,"rows":["110","001","101"],"min":3},{"n":3,"rows":["110","011","010"],"min":4},{"n":3,"rows":["000","000","101"],"min":4},{"n":3,"rows":["100","111","011"],"min":5}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■"],"clues":[["left","▲","★"],["adj","●","★"],["between","▲","●","■"],["adj","▲","★"]],"start":["●","★","■","▲"],"target":["■","▲","★","●"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["notadj","▲","◆"],["left","★","▲"],["notadj","◆","■"],["notadj","■","●"],["between","●","★","◆"],["notadj","●","▲"],["left","■","▲"]],"start":["◆","■","★","▲","●"],"target":["◆","●","★","■","▲"],"min":4},{"syms":["★","●","▲","■","◆"],"clues":[["notadj","★","●"],["notadj","▲","◆"],["adj","★","◆"],["left","■","▲"],["notadj","▲","★"],["left","▲","◆"]],"start":["●","◆","■","★","▲"],"target":["■","▲","●","◆","★"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["adj","★","●"],["left","◆","■"],["notadj","■","★"],["between","▲","★","◆"],["left","●","■"],["notadj","■","◆"]],"start":["●","▲","★","■","◆"],"target":["◆","▲","★","●","■"],"min":6},{"syms":["★","●","▲","■","◆"],"clues":[["adj","▲","■"],["left","◆","★"],["notadj","▲","◆"],["notadj","▲","●"],["left","■","●"],["between","■","★","◆"]],"start":["▲","■","●","★","◆"],"target":["◆","■","▲","★","●"],"min":6}]},{"mech":"slide","puzzles":[{"cars":[[2,0,2,"H"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,3,2,"V"],[3,0,2,"H"],[5,0,3,"H"],[1,2,3,"H"],[4,1,2,"H"],[0,3,2,"H"]],"min":5},{"cars":[[2,0,2,"H"],[3,2,2,"H"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,3,2,"V"],[3,0,2,"H"],[5,0,3,"H"],[1,2,3,"H"],[4,0,3,"H"],[0,3,2,"H"]],"min":5},{"cars":[[2,0,2,"H"],[2,3,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,3,2,"V"],[3,0,2,"H"],[5,0,3,"H"],[1,2,3,"H"],[4,0,3,"H"],[0,3,2,"H"]],"min":6},{"cars":[[2,1,2,"H"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,1,3,"H"],[2,0,2,"V"],[1,2,3,"H"],[0,3,2,"H"],[2,3,2,"V"]],"min":6},{"cars":[[2,1,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[1,0,2,"V"],[3,0,2,"H"],[5,0,2,"H"],[4,0,3,"H"],[1,2,3,"H"]],"min":7}]},{"mech":"lights","puzzles":[{"n":4,"rows":["0100","1100","0100","1000"],"min":3},{"n":4,"rows":["1111","0111","0011","0111"],"min":3},{"n":4,"rows":["0000","1011","0110","1110"],"min":4},{"n":4,"rows":["0011","1000","1011","0111"],"min":4},{"n":4,"rows":["1010","1000","1111","0000"],"min":5}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆"],"clues":[["notadj","●","◆"],["between","▲","●","■"],["between","▲","★","◆"],["notadj","▲","■"],["left","◆","●"],["adj","★","▲"]],"start":["●","▲","◆","■","★"],"target":["■","◆","▲","★","●"],"min":7},{"syms":["★","●","▲","■","◆"],"clues":[["left","■","●"],["between","◆","▲","■"],["adj","◆","★"],["adj","▲","◆"],["adj","●","■"],["end","●"]],"start":["●","■","▲","★","◆"],"target":["▲","◆","★","■","●"],"min":8},{"syms":["★","●","▲","■","◆"],"clues":[["left","●","◆"],["between","▲","★","◆"],["left","●","■"],["adj","●","▲"],["between","▲","●","■"],["end","■"]],"start":["■","▲","◆","★","●"],"target":["★","●","▲","◆","■"],"min":8},{"syms":["★","●","▲","■","◆"],"clues":[["left","●","▲"],["notadj","■","●"],["notadj","●","▲"],["end","★"],["between","◆","★","■"],["between","■","▲","◆"]],"start":["▲","■","●","◆","★"],"target":["★","●","◆","■","▲"],"min":9},{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","◆","★"],["notadj","●","▲"],["between","◆","★","♥"],["between","■","▲","◆"],["between","▲","★","♥"],["notadj","▲","★"],["notadj","◆","★"]],"start":["▲","■","★","◆","♥","●"],"target":["♥","▲","■","◆","●","★"],"min":6}]},{"mech":"slide","puzzles":[{"cars":[[2,1,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[1,0,2,"V"],[3,0,2,"H"],[5,0,2,"H"],[4,0,3,"H"],[1,2,3,"H"],[0,2,2,"H"]],"min":7},{"cars":[[2,0,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,3,2,"V"],[3,0,2,"H"],[5,0,2,"H"],[1,2,3,"H"],[4,1,2,"H"],[0,3,2,"H"]],"min":8},{"cars":[[2,0,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,3,2,"V"],[3,0,2,"H"],[5,0,3,"H"],[1,2,3,"H"],[4,1,2,"H"],[0,3,2,"H"]],"min":8},{"cars":[[2,1,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[3,0,2,"H"],[5,0,3,"H"],[1,2,3,"H"],[0,3,2,"H"],[2,3,2,"V"]],"min":9},{"cars":[[2,1,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,1,3,"H"],[5,0,3,"H"],[1,2,3,"H"],[0,3,2,"H"],[2,3,2,"V"]],"min":9}]},{"mech":"lights","puzzles":[{"n":4,"rows":["1110","1010","1011","1011"],"min":5},{"n":4,"rows":["0011","1110","1110","0011"],"min":6},{"n":4,"rows":["1010","1101","1100","0000"],"min":6},{"n":4,"rows":["1001","0011","0110","1101"],"min":7},{"n":4,"rows":["1011","1011","1100","0111"],"min":7}]}],[{"mech":"lights","puzzles":[{"n":5,"rows":["11000","00111","00111","10001","11000"],"min":4},{"n":5,"rows":["11011","11010","01000","00000","01100"],"min":5},{"n":5,"rows":["01010","11010","11001","11011","10111"],"min":5},{"n":5,"rows":["11110","01011","01110","10010","11001"],"min":6},{"n":5,"rows":["00000","00010","11100","01101","10001"],"min":7}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥"],"clues":[["adj","◆","■"],["left","★","♥"],["left","★","▲"],["adj","★","●"],["adj","♥","★"],["between","▲","●","◆"],["adj","▲","◆"]],"start":["♥","◆","▲","●","★","■"],"target":["●","★","♥","▲","◆","■"],"min":7},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","▲","●"],["left","■","◆"],["left","♥","◆"],["notadj","●","◆"],["between","■","●","♥"],["left","★","●"],["notadj","♥","▲"],["end","★"]],"start":["◆","♥","★","■","●","▲"],"target":["★","●","■","♥","◆","▲"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","◆","▲"],["adj","♥","◆"],["between","★","▲","♥"],["notadj","■","▲"],["adj","♥","★"],["between","♥","★","●"],["end","●"]],"start":["■","▲","♥","◆","★","●"],"target":["●","■","◆","♥","★","▲"],"min":9},{"syms":["★","●","▲","■","◆","♥"],"clues":[["adj","◆","★"],["between","■","★","●"],["notadj","★","▲"],["between","♥","★","■"],["notadj","■","▲"],["left","▲","★"],["adj","♥","◆"]],"start":["◆","♥","■","▲","★","●"],"target":["▲","●","■","♥","◆","★"],"min":10},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","◆","●","▲"],["left","◆","▲"],["between","★","■","◆"],["between","♥","★","●"],["left","◆","■"],["notadj","▲","■"],["adj","♥","★"]],"start":["■","◆","♥","★","▲","●"],"target":["●","◆","▲","♥","★","■"],"min":11}]},{"mech":"slide","puzzles":[{"cars":[[2,1,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,1,3,"H"],[2,0,2,"V"],[1,2,3,"H"],[2,3,2,"V"],[4,0,2,"V"]],"min":10},{"cars":[[2,1,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,1,3,"H"],[1,2,3,"H"],[0,3,2,"H"],[2,3,2,"V"],[4,0,2,"V"]],"min":10},{"cars":[[2,1,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,1,3,"H"],[2,0,2,"V"],[1,2,3,"H"],[0,3,2,"H"],[2,3,2,"V"],[4,0,2,"V"]],"min":11},{"cars":[[2,1,2,"H"],[0,1,2,"V"],[2,4,2,"V"],[4,4,2,"V"],[0,5,3,"V"],[4,1,3,"H"],[2,0,2,"V"],[1,2,3,"H"],[3,1,2,"H"],[2,3,2,"V"],[4,0,2,"V"]],"min":11},{"cars":[[2,1,2,"H"],[1,4,3,"V"],[2,3,3,"V"],[4,5,2,"V"],[2,5,2,"V"],[0,2,2,"H"],[5,3,2,"H"],[3,2,3,"V"],[0,4,2,"H"],[0,1,2,"V"],[3,0,2,"V"]],"min":12}]},{"mech":"lights","puzzles":[{"n":5,"rows":["01111","00000","10100","00010","01010"],"min":8},{"n":5,"rows":["11110","00100","01110","10011","00001"],"min":8},{"n":5,"rows":["01000","00110","01000","01110","00111"],"min":9},{"n":5,"rows":["01111","10001","11011","11010","11010"],"min":10},{"n":5,"rows":["01000","01110","10001","00000","00001"],"min":11}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥"],"clues":[["adj","■","●"],["between","◆","●","♥"],["end","♥"],["between","▲","■","♥"],["left","●","■"],["between","●","■","♥"],["between","▲","★","■"],["notadj","◆","★"]],"start":["■","▲","●","◆","♥","★"],"target":["♥","★","▲","◆","●","■"],"min":12},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","▲","★","◆"],["notadj","◆","■"],["between","★","▲","♥"],["end","■"],["left","▲","●"],["between","●","■","♥"],["between","★","●","♥"]],"start":["●","■","▲","★","◆","♥"],"target":["♥","★","▲","◆","●","■"],"min":12},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","◆","●","▲"],["left","▲","♥"],["adj","■","♥"],["left","▲","●"],["between","♥","★","■"],["notadj","●","♥"],["notadj","▲","★"],["notadj","♥","★"],["notadj","●","◆"]],"start":["★","◆","●","♥","■","▲"],"target":["▲","■","♥","◆","★","●"],"min":13},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","♥","★"],["left","♥","●"],["notadj","●","★"],["adj","♥","▲"],["between","★","●","◆"],["left","◆","■"],["left","▲","♥"],["notadj","▲","★"],["notadj","♥","◆"]],"start":["●","♥","▲","★","■","◆"],"target":["◆","★","■","▲","♥","●"],"min":14},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["left","♥","◆"],["end","♣"],["notadj","●","■"],["between","●","▲","■"],["between","★","●","♥"],["left","♥","■"],["between","▲","◆","♣"],["between","●","▲","♣"]],"start":["■","♣","◆","♥","▲","●","★"],"target":["♣","♥","■","★","●","▲","◆"],"min":9}]},{"mech":"slide","puzzles":[{"cars":[[2,1,2,"H"],[1,4,3,"V"],[2,3,3,"V"],[4,5,2,"V"],[2,5,2,"V"],[0,2,2,"H"],[5,3,2,"H"],[3,2,3,"V"],[0,4,2,"H"],[0,1,2,"V"]],"min":12},{"cars":[[2,1,2,"H"],[1,4,3,"V"],[2,0,2,"V"],[4,5,2,"V"],[2,5,2,"V"],[0,2,2,"H"],[5,3,2,"H"],[3,2,3,"V"],[0,4,2,"H"],[0,1,2,"V"],[2,3,2,"V"]],"min":13},{"cars":[[2,1,2,"H"],[1,4,3,"V"],[2,0,2,"V"],[4,5,2,"V"],[2,5,2,"V"],[0,2,2,"H"],[5,3,2,"H"],[3,2,3,"V"],[0,4,2,"H"],[0,1,2,"V"],[4,1,2,"V"]],"min":13},{"cars":[[2,1,2,"H"],[4,3,2,"V"],[0,1,2,"V"],[1,4,2,"V"],[0,4,2,"H"],[0,2,2,"H"],[4,4,2,"H"],[3,0,2,"H"],[1,5,3,"V"],[0,0,3,"V"],[3,2,2,"V"]],"min":14},{"cars":[[2,1,2,"H"],[4,3,2,"V"],[0,1,2,"V"],[1,4,2,"V"],[5,0,3,"H"],[0,2,2,"H"],[4,4,2,"H"],[3,0,2,"H"],[1,5,3,"V"],[0,0,3,"V"],[3,2,2,"V"]],"min":14}]},{"mech":"lights","puzzles":[{"n":6,"rows":["100110","101110","010110","010001","110001","001100"],"min":7},{"n":6,"rows":["000011","101101","101101","010010","100010","010000"],"min":8},{"n":6,"rows":["100000","101101","110001","100001","011001","010110"],"min":9},{"n":6,"rows":["011110","001000","101010","101101","111101","001101"],"min":10},{"n":6,"rows":["011000","010110","011101","010111","000011","011010"],"min":12}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["left","■","●"],["between","●","★","■"],["adj","♥","★"],["left","♣","★"],["left","♥","★"],["left","◆","▲"],["between","★","▲","■"],["notadj","♣","●"],["end","◆"]],"start":["★","♣","◆","▲","●","♥","■"],"target":["◆","♣","■","●","♥","★","▲"],"min":11},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["left","●","★"],["between","■","◆","♣"],["notadj","◆","★"],["between","★","●","▲"],["notadj","★","▲"],["left","♣","●"],["adj","♥","■"],["end","▲"],["notadj","♥","◆"]],"start":["◆","●","▲","♣","■","♥","★"],"target":["♣","●","★","♥","■","◆","▲"],"min":13},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","♣","▲","■"],["between","♣","◆","♥"],["left","★","♣"],["adj","▲","★"],["between","■","◆","♥"],["between","♣","▲","♥"],["left","▲","◆"],["left","▲","★"],["adj","●","♥"],["notadj","■","●"]],"start":["■","★","●","♥","♣","◆","▲"],"target":["▲","★","◆","♣","■","♥","●"],"min":15},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","■","♥","♣"],["between","★","■","◆"],["between","■","●","◆"],["left","♣","●"],["between","★","●","▲"],["between","◆","★","♥"],["left","◆","●"],["between","▲","◆","♣"]],"start":["♣","▲","■","●","★","◆","♥"],"target":["♥","◆","▲","★","■","♣","●"],"min":16},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","■","▲","♣"],["between","♥","◆","♣"],["between","♥","★","■"],["notadj","■","▲"],["notadj","■","●"],["left","▲","■"],["notadj","♥","★"],["between","●","◆","♣"],["adj","♣","●"]],"start":["★","●","♥","♣","◆","■","▲"],"target":["▲","◆","■","♥","●","♣","★"],"min":18}]},{"mech":"slide","puzzles":[{"cars":[[2,0,2,"H"],[3,1,2,"V"],[4,4,2,"V"],[0,2,3,"H"],[0,5,2,"V"],[2,5,2,"V"],[1,3,3,"V"],[4,2,2,"H"],[0,0,2,"V"],[1,2,2,"V"]],"min":15},{"cars":[[2,0,2,"H"],[3,1,2,"V"],[4,4,2,"V"],[0,2,3,"H"],[0,5,2,"V"],[2,5,2,"V"],[1,3,3,"V"],[4,2,2,"H"],[5,2,2,"H"],[0,0,2,"V"],[1,2,2,"V"]],"min":16},{"cars":[[2,2,2,"H"],[4,3,2,"V"],[0,3,2,"V"],[1,4,2,"V"],[5,0,3,"H"],[0,4,2,"H"],[4,4,2,"H"],[3,0,2,"H"],[1,5,3,"V"],[0,0,3,"V"],[3,2,2,"V"]],"min":17},{"cars":[[2,0,2,"H"],[1,5,2,"V"],[4,5,2,"V"],[3,1,2,"V"],[4,2,2,"H"],[0,3,3,"V"],[1,4,2,"V"],[0,4,2,"H"],[4,4,2,"V"],[5,1,3,"H"]],"min":18},{"cars":[[2,0,2,"H"],[3,1,2,"V"],[0,2,3,"H"],[0,5,2,"V"],[2,5,2,"V"],[1,3,3,"V"],[4,2,2,"H"],[4,0,2,"V"],[0,0,2,"V"],[1,2,2,"V"]],"min":19}]},{"mech":"lights","puzzles":[{"n":6,"rows":["011000","110101","011100","111011","011111","001100"],"min":13},{"n":7,"rows":["0011110","1000100","0010011","1000101","1001000","0000110","0000000"],"min":10},{"n":7,"rows":["0101001","0000101","0000000","0001100","0011101","0110100","0001011"],"min":12},{"n":7,"rows":["1000000","0010001","1001000","0111011","0001001","0000111","0001101"],"min":14},{"n":7,"rows":["0111011","1010010","1111000","0001001","0110000","0100001","1110001"],"min":16}]}]]};
 </script>
 <script>
 (function(){
   'use strict';
   var GAME_URL = 'https://kanae-project.github.io/syomona-games/games/013-akazu-no-kinko/';
-  // ==== 合言葉：グレードアップの中身が未定のため、値も未定のプレースホルダー ====
+  // ==== 合言葉：note記事が未公開のため、値は未定のプレースホルダー。解放すると💡ヒントが使い放題になる ====
   var PASSWORD = '＜合言葉は検討中＞';
   // ==== 全ゲーム共通「金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
   var MASTER_PASSWORD = '金ドブ全開放';
   var STORAGE_KEY = 'akazu_kinko_unlocked';
-  var PROG_KEY = 'akazu_kinko_progress_v1';
+  var PROG_KEY = 'akazu_kinko_progress_v2';   // v1(ワールド制)の記録は使わない（リセットして作り直し）
   var $ = function(id){ return document.getElementById(id); };
   function safeGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function safeSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
 
-  var D = window.LEVEL_DATA;
-  var WORLDS = [
-    { id: 1, key: 'w1', name: 'スイッチ錠', type: 'lights',
-      desc: 'ねむっている動物たちを、全員起こそう。タップすると、そのマスと上下左右が「起きる／ねむる」入れ替わる。レベルが上がるごとにマスが増える（2×2 → 7×7）。',
-      rule: 'ねむっている動物（💤）を、全員起こそう！ マスをタップすると、そのマスと上下左右の動物が「起きる／ねむる」入れ替わります。全員起きると錠が開きます。' },
-    { id: 2, key: 'w2', name: '記号錠', type: 'symbols',
-      desc: 'ヒントから正しい並びを推理して、隣どうしの入れ替えで揃える。',
-      rule: 'ヒントをすべて満たす並びにすると開錠。記号を1つタップして選び、となりの記号をタップすると入れ替わります。' },
-    { id: 3, key: 'w3', name: 'スライド錠', type: 'slide',
-      desc: '棒をスライドさせて道をあけ、鍵🔑を右の出口まで出す。',
-      rule: '棒をタップして選び、行き先の●をタップでスライド。鍵🔑を右の出口まで出そう。何マス動かしても1手です。' },
-    { id: 4, key: null, name: '歯車錠', type: null, desc: '準備中…（次のアップデートで登場！）' }
+  var ROUNDS = LEVEL_DATA.rounds.length, ANIMALS_N = 10, PER = 5;
+  // 動物ごとの色と一言解説。仕組みは問題データ側（pack.mech）で決まる
+  var ANIMALS = [
+    { em: '🐱', name: 'ねこ',     color: '#f0b429', text: '起こすと不機嫌。でも5分後にはまた寝ている。' },
+    { em: '🐶', name: 'いぬ',     color: '#ff9f6b', text: '起こされる前から起きていたフリをする。' },
+    { em: '🐰', name: 'うさぎ',   color: '#ff8fb3', text: '寝ている間も、耳だけは起きている（気がする）。' },
+    { em: '🐼', name: 'ぱんだ',   color: '#7bc67e', text: '起きても、とりあえず竹を食べる。' },
+    { em: '🐸', name: 'かえる',   color: '#9bd94f', text: '寝ているのか、じっとしているだけなのか分からない。' },
+    { em: '🐵', name: 'さる',     color: '#d2a56a', text: '起こされると、なぜか他のさるも起こしに行く。' },
+    { em: '🐧', name: 'ぺんぎん', color: '#5aa9e6', text: '立ったまま寝ていた。器用。' },
+    { em: '🦊', name: 'きつね',   color: '#ff7a45', text: '寝たフリだったかもしれない。' },
+    { em: '🐻', name: 'くま',     color: '#c98f60', text: '冬眠中。起こすには勇気がいる。' },
+    { em: '🦁', name: 'らいおん', color: '#ffc94d', text: '1日20時間くらい寝る。これが平常運転。' }
   ];
-  var LEVELS_PER_WORLD = 10;
-  // ワールド1（スイッチ錠）：面ごとの動物と色。ねむっている(状態=1)を全員起こす(状態=0)＝従来の「全部○」と同じ判定
-  var LIGHTS_THEMES = [
-    { em: '🐱', name: 'ねこ',     color: '#f0b429' },
-    { em: '🐶', name: 'いぬ',     color: '#ff9f6b' },
-    { em: '🐰', name: 'うさぎ',   color: '#ff8fb3' },
-    { em: '🐼', name: 'ぱんだ',   color: '#7bc67e' },
-    { em: '🐸', name: 'かえる',   color: '#9bd94f' },
-    { em: '🐵', name: 'さる',     color: '#d2a56a' },
-    { em: '🐧', name: 'ぺんぎん', color: '#5aa9e6' },
-    { em: '🦊', name: 'きつね',   color: '#ff7a45' },
-    { em: '🐻', name: 'くま',     color: '#c98f60' },
-    { em: '🦁', name: 'らいおん', color: '#ffc94d' }
-  ];
-  var ZUKAN_TEXT = [
-    '起こすと不機嫌。でも5分後にはまた寝ている。',
-    '起こされる前から起きていたフリをする。',
-    '寝ている間も、耳だけは起きている（気がする）。',
-    '起きても、とりあえず竹を食べる。',
-    '寝ているのか、じっとしているだけなのか分からない。',
-    '起こされると、なぜか他のさるも起こしに行く。',
-    '立ったまま寝ていた。器用。',
-    '寝たフリだったかもしれない。',
-    '冬眠中。起こすには勇気がいる。',
-    '1日20時間くらい寝る。これが平常運転。'
-  ];
+  var MECH = {
+    lights:  { name: 'スイッチ錠', icon: '💡', rule: 'ねむっている動物（💤）を、全員起こそう！ マスをタップすると、そのマスと上下左右の動物が「起きる／ねむる」入れ替わります。全員起きると錠が開きます。' },
+    symbols: { name: '記号錠',     icon: '🔣', rule: 'ヒントをすべて満たす並びにすると開錠。記号を1つタップして選び、となりの記号をタップすると入れ替わります。' },
+    slide:   { name: 'スライド錠', icon: '🚪', rule: '棒をタップして選び、行き先の●をタップでスライド。鍵🔑を右の出口まで出そう。何マス動かしても1手です。' }
+  };
   var COLLAR_NAME = { 1: '首輪なし', 2: '銀の首輪', 3: '金の首輪' };
   var COLLAR_ICON = { 1: '', 2: '🥈 ', 3: '🏅 ' };
   function hexToRgba(h, a){ var n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
 
-  // ---------- 進捗 ----------
-  var prog = {};
-  try { prog = JSON.parse(safeGet(PROG_KEY) || '{}') || {}; } catch(e){ prog = {}; }
-  // 問題を差し替えたワールドは、古い記録（別の問題の星）が残らないようバージョンで消す
-  var WORLD_VER = { 1: 2, 2: 1, 3: 1 };
-  (function(){
-    var v = prog.__ver || {}, changed = false;
-    Object.keys(WORLD_VER).forEach(function(w){
-      if ((v[w] || 1) < WORLD_VER[w]) {
-        for (var l = 1; l <= 10; l++) delete prog[w + '-' + l];
-        changed = true;
-      }
-      v[w] = WORLD_VER[w];
-    });
-    prog.__ver = v;
-    if (changed) safeSet(PROG_KEY, JSON.stringify(prog));
-  })();
-  function lvId(w, l){ return w + '-' + l; }
-  function isUnlocked(w, l){ return l === 1 || !!prog[lvId(w, l - 1)]; }
-  function starsOf(w, l){ var r = prog[lvId(w, l)]; return r ? r.stars : 0; }
-  function stars(n){ return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+  // ---------- 進捗・ヒント ----------
+  var prog = { p: {}, hints: 5, day: '', flags: {} };
+  try { var sv = JSON.parse(safeGet(PROG_KEY) || 'null'); if (sv && sv.p) prog = sv; } catch(e){}
+  if (!prog.flags) prog.flags = {};
   function saveProg(){ safeSet(PROG_KEY, JSON.stringify(prog)); }
+  function isUnlimited(){ return safeGet(STORAGE_KEY) === '1'; }
+  function pid(r, a, j){ return r + '-' + a + '-' + j; }
+  function starsOf(r, a, j){ var x = prog.p[pid(r, a, j)]; return x ? x.stars : 0; }
+  function packOf(r, a){ return LEVEL_DATA.rounds[r - 1][a]; }
+  function packDone(r, a){ for (var j = 0; j < PER; j++) if (!starsOf(r, a, j)) return false; return true; }
+  function packStars(r, a){ var s = 0; for (var j = 0; j < PER; j++) s += starsOf(r, a, j); return s; }
+  function packClearedCount(r, a){ var n = 0; for (var j = 0; j < PER; j++) if (starsOf(r, a, j)) n++; return n; }
+  function packCollar(r, a){ if (!packDone(r, a)) return 0; var s = packStars(r, a); return s >= PER * 3 ? 3 : (s >= Math.ceil(PER * 2)) ? 2 : 1; }
+  function prevPack(r, a){ return a > 0 ? [r, a - 1] : (r > 1 ? [r - 1, ANIMALS_N - 1] : null); }
+  function packUnlocked(r, a){ var p = prevPack(r, a); return !p || packDone(p[0], p[1]); }
   function totals(){
-    var s = 0, c = 0, max = 0;
-    WORLDS.forEach(function(w){ if (!w.key) return; for (var l = 1; l <= LEVELS_PER_WORLD; l++) { max += 3; var st = starsOf(w.id, l); s += st; if (st) c++; } });
+    var s = 0, c = 0, max = ROUNDS * ANIMALS_N * PER * 3, r, a, j;
+    for (r = 1; r <= ROUNDS; r++) for (a = 0; a < ANIMALS_N; a++) for (j = 0; j < PER; j++) { var st = starsOf(r, a, j); s += st; if (st) c++; }
     return { stars: s, cleared: c, max: max };
+  }
+  function stars(n){ return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+  function today(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  var dailyText = '';
+  (function(){   // 毎日1回、ヒントが3個未満なら3個まで補充（詰み防止）
+    var t = today();
+    if (prog.day !== t) {
+      prog.day = t;
+      if (prog.hints < 3) { dailyText = '🎁 きょうのヒント補充！ 💡が3個になりました'; prog.hints = 3; }
+      saveProg();
+    }
+  })();
+  function hintLabel(){ return isUnlimited() ? '∞' : String(prog.hints); }
+  function toast(msg){
+    var old = document.querySelector('.toast'); if (old) old.remove();
+    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t);
+    setTimeout(function(){ if (t.parentNode) t.remove(); }, 2600);
   }
 
   // ---------- 画面切り替え ----------
-  function showToc(){ $('screenPlay').style.borderTop = ''; renderToc(); $('screenToc').classList.remove('hidden'); $('screenPlay').classList.add('hidden'); $('screenZukan').classList.add('hidden'); window.scrollTo(0, 0); }
-  function showPlay(){ $('screenToc').classList.add('hidden'); $('screenZukan').classList.add('hidden'); $('screenPlay').classList.remove('hidden'); window.scrollTo(0, 0); }
-  function showZukan(){ renderZukan(); $('screenToc').classList.add('hidden'); $('screenPlay').classList.add('hidden'); $('screenZukan').classList.remove('hidden'); window.scrollTo(0, 0); }
-  function zukanOwned(){ var n = 0; for (var l = 1; l <= LEVELS_PER_WORLD; l++) if (starsOf(1, l)) n++; return n; }
+  var SCREENS = ['screenMap', 'screenPack', 'screenZukan', 'screenPlay'];
+  function show(id){ SCREENS.forEach(function(s){ $(s).classList.toggle('hidden', s !== id); }); window.scrollTo(0, 0); }
+  function showMap(){ $('screenPlay').style.borderTop = ''; renderMap(); show('screenMap'); }
+  function showPack(r, a){ renderPack(r, a); show('screenPack'); }
+  function showZukan(){ renderZukan(); show('screenZukan'); }
+
+  // ---------- マップ ----------
+  var cur = { r: 1, a: 0 };   // いま開いているパック
+  function renderMap(){
+    var t = totals();
+    $('hintCount').textContent = hintLabel();
+    $('starCount').textContent = t.stars; $('starMax').textContent = t.max;
+    $('dailyMsg').textContent = dailyText;
+    $('zukanCount').textContent = zukanOwned() + ' / ' + ANIMALS_N;
+    var list = $('mapList'); list.innerHTML = '';
+    var nowFound = false;
+    for (var r = 1; r <= ROUNDS; r++) {
+      var h = document.createElement('div'); h.className = 'map-round'; h.textContent = '━━ 周回' + r + '（Lv' + r + '） ━━'; list.appendChild(h);
+      for (var a = 0; a < ANIMALS_N; a++) {
+        (function(r, a){
+          var an = ANIMALS[a], pk = packOf(r, a), ok = packUnlocked(r, a), done = packDone(r, a);
+          var isNow = ok && !done && !nowFound; if (isNow) nowFound = true;
+          var last = (r === ROUNDS && a === ANIMALS_N - 1);
+          var row = document.createElement('div');
+          row.className = 'node-row' + (a % 2 ? ' right' : '') + (ok ? '' : ' locked') + (last ? ' last' : '');
+          row.style.setProperty('--nc', an.color);
+          var badge = !ok ? '🔒' : (done ? ['', '✅', '🥈', '🏅'][packCollar(r, a)] : '');
+          row.innerHTML = '<div class="node' + (ok ? '' : ' locked') + (done ? ' done' : '') + (isNow ? ' now' : '') + '"><span class="em">' + an.em + '</span>' + (badge ? '<span class="badge">' + badge + '</span>' : '') + '</div>' +
+            '<div class="node-info"><div class="node-name"></div><div class="node-mech"></div><div class="node-prog"></div></div>';
+          row.querySelector('.node-name').textContent = ok ? an.name + ' Lv' + r : '？？？';
+          row.querySelector('.node-mech').textContent = ok ? MECH[pk.mech].icon + ' ' + MECH[pk.mech].name : 'まだ ねむっている';
+          row.querySelector('.node-prog').textContent = ok ? packClearedCount(r, a) + '/' + PER + '問　★' + packStars(r, a) + '/' + PER * 3 : '前の動物を起こすと開放';
+          row.addEventListener('click', function(){
+            if (ok) { cur = { r: r, a: a }; showPack(r, a); }
+            else toast('🔒 前の動物のパズルを、ぜんぶ解くと会えるよ');
+          });
+          list.appendChild(row);
+        })(r, a);
+      }
+    }
+    var end = document.createElement('div'); end.className = 'map-end'; end.textContent = '🌱 周回' + (ROUNDS + 1) + 'は準備中… つづく！'; list.appendChild(end);
+  }
+
+  // ---------- パック ----------
+  function bonusText(r, a){
+    var c = packDone(r, a), g3 = packCollar(r, a) === 3;
+    return '🎁 ボーナス　全問クリアで <b>💡+3</b> ' + (prog.flags['c' + r + '_' + a] ? '<span class="got">（もらった）</span>' : '') +
+      '　／　全部★3で <b>💡+5</b> ' + (prog.flags['g' + r + '_' + a] ? '<span class="got">（もらった）</span>' : '') +
+      '<br>💡 パズルを初めてクリアすると、★の数だけヒントがもらえるよ（★を上げ直した分ももらえる）';
+  }
+  function renderPack(r, a){
+    var an = ANIMALS[a], pk = packOf(r, a);
+    $('packEm').textContent = an.em; $('packName').textContent = an.name + ' Lv' + r;
+    $('packMech').textContent = MECH[pk.mech].icon + ' ' + MECH[pk.mech].name + '　' + packClearedCount(r, a) + '/' + PER + '問クリア';
+    $('packRule').textContent = MECH[pk.mech].rule;
+    var grid = $('packGrid'); grid.innerHTML = '';
+    for (var j = 0; j < PER; j++) {
+      (function(j){
+        var b = document.createElement('button'); b.type = 'button';
+        var st = starsOf(r, a, j), rec = prog.p[pid(r, a, j)];
+        b.className = 'lv' + (st ? ' cleared' : '');
+        b.innerHTML = '<span class="lv-em">' + an.em + '</span>' + (j + 1) + '<span class="st">' + (st ? '<b>' + stars(st) + '</b>' : '未クリア') + '</span>';
+        b.addEventListener('click', function(){ startPuzzle(r, a, j); });
+        grid.appendChild(b);
+      })(j);
+    }
+    $('packBonus').innerHTML = bonusText(r, a);
+    $('screenPack').style.borderTop = '5px solid ' + an.color;
+  }
+
+  // ---------- 図鑑 ----------
+  function zukanOwned(){ var n = 0; for (var a = 0; a < ANIMALS_N; a++) if (packDone(1, a)) n++; return n; }
   function renderZukan(){
     var grid = $('zukanGrid'); grid.innerHTML = '';
     var owned = zukanOwned(), gold = 0;
-    LIGHTS_THEMES.forEach(function(th, i){
-      var l = i + 1, st = starsOf(1, l), rec = prog[lvId(1, l)];
-      if (st === 3) gold++;
+    ANIMALS.forEach(function(an, a){
+      var has = packDone(1, a), best = 0, lvHtml = '';
+      for (var r = 1; r <= ROUNDS; r++) { var c = packCollar(r, a); if (c > best) best = c; lvHtml += '<span>Lv' + r + ' ' + (c ? (COLLAR_ICON[c] || '✅') : '－') + '</span>'; }
+      if (best === 3) gold++;
       var card = document.createElement('div');
-      card.className = 'zk-card ' + (st ? 'c' + st : 'lock');
-      if (st) {
-        card.innerHTML = '<div class="zk-em"><span>' + th.em + '</span></div><div class="zk-name"></div><div class="zk-collar">' + COLLAR_ICON[st] + COLLAR_NAME[st] + '</div><div class="zk-flavor"></div><div class="zk-best">1-' + l + '　ベスト ' + (rec ? rec.best : '-') + '手</div>';
-        card.querySelector('.zk-name').textContent = th.name;
-        card.querySelector('.zk-flavor').textContent = ZUKAN_TEXT[i];
+      card.className = 'zk-card ' + (has ? 'c' + Math.max(1, best) : 'lock');
+      if (has) {
+        card.innerHTML = '<div class="zk-em"><span>' + an.em + '</span></div><div class="zk-name"></div><div class="zk-lv">' + lvHtml + '</div><div class="zk-collar">' + COLLAR_ICON[best] + COLLAR_NAME[best] + '</div><div class="zk-flavor"></div>';
+        card.querySelector('.zk-name').textContent = an.name;
+        card.querySelector('.zk-flavor').textContent = an.text;
       } else {
-        card.innerHTML = '<div class="zk-em"><span>' + th.em + '</span></div><div class="zk-name">？？？</div><div class="zk-collar">まだ会えていない</div><div class="zk-flavor">1-' + l + ' をクリアすると仲間になる</div><div class="zk-best">&nbsp;</div>';
+        card.innerHTML = '<div class="zk-em"><span>' + an.em + '</span></div><div class="zk-name">？？？</div><div class="zk-collar">まだ会えていない</div><div class="zk-flavor">' + (a === 0 ? '最初の動物のLv1' : ANIMALS[a - 1].name + 'のLv1を解いて、次に進むと出会える') + '</div>';
       }
       grid.appendChild(card);
     });
-    $('zukanTotal').textContent = owned + ' / ' + LEVELS_PER_WORLD + '匹';
-    $('zukanBanner').textContent = gold === LEVELS_PER_WORLD ? '🏆 全員が金の首輪！ 完全制覇！' : (owned === LEVELS_PER_WORLD ? '🎉 10匹コンプリート！ 次は金の首輪をめざそう（金 ' + gold + '/10）' : '');
-  }
-
-  function renderToc(){
-    var t = totals();
-    $('totalStars').textContent = '★ ' + t.stars + ' / ' + t.max + '　（' + t.cleared + '問クリア）';
-    $('zukanCount').textContent = zukanOwned() + ' / ' + LEVELS_PER_WORLD;
-    var list = $('worldList'); list.innerHTML = '';
-    WORLDS.forEach(function(w){
-      var box = document.createElement('div'); box.className = 'world' + (w.key ? '' : ' soon');
-      var got = 0; if (w.key) for (var i = 1; i <= LEVELS_PER_WORLD; i++) got += starsOf(w.id, i);
-      var head = document.createElement('div'); head.className = 'world-head';
-      head.innerHTML = '<span class="world-name">ワールド' + w.id + '　' + w.name + '</span><span class="world-prog">' + (w.key ? '★' + got + '/' + LEVELS_PER_WORLD * 3 : '準備中') + '</span>';
-      var desc = document.createElement('div'); desc.className = 'world-desc'; desc.textContent = w.desc;
-      box.appendChild(head); box.appendChild(desc);
-      if (w.key) {
-        var grid = document.createElement('div'); grid.className = 'lv-grid';
-        for (var l = 1; l <= LEVELS_PER_WORLD; l++) {
-          (function(l){
-            var b = document.createElement('button'); b.type = 'button';
-            var ok = isUnlocked(w.id, l), st = starsOf(w.id, l);
-            b.className = 'lv' + (ok ? '' : ' locked') + (st ? ' cleared' : '');
-            b.innerHTML = (ok ? (w.type === 'lights' ? '<span class="lv-em">' + LIGHTS_THEMES[l - 1].em + '</span>' : '') : '🔒') + w.id + '-' + l + '<span class="st">' + (ok ? (st ? '<b>' + stars(st) + '</b>' : '未クリア') : '&nbsp;') + '</span>';
-            if (ok) b.addEventListener('click', function(){ startLevel(w.id, l); });
-            grid.appendChild(b);
-          })(l);
-        }
-        box.appendChild(grid);
-      }
-      list.appendChild(box);
-    });
+    $('zukanTotal').textContent = owned + ' / ' + ANIMALS_N + '匹';
+    $('zukanBanner').textContent = gold === ANIMALS_N ? '🏆 全員が金の首輪！ 完全制覇！' : (owned === ANIMALS_N ? '🎉 10匹コンプリート！ 次は金の首輪をめざそう（金 ' + gold + '/10）' : '');
   }
 
   // ================= ゲームの型ごとの実装 =================
@@ -625,21 +707,23 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
   };
 
   // ================= プレイ制御 =================
-  var g = null;   // 現在の問題 { w, l, type, lv, ctx, state, min, moves, hist, hintUsed, hint, sel, done }
-  function startLevel(w, l){
-    var W = WORLDS[w - 1], T = TYPES[W.type], lv = D[W.key][l - 1];
+  var g = null;   // 現在の問題 { r, a, j, T, ctx, state, min, moves, hist, hintUsed, hint, sel, done, theme }
+  function startPuzzle(r, a, j){
+    var pk = packOf(r, a), T = TYPES[pk.mech], lv = pk.puzzles[j];
     var init = T.init(lv);
-    g = { w: w, l: l, T: T, W: W, ctx: init.ctx, state: init.state, min: init.min, sel: init.sel === undefined ? -1 : init.sel,
-          moves: 0, hist: [], hintUsed: false, hint: null, done: false, start: null };
+    g = { r: r, a: a, j: j, mech: pk.mech, T: T, ctx: init.ctx, state: init.state, min: init.min, sel: init.sel === undefined ? -1 : init.sel,
+          moves: 0, hist: [], hintUsed: false, hint: null, done: false, start: null, theme: ANIMALS[a] };
     g.start = (typeof init.state === 'object') ? init.state.slice() : init.state;
-    g.theme = W.type === 'lights' ? LIGHTS_THEMES[l - 1] : null;
-    $('playTitle').textContent = w + '-' + l + '　' + (g.theme ? g.theme.em + ' ' : '') + W.name;
-    $('screenPlay').style.borderTop = g.theme ? '5px solid ' + g.theme.color : '';
-    $('playRule').textContent = W.rule;
+    cur = { r: r, a: a };
+    $('playTitle').textContent = g.theme.em + ' ' + g.theme.name + ' Lv' + r + '　' + (j + 1) + '/' + PER;
+    $('screenPlay').style.borderTop = '5px solid ' + g.theme.color;
+    $('playRule').textContent = MECH[pk.mech].rule;
     $('playMsg').textContent = '';
     $('resultBox').classList.add('hidden'); $('toolRow').classList.remove('hidden');
-    showPlay(); refresh();
+    updateHintBtn();
+    show('screenPlay'); refresh();
   }
+  function updateHintBtn(){ $('hintBtn').textContent = '💡 ヒント (' + hintLabel() + ')'; }
   function copyState(s){ return (typeof s === 'object') ? s.slice() : s; }
   function refresh(){
     var box = $('board'); box.innerHTML = '';
@@ -713,30 +797,45 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
     var extra = g.moves - g.min, tol = Math.max(2, Math.round(g.min * 0.4)), st;
     if (extra <= 0 && !g.hintUsed) st = 3; else if (extra <= tol) st = 2; else st = 1;
     if (g.hintUsed && st > 2) st = 2;
-    var id = lvId(g.w, g.l), rec = prog[id] || { stars: 0, best: 9999 };
-    var prevStars = rec.stars;
-    rec.stars = Math.max(rec.stars, st); rec.best = Math.min(rec.best, g.moves); prog[id] = rec; saveProg();
+    var id = pid(g.r, g.a, g.j), rec = prog.p[id] || { stars: 0, best: 9999 };
+    var prevStars = rec.stars, wasDone = packDone(g.r, g.a), wasGold = packCollar(g.r, g.a) === 3;
+    rec.stars = Math.max(rec.stars, st); rec.best = Math.min(rec.best, g.moves); prog.p[id] = rec;
+    // ヒント獲得：★が増えた分（初クリアは★の数、上げ直しは差分）
+    var gain = Math.max(0, st - prevStars), lines = [];
+    if (gain > 0) lines.push('💡 ヒント +' + gain + '（★が増えた分）');
+    var nowDone = packDone(g.r, g.a), nowGold = packCollar(g.r, g.a) === 3;
+    var nextAnimal = null;
+    if (nowDone && !wasDone && !prog.flags['c' + g.r + '_' + g.a]) {
+      prog.flags['c' + g.r + '_' + g.a] = 1; gain += 3; lines.push('🎊 ' + g.theme.name + ' Lv' + g.r + ' クリア！ 💡 ボーナス +3');
+      var np = (g.a < ANIMALS_N - 1) ? [g.r, g.a + 1] : (g.r < ROUNDS ? [g.r + 1, 0] : null);
+      if (np) nextAnimal = ANIMALS[np[1]];
+      if (nextAnimal) lines.push(nextAnimal.em + ' ' + nextAnimal.name + ' が目を覚ました！（Lv' + np[0] + '）');
+      else lines.push('🌱 ここまで全部クリア！ 次の周回をおたのしみに！');
+      if (g.r === 1) lines.push('🆕 図鑑に ' + g.theme.em + ' ' + g.theme.name + ' が仲間入り！');
+    }
+    if (nowGold && !wasGold && !prog.flags['g' + g.r + '_' + g.a]) {
+      prog.flags['g' + g.r + '_' + g.a] = 1; gain += 5; lines.push('🏅 ' + g.theme.name + ' Lv' + g.r + ' が全部★3！ 金の首輪＆💡 ボーナス +5');
+    }
+    if (!isUnlimited()) prog.hints += gain;
+    saveProg();
     $('markBox').innerHTML = markSvg(st);
     $('resultTitle').textContent = TITLES[st];
     $('resultStars').innerHTML = starsHtml(st);
-    $('resultSub').innerHTML = (g.theme ? g.theme.em + ' ' + g.theme.name + 'が全員起きた！<br>' : '') + g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
-    var zk = '';
-    if (g.theme) {
-      if (prevStars === 0) zk = '🆕 図鑑に ' + g.theme.em + ' ' + g.theme.name + ' が仲間入り！' + (st > 1 ? '（' + COLLAR_NAME[st] + '）' : '');
-      else if (st > prevStars) zk = g.theme.em + ' ' + g.theme.name + 'の首輪が「' + COLLAR_NAME[st] + '」にアップグレード！';
-    }
-    $('resultZukan').textContent = zk;
-    var last = g.l >= LEVELS_PER_WORLD;
-    $('nextBtn').textContent = last ? '🎉 ワールドクリア！ 目次へ' : '次の錠へ →';
+    $('resultSub').innerHTML = g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
+    $('resultZukan').innerHTML = lines.join('<br>');
+    var packLast = (g.j >= PER - 1);
+    $('nextBtn').textContent = packLast ? (nextAnimal ? '🗺 マップへ（' + nextAnimal.name + 'に会いに行く）' : '🗺 マップへ') : '次のパズルへ →';
     $('toolRow').classList.add('hidden'); $('resultBox').classList.remove('hidden');
     confetti(st === 3 ? 70 : (st === 2 ? 36 : 14));
+    updateHintBtn();
   }
-  $('nextBtn').addEventListener('click', function(){ if (g.l >= LEVELS_PER_WORLD) showToc(); else startLevel(g.w, g.l + 1); });
-  $('againBtn').addEventListener('click', function(){ startLevel(g.w, g.l); });
-  $('tocBtn').addEventListener('click', showToc);
+  $('nextBtn').addEventListener('click', function(){ if (g.j >= PER - 1) showMap(); else startPuzzle(g.r, g.a, g.j + 1); });
+  $('againBtn').addEventListener('click', function(){ startPuzzle(g.r, g.a, g.j); });
+  $('tocBtn').addEventListener('click', function(){ showPack(g.r, g.a); });
+  $('tocBtn2').addEventListener('click', function(){ showPack(g.r, g.a); });
+  $('packBackBtn').addEventListener('click', showMap);
   $('zukanBtn').addEventListener('click', showZukan);
-  $('zukanBackBtn').addEventListener('click', showToc);
-  $('tocBtn2').addEventListener('click', showToc);
+  $('zukanBackBtn').addEventListener('click', showMap);
   $('retryBtn').addEventListener('click', function(){
     if (g.done) return;
     g.state = copyState(g.start); g.moves = 0; g.hist = []; g.hint = null; g.sel = -1; $('playMsg').textContent = ''; refresh();
@@ -747,18 +846,24 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
   });
   $('hintBtn').addEventListener('click', function(){
     if (g.done) return;
+    if (g.hint) { refresh(); return; }               // すでに表示中なら、追加で消費しない
+    if (!isUnlimited() && prog.hints <= 0) {
+      $('playMsg').textContent = '💡 ヒントが足りません。前のパズルを★3で遊び直すと貯まるよ／明日また3個までもらえるよ';
+      return;
+    }
     var h = g.T.hint(g.ctx, g.state);
     if (!h) return;
+    if (!isUnlimited()) { prog.hints--; saveProg(); }
     g.hint = h; g.hintUsed = true;
-    if (g.W.type === 'slide') g.sel = h.car;
+    if (g.mech === 'slide') g.sel = h.car;
     $('playMsg').textContent = '💡 光っているところが次の一手です（ヒントを使うと最高★2）';
-    refresh();
+    updateHintBtn(); refresh();
   });
 
   // ================= Xシェア（window.open方式） =================
   $('xShareBtn').addEventListener('click', function(){
     var t = totals(), NL = String.fromCharCode(10);
-    var body = t.cleared ? '★' + t.stars + '/' + t.max + '（' + t.cleared + '問クリア）！' : 'タップで動かして鍵を開ける錠前パズル！';
+    var body = t.cleared ? '動物' + zukanOwned() + '匹が仲間に！ ★' + t.stars + '/' + t.max + '（' + t.cleared + '問クリア）' : 'タップで動かして動物たちの錠を開ける錠前パズル！';
     var text = '「開かずの金庫」' + NL + body + NL + 'CMなしの0秒ブラウザゲーム！' + NL + '#しょーもなゲームズ';
     window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
   });
@@ -769,11 +874,11 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
   if (safeGet(STORAGE_KEY) === '1') setUnlocked();
   $('unlockBtn').addEventListener('click', function(){
     var val = $('passwordInput').value.trim();
-    if (val === PASSWORD || val === MASTER_PASSWORD) { safeSet(STORAGE_KEY, '1'); setUnlocked(); }
+    if (val === PASSWORD || val === MASTER_PASSWORD) { safeSet(STORAGE_KEY, '1'); setUnlocked(); renderMap(); updateHintBtn && (g ? updateHintBtn() : 0); }
     else { gradeMsg.textContent = '違うようです、もう一度確認してください…'; }
   });
 
-  renderToc();
+  renderMap();
 })();
 </script>
 </body>
