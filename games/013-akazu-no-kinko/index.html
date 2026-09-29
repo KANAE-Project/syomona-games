@@ -86,10 +86,32 @@
   .car.hint-car > span{ outline:3px solid #fff; animation:hintPulse 1s ease-in-out infinite; }
 
   /* 結果 */
-  .result{ text-align:center; margin-top:14px; padding-top:12px; border-top:1px dashed rgba(244,239,226,.3); }
-  .result-title{ font-size:1.15rem; font-weight:900; color:var(--ok); }
-  .result-stars{ font-size:2rem; letter-spacing:.1em; color:var(--accent); margin:6px 0; }
-  .result-sub{ font-size:.85rem; opacity:.85; line-height:1.7; }
+  /* クリア演出：全画面オーバーレイ（#resultBox） */
+  .result{ position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:18px; text-align:center; background:rgba(10,12,22,.96); overflow-y:auto; animation:fadeIn .25s ease; }
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  .result-inner{ width:100%; max-width:380px; }
+  .mark-box{ width:min(64vw,250px); height:min(64vw,250px); margin:0 auto 4px; }
+  .mark-box svg{ width:100%; height:100%; overflow:visible; }
+  .mark-draw{ stroke-dasharray:1; stroke-dashoffset:1; animation:drawOn .9s ease-out .15s forwards; }
+  .mark-draw.d2{ animation-delay:.55s; animation-duration:.8s; }
+  .mark-draw.d3{ animation-delay:.9s; animation-duration:.7s; }
+  @keyframes drawOn{ to{ stroke-dashoffset:0; } }
+  .mark-petals{ transform-origin:100px 100px; animation:popIn .55s cubic-bezier(.2,1.5,.4,1) forwards; opacity:0; }
+  @keyframes popIn{ from{ transform:scale(.3) rotate(-25deg); opacity:0; } to{ transform:scale(1) rotate(0); opacity:1; } }
+  .result-title{ font-size:1.5rem; font-weight:900; color:var(--ok); margin-top:2px; animation:titleIn .5s ease .5s both; }
+  @keyframes titleIn{ from{ transform:translateY(12px) scale(.9); opacity:0; } to{ transform:none; opacity:1; } }
+  .result-stars{ font-size:2.4rem; letter-spacing:.14em; color:var(--accent); margin:6px 0 2px; }
+  .result-stars .star{ display:inline-block; opacity:0; animation:starIn .45s cubic-bezier(.2,1.6,.4,1) forwards; }
+  .result-stars .star.off{ color:#5a6386; }
+  @keyframes starIn{ from{ transform:scale(.2) rotate(-40deg); opacity:0; } to{ transform:scale(1) rotate(0); opacity:1; } }
+  .result-sub{ font-size:.9rem; opacity:.9; line-height:1.7; margin-bottom:4px; }
+  .confetti{ position:absolute; top:-20px; width:9px; height:14px; border-radius:2px; opacity:0; animation:confettiFall linear forwards; pointer-events:none; }
+  @keyframes confettiFall{ 0%{ transform:translateY(0) rotate(0); opacity:1; } 100%{ transform:translateY(112vh) rotate(720deg); opacity:.9; } }
+  @media (prefers-reduced-motion: reduce){
+    .mark-draw,.mark-petals,.result-title,.result-stars .star{ animation:none !important; opacity:1 !important; stroke-dashoffset:0 !important; }
+    .confetti{ display:none; }
+  }
   .primary-btn{ display:block; width:100%; font-family:inherit; cursor:pointer; border:none; border-radius:14px; padding:13px 16px; font-size:1rem; font-weight:900; color:#2a2208; background:var(--accent); box-shadow:0 4px 0 var(--accent-dark); margin-top:10px; }
   .primary-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
   .primary-btn.sub-btn{ background:none; color:var(--ink); border:2px solid rgba(244,239,226,.4); box-shadow:none; }
@@ -143,12 +165,15 @@
       <button type="button" class="tool-btn" id="tocBtn">☰ 目次</button>
     </div>
     <div class="result hidden" id="resultBox">
-      <div class="result-title">🔓 カチャッ！ 錠が開いた！</div>
-      <div class="result-stars" id="resultStars"></div>
-      <div class="result-sub" id="resultSub"></div>
-      <button type="button" class="primary-btn" id="nextBtn">次の錠へ →</button>
-      <button type="button" class="primary-btn sub-btn" id="againBtn">もう一度この錠を解く</button>
-      <button type="button" class="primary-btn sub-btn" id="tocBtn2">目次へ戻る</button>
+      <div class="result-inner">
+        <div class="mark-box" id="markBox"></div>
+        <div class="result-title" id="resultTitle">🔓 錠が開いた！</div>
+        <div class="result-stars" id="resultStars"></div>
+        <div class="result-sub" id="resultSub"></div>
+        <button type="button" class="primary-btn" id="nextBtn">次の錠へ →</button>
+        <button type="button" class="primary-btn sub-btn" id="againBtn">もう一度この錠を解く</button>
+        <button type="button" class="primary-btn sub-btn" id="tocBtn2">目次へ戻る</button>
+      </div>
     </div>
   </div>
 
@@ -187,7 +212,7 @@
 
 <script>
 /* 問題データ（tools/akazu-gen で生成・全問BFSで解けることと最短手数を検証済み） */
-var LEVEL_DATA = {"w1":[{"n":3,"rows":["000","100","110"],"min":1},{"n":3,"rows":["000","110","001"],"min":2},{"n":3,"rows":["011","110","011"],"min":3},{"n":3,"rows":["101","000","111"],"min":4},{"n":3,"rows":["000","000","011"],"min":5},{"n":3,"rows":["011","111","101"],"min":6},{"n":4,"rows":["0011","0100","0001","0111"],"min":3},{"n":4,"rows":["1011","1110","0111","1011"],"min":5},{"n":4,"rows":["1111","1000","0100","1011"],"min":6},{"n":4,"rows":["1000","0001","0010","0101"],"min":7}],"w2":[{"syms":["★","●","▲","■"],"clues":[["notadj","●","★"],["notadj","▲","●"],["left","▲","■"],["between","▲","★","■"]],"start":["■","★","●","▲"],"target":["★","▲","■","●"],"min":3},{"syms":["★","●","▲","■"],"clues":[["end","▲"],["notadj","■","★"],["between","★","●","▲"],["left","▲","★"]],"start":["●","★","■","▲"],"target":["▲","★","●","■"],"min":4},{"syms":["★","●","▲","■"],"clues":[["adj","★","●"],["left","●","▲"],["end","★"],["notadj","■","●"]],"start":["■","●","▲","★"],"target":["★","●","▲","■"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["between","★","■","◆"],["left","■","▲"],["adj","★","■"],["notadj","◆","●"],["end","●"],["notadj","◆","▲"]],"start":["■","▲","★","◆","●"],"target":["◆","★","■","▲","●"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["left","■","★"],["adj","●","★"],["notadj","●","▲"],["notadj","▲","★"],["between","▲","★","◆"],["notadj","■","●"]],"start":["★","◆","●","■","▲"],"target":["◆","▲","■","★","●"],"min":6},{"syms":["★","●","▲","■","◆"],"clues":[["end","▲"],["between","◆","★","●"],["adj","▲","★"],["notadj","★","■"],["adj","◆","■"],["left","▲","◆"]],"start":["●","▲","■","◆","★"],"target":["▲","★","◆","■","●"],"min":7},{"syms":["★","●","▲","■","◆"],"clues":[["between","●","★","▲"],["adj","●","★"],["left","■","◆"],["notadj","★","◆"],["between","■","★","▲"],["notadj","◆","▲"]],"start":["●","★","■","◆","▲"],"target":["▲","■","◆","●","★"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","■","★"],["between","◆","●","■"],["notadj","★","◆"],["notadj","●","★"],["left","■","●"],["left","■","▲"],["left","●","♥"],["adj","■","▲"]],"start":["★","▲","■","●","♥","◆"],"target":["■","▲","◆","●","♥","★"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","★","●","♥"],["left","■","♥"],["left","■","●"],["notadj","★","◆"],["notadj","◆","●"],["between","▲","●","■"],["between","♥","■","◆"],["notadj","★","♥"]],"start":["★","●","■","◆","▲","♥"],"target":["■","♥","◆","▲","★","●"],"min":10},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","■","★"],["between","★","■","♥"],["notadj","■","◆"],["left","♥","★"],["adj","★","●"],["notadj","◆","♥"],["adj","●","♥"]],"start":["■","★","▲","◆","♥","●"],"target":["♥","●","★","◆","▲","■"],"min":12}],"w3":[{"cars":[[2,1,2,"H"],[1,0,3,"V"],[5,4,2,"H"],[0,1,2,"V"],[4,1,2,"V"],[0,5,3,"V"]],"min":3},{"cars":[[2,1,2,"H"],[4,2,2,"H"],[0,2,3,"H"],[3,4,2,"H"],[1,5,2,"V"],[1,4,2,"V"]],"min":4},{"cars":[[2,0,2,"H"],[4,2,2,"H"],[0,2,2,"H"],[5,3,2,"H"],[1,2,2,"V"],[2,4,3,"V"]],"min":5},{"cars":[[2,2,2,"H"],[1,2,2,"H"],[4,3,2,"V"],[0,4,3,"V"],[4,0,2,"V"],[4,4,2,"H"]],"min":6},{"cars":[[2,0,2,"H"],[4,3,2,"H"],[3,2,2,"V"],[1,2,2,"V"],[5,3,2,"H"],[0,4,3,"V"]],"min":7},{"cars":[[2,0,2,"H"],[0,2,3,"V"],[4,3,3,"H"],[5,0,3,"H"],[1,4,2,"V"],[1,5,3,"V"]],"min":9},{"cars":[[2,1,2,"H"],[4,1,2,"V"],[0,3,3,"V"],[4,3,2,"H"],[1,5,3,"V"],[5,4,2,"H"]],"min":11},{"cars":[[2,0,2,"H"],[1,3,2,"V"],[0,5,2,"V"],[3,5,2,"V"],[0,3,2,"H"],[3,0,3,"H"],[3,3,2,"V"],[0,1,2,"V"],[4,4,2,"V"]],"min":13},{"cars":[[2,0,2,"H"],[5,3,2,"H"],[4,4,2,"H"],[1,4,2,"V"],[1,2,2,"V"],[1,3,3,"V"],[2,5,2,"V"],[4,1,2,"V"],[0,5,2,"V"],[0,1,3,"H"]],"min":15},{"cars":[[2,0,2,"H"],[0,4,2,"V"],[0,0,3,"H"],[5,2,3,"H"],[3,5,2,"V"],[1,2,2,"H"],[4,1,2,"V"],[2,2,2,"V"],[3,4,2,"V"],[4,2,2,"H"]],"min":18}]};
+var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111","011","011"],"min":2},{"n":3,"rows":["001","010","101"],"min":4},{"n":4,"rows":["0001","1110","1010","0110"],"min":4},{"n":4,"rows":["1001","0011","1110","0001"],"min":6},{"n":5,"rows":["11100","11011","10011","00001","00110"],"min":5},{"n":5,"rows":["10001","01001","11110","10000","10011"],"min":8},{"n":6,"rows":["000011","000001","110100","101110","001000","010000"],"min":7},{"n":6,"rows":["100000","010000","000001","110001","100110","000000"],"min":10},{"n":7,"rows":["1111000","1100100","1011100","1111111","0101111","1111000","0011011"],"min":12}],"w2":[{"syms":["★","●","▲","■"],"clues":[["notadj","●","★"],["notadj","▲","●"],["left","▲","■"],["between","▲","★","■"]],"start":["■","★","●","▲"],"target":["★","▲","■","●"],"min":3},{"syms":["★","●","▲","■"],"clues":[["end","▲"],["notadj","■","★"],["between","★","●","▲"],["left","▲","★"]],"start":["●","★","■","▲"],"target":["▲","★","●","■"],"min":4},{"syms":["★","●","▲","■"],"clues":[["adj","★","●"],["left","●","▲"],["end","★"],["notadj","■","●"]],"start":["■","●","▲","★"],"target":["★","●","▲","■"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["between","★","■","◆"],["left","■","▲"],["adj","★","■"],["notadj","◆","●"],["end","●"],["notadj","◆","▲"]],"start":["■","▲","★","◆","●"],"target":["◆","★","■","▲","●"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["left","■","★"],["adj","●","★"],["notadj","●","▲"],["notadj","▲","★"],["between","▲","★","◆"],["notadj","■","●"]],"start":["★","◆","●","■","▲"],"target":["◆","▲","■","★","●"],"min":6},{"syms":["★","●","▲","■","◆"],"clues":[["end","▲"],["between","◆","★","●"],["adj","▲","★"],["notadj","★","■"],["adj","◆","■"],["left","▲","◆"]],"start":["●","▲","■","◆","★"],"target":["▲","★","◆","■","●"],"min":7},{"syms":["★","●","▲","■","◆"],"clues":[["between","●","★","▲"],["adj","●","★"],["left","■","◆"],["notadj","★","◆"],["between","■","★","▲"],["notadj","◆","▲"]],"start":["●","★","■","◆","▲"],"target":["▲","■","◆","●","★"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","■","★"],["between","◆","●","■"],["notadj","★","◆"],["notadj","●","★"],["left","■","●"],["left","■","▲"],["left","●","♥"],["adj","■","▲"]],"start":["★","▲","■","●","♥","◆"],"target":["■","▲","◆","●","♥","★"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","★","●","♥"],["left","■","♥"],["left","■","●"],["notadj","★","◆"],["notadj","◆","●"],["between","▲","●","■"],["between","♥","■","◆"],["notadj","★","♥"]],"start":["★","●","■","◆","▲","♥"],"target":["■","♥","◆","▲","★","●"],"min":10},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","■","★"],["between","★","■","♥"],["notadj","■","◆"],["left","♥","★"],["adj","★","●"],["notadj","◆","♥"],["adj","●","♥"]],"start":["■","★","▲","◆","♥","●"],"target":["♥","●","★","◆","▲","■"],"min":12}],"w3":[{"cars":[[2,1,2,"H"],[1,0,3,"V"],[5,4,2,"H"],[0,1,2,"V"],[4,1,2,"V"],[0,5,3,"V"]],"min":3},{"cars":[[2,1,2,"H"],[4,2,2,"H"],[0,2,3,"H"],[3,4,2,"H"],[1,5,2,"V"],[1,4,2,"V"]],"min":4},{"cars":[[2,0,2,"H"],[4,2,2,"H"],[0,2,2,"H"],[5,3,2,"H"],[1,2,2,"V"],[2,4,3,"V"]],"min":5},{"cars":[[2,2,2,"H"],[1,2,2,"H"],[4,3,2,"V"],[0,4,3,"V"],[4,0,2,"V"],[4,4,2,"H"]],"min":6},{"cars":[[2,0,2,"H"],[4,3,2,"H"],[3,2,2,"V"],[1,2,2,"V"],[5,3,2,"H"],[0,4,3,"V"]],"min":7},{"cars":[[2,0,2,"H"],[0,2,3,"V"],[4,3,3,"H"],[5,0,3,"H"],[1,4,2,"V"],[1,5,3,"V"]],"min":9},{"cars":[[2,1,2,"H"],[4,1,2,"V"],[0,3,3,"V"],[4,3,2,"H"],[1,5,3,"V"],[5,4,2,"H"]],"min":11},{"cars":[[2,0,2,"H"],[1,3,2,"V"],[0,5,2,"V"],[3,5,2,"V"],[0,3,2,"H"],[3,0,3,"H"],[3,3,2,"V"],[0,1,2,"V"],[4,4,2,"V"]],"min":13},{"cars":[[2,0,2,"H"],[5,3,2,"H"],[4,4,2,"H"],[1,4,2,"V"],[1,2,2,"V"],[1,3,3,"V"],[2,5,2,"V"],[4,1,2,"V"],[0,5,2,"V"],[0,1,3,"H"]],"min":15},{"cars":[[2,0,2,"H"],[0,4,2,"V"],[0,0,3,"H"],[5,2,3,"H"],[3,5,2,"V"],[1,2,2,"H"],[4,1,2,"V"],[2,2,2,"V"],[3,4,2,"V"],[4,2,2,"H"]],"min":18}]};
 </script>
 <script>
 (function(){
@@ -206,7 +231,7 @@ var LEVEL_DATA = {"w1":[{"n":3,"rows":["000","100","110"],"min":1},{"n":3,"rows"
   var D = window.LEVEL_DATA;
   var WORLDS = [
     { id: 1, key: 'w1', name: 'スイッチ錠', type: 'lights',
-      desc: 'マスをタップすると、そのマスと上下左右の●○が入れ替わる。全部○にすれば開錠。',
+      desc: 'マスをタップすると、そのマスと上下左右の●○が入れ替わる。レベルが上がるごとにマスが増える（2×2 → 7×7）。',
       rule: 'マスをタップすると、そのマスと上下左右の●○が入れ替わります。全部 ○ にすると錠が開きます。' },
     { id: 2, key: 'w2', name: '記号錠', type: 'symbols',
       desc: 'ヒントから正しい並びを推理して、隣どうしの入れ替えで揃える。',
@@ -221,6 +246,20 @@ var LEVEL_DATA = {"w1":[{"n":3,"rows":["000","100","110"],"min":1},{"n":3,"rows"
   // ---------- 進捗 ----------
   var prog = {};
   try { prog = JSON.parse(safeGet(PROG_KEY) || '{}') || {}; } catch(e){ prog = {}; }
+  // 問題を差し替えたワールドは、古い記録（別の問題の星）が残らないようバージョンで消す
+  var WORLD_VER = { 1: 2, 2: 1, 3: 1 };
+  (function(){
+    var v = prog.__ver || {}, changed = false;
+    Object.keys(WORLD_VER).forEach(function(w){
+      if ((v[w] || 1) < WORLD_VER[w]) {
+        for (var l = 1; l <= 10; l++) delete prog[w + '-' + l];
+        changed = true;
+      }
+      v[w] = WORLD_VER[w];
+    });
+    prog.__ver = v;
+    if (changed) safeSet(PROG_KEY, JSON.stringify(prog));
+  })();
   function lvId(w, l){ return w + '-' + l; }
   function isUnlocked(w, l){ return l === 1 || !!prog[lvId(w, l - 1)]; }
   function starsOf(w, l){ var r = prog[lvId(w, l)]; return r ? r.stars : 0; }
@@ -269,37 +308,77 @@ var LEVEL_DATA = {"w1":[{"n":3,"rows":["000","100","110"],"min":1},{"n":3,"rows"
   var TYPES = {};
 
   // ---- 1) スイッチ錠 ----
+  // 盤面が大きくなる（最大7×7）ため、全探索(BFS)ではなくGF(2)の連立方程式で最短手数とヒントを求める。
+  // 状態は0/1の配列。押す操作は「そのマスと上下左右を反転」で、同じマスを2回押すと元に戻るので、
+  // 「どのマスを押すか（各マス0回か1回）」だけが解の形になる。解が複数ある盤（4×4・5×5）は最小の押す数を採用。
+  function lightsMasks(n){
+    var ms = [], r, c;
+    for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
+      var m = [], i; for (i = 0; i < n * n; i++) m.push(0);
+      [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+        var rr = r + d[0], cc = c + d[1];
+        if (rr >= 0 && rr < n && cc >= 0 && cc < n) m[rr * n + cc] = 1;
+      });
+      ms.push(m);
+    }
+    return ms;
+  }
+  // 最小の押すマス集合（配列）を返す。解なしならnull
+  function lightsSolve(ctx, s){
+    var N = ctx.n * ctx.n, rows = [], i, j;
+    for (i = 0; i < N; i++) { var row = []; for (j = 0; j < N; j++) row.push(ctx.ms[j][i]); row.push(s[i]); rows.push(row); }
+    var piv = [], r0 = 0, col, r, k;
+    for (col = 0; col < N; col++) {
+      var p = -1; for (r = r0; r < N; r++) if (rows[r][col]) { p = r; break; }
+      if (p < 0) continue;
+      var tmp = rows[r0]; rows[r0] = rows[p]; rows[p] = tmp;
+      for (r = 0; r < N; r++) if (r !== r0 && rows[r][col]) for (k = 0; k <= N; k++) rows[r][k] ^= rows[r0][k];
+      piv.push(col); r0++;
+    }
+    for (r = r0; r < N; r++) if (rows[r][N]) return null;
+    var free = [], isPiv = {}; piv.forEach(function(c){ isPiv[c] = true; });
+    for (col = 0; col < N; col++) if (!isPiv[col]) free.push(col);
+    var best = null, mask;
+    for (mask = 0; mask < (1 << free.length); mask++) {
+      var x = []; for (i = 0; i < N; i++) x.push(0);
+      free.forEach(function(c, idx){ if ((mask >> idx) & 1) x[c] = 1; });
+      for (k = 0; k < piv.length; k++) {
+        var rhs = rows[k][N];
+        free.forEach(function(c, idx){ if (((mask >> idx) & 1) && rows[k][c]) rhs ^= 1; });
+        x[piv[k]] = rhs;
+      }
+      var w = 0; for (i = 0; i < N; i++) w += x[i];
+      if (!best || w < best.w) best = { w: w, x: x };
+    }
+    return best;
+  }
   TYPES.lights = {
     init: function(lv){
-      var n = lv.n, s = 0, ms = [], r, c;
-      for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (lv.rows[r].charAt(c) === '1') s |= 1 << (r * n + c);
-      for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
-        var m = 0;
-        [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
-          var rr = r + d[0], cc = c + d[1];
-          if (rr >= 0 && rr < n && cc >= 0 && cc < n) m |= 1 << (rr * n + cc);
-        });
-        ms.push(m);
-      }
-      var dist = {}; dist[0] = 0; var q = [0];
-      for (var qi = 0; qi < q.length; qi++) { var x = q[qi]; for (var i = 0; i < ms.length; i++) { var y = x ^ ms[i]; if (dist[y] === undefined) { dist[y] = dist[x] + 1; q.push(y); } } }
-      return { ctx: { n: n, ms: ms, dist: dist }, state: s, min: dist[s] };
+      var n = lv.n, s = [], r, c;
+      for (r = 0; r < n; r++) for (c = 0; c < n; c++) s.push(lv.rows[r].charAt(c) === '1' ? 1 : 0);
+      var ctx = { n: n, ms: lightsMasks(n) };
+      var sol = lightsSolve(ctx, s);
+      return { ctx: ctx, state: s, min: sol ? sol.w : 0 };
     },
-    apply: function(ctx, s, mv){ return s ^ ctx.ms[mv]; },
-    solved: function(ctx, s){ return s === 0; },
+    apply: function(ctx, s, mv){ var t = s.slice(), m = ctx.ms[mv]; for (var i = 0; i < t.length; i++) t[i] ^= m[i]; return t; },
+    solved: function(ctx, s){ for (var i = 0; i < s.length; i++) if (s[i]) return false; return true; },
     hint: function(ctx, s){
-      var d = ctx.dist[s];
-      for (var i = 0; i < ctx.ms.length; i++) if (ctx.dist[s ^ ctx.ms[i]] === d - 1) return { cell: i };
+      var sol = lightsSolve(ctx, s);
+      if (!sol) return null;
+      for (var i = 0; i < sol.x.length; i++) if (sol.x[i]) return { cell: i };
       return null;
     },
     render: function(g, box){
       var n = g.ctx.n, grid = document.createElement('div'); grid.className = 'sw-grid';
       grid.style.gridTemplateColumns = 'repeat(' + n + ',1fr)';
-      grid.style.maxWidth = (n === 3 ? 300 : 340) + 'px';
+      grid.style.maxWidth = ({ 2: 220, 3: 300, 4: 340 }[n] || 360) + 'px';
+      grid.style.gap = (n <= 4 ? 10 : 6) + 'px';
+      var fs = ({ 2: 2.2, 3: 1.9, 4: 1.6, 5: 1.35, 6: 1.15, 7: 1.0 }[n] || 1.2);
       for (var i = 0; i < n * n; i++) {
         var b = document.createElement('button'); b.type = 'button';
-        var on = (g.state >> i) & 1;
+        var on = g.state[i];
         b.className = 'sw' + (on ? ' on' : '') + (g.hint && g.hint.cell === i ? ' hint-pulse' : '');
+        b.style.fontSize = fs + 'rem'; b.style.borderRadius = (n <= 4 ? 16 : 10) + 'px';
         b.textContent = on ? '●' : '○'; b.setAttribute('data-i', i);
         b.addEventListener('click', function(e){ move(+e.currentTarget.getAttribute('data-i')); });
         grid.appendChild(b);
@@ -484,6 +563,61 @@ var LEVEL_DATA = {"w1":[{"n":3,"rows":["000","100","110"],"min":1},{"n":3,"rows"
     refresh();
     if (g.T.solved(g.ctx, g.state)) finish();
   }
+  // ---------- クリア演出 ----------
+  var RED = '#e0344a';
+  function wobblyCircle(cx, cy, r, turns, wob){
+    // 手書き風に、少しずつ半径が変わる渦巻き状の円（始点と終点がずれる）
+    var pts = [], steps = Math.round(64 * turns), i;
+    for (i = 0; i <= steps; i++) {
+      var t = i / steps, a = -Math.PI / 2 + t * turns * 2 * Math.PI;
+      var rr = r * (1 + wob * (t - .5) + 0.012 * Math.sin(i * .9));
+      pts.push((cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1));
+    }
+    return 'M' + pts.join(' L');
+  }
+  function markSvg(st){
+    var svg = '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" fill="none">';
+    if (st === 3) {
+      // 花丸：ふちの花びら8枚＋二重の渦巻き
+      var petals = '';
+      for (var k = 0; k < 8; k++) {
+        var a = k * Math.PI / 4, px = 100 + 68 * Math.cos(a), py = 100 + 68 * Math.sin(a);
+        petals += '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="24" fill="#ffd9de" stroke="' + RED + '" stroke-width="5"/>';
+      }
+      svg += '<g class="mark-petals">' + petals + '<circle cx="100" cy="100" r="70" fill="#fff4f5"/></g>';
+      svg += '<path class="mark-draw" pathLength="1" d="' + wobblyCircle(100, 100, 60, 1.6, .05) + '" stroke="' + RED + '" stroke-width="7"/>';
+      svg += '<path class="mark-draw d2" pathLength="1" d="' + wobblyCircle(100, 100, 40, 1.5, .06) + '" stroke="' + RED + '" stroke-width="7"/>';
+      svg += '<path class="mark-draw d3" pathLength="1" d="' + wobblyCircle(100, 100, 20, 1.3, .08) + '" stroke="' + RED + '" stroke-width="7"/>';
+    } else if (st === 2) {
+      // 二重丸
+      svg += '<path class="mark-draw" pathLength="1" d="' + wobblyCircle(100, 100, 82, 1.15, .04) + '" stroke="' + RED + '" stroke-width="10"/>';
+      svg += '<path class="mark-draw d2" pathLength="1" d="' + wobblyCircle(100, 100, 52, 1.1, .05) + '" stroke="' + RED + '" stroke-width="10"/>';
+    } else {
+      // 丸
+      svg += '<path class="mark-draw" pathLength="1" d="' + wobblyCircle(100, 100, 80, 1.1, .04) + '" stroke="' + RED + '" stroke-width="11"/>';
+    }
+    return svg + '</svg>';
+  }
+  var CONFETTI_COLORS = ['#f0b429', '#e0344a', '#4cc38a', '#5aa9e6', '#e8788a', '#b58be0', '#ffffff'];
+  function confetti(n){
+    var box = $('resultBox'), i;
+    var old = box.querySelectorAll('.confetti'); for (i = 0; i < old.length; i++) old[i].remove();
+    for (i = 0; i < n; i++) {
+      var c = document.createElement('div'); c.className = 'confetti';
+      c.style.left = (Math.random() * 100) + '%';
+      c.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+      c.style.animationDuration = (2.2 + Math.random() * 2.2) + 's';
+      c.style.animationDelay = (Math.random() * 1.1) + 's';
+      c.style.width = (6 + Math.random() * 6) + 'px'; c.style.height = (9 + Math.random() * 8) + 'px';
+      box.appendChild(c);
+    }
+  }
+  var TITLES = { 3: '🌸 はなまる！ 完璧！', 2: '🎉 よくできました！', 1: '🔓 錠が開いた！' };
+  function starsHtml(st){
+    var h = '';
+    for (var i = 1; i <= 3; i++) h += '<span class="star' + (i <= st ? '' : ' off') + '" style="animation-delay:' + (0.7 + i * 0.22) + 's">' + (i <= st ? '★' : '☆') + '</span>';
+    return h;
+  }
   function finish(){
     g.done = true;
     var extra = g.moves - g.min, tol = Math.max(2, Math.round(g.min * 0.4)), st;
@@ -491,11 +625,14 @@ var LEVEL_DATA = {"w1":[{"n":3,"rows":["000","100","110"],"min":1},{"n":3,"rows"
     if (g.hintUsed && st > 2) st = 2;
     var id = lvId(g.w, g.l), rec = prog[id] || { stars: 0, best: 9999 };
     rec.stars = Math.max(rec.stars, st); rec.best = Math.min(rec.best, g.moves); prog[id] = rec; saveProg();
-    $('resultStars').textContent = stars(st);
+    $('markBox').innerHTML = markSvg(st);
+    $('resultTitle').textContent = TITLES[st];
+    $('resultStars').innerHTML = starsHtml(st);
     $('resultSub').innerHTML = g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
     var last = g.l >= LEVELS_PER_WORLD;
     $('nextBtn').textContent = last ? '🎉 ワールドクリア！ 目次へ' : '次の錠へ →';
     $('toolRow').classList.add('hidden'); $('resultBox').classList.remove('hidden');
+    confetti(st === 3 ? 70 : (st === 2 ? 36 : 14));
   }
   $('nextBtn').addEventListener('click', function(){ if (g.l >= LEVELS_PER_WORLD) showToc(); else startLevel(g.w, g.l + 1); });
   $('againBtn').addEventListener('click', function(){ startLevel(g.w, g.l); });
