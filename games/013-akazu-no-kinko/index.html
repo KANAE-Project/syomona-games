@@ -62,6 +62,26 @@
   .sw.sleep .em{ filter:grayscale(1) opacity(.42); }
   .sw.sleep::after{ content:'💤'; position:absolute; right:5%; top:0; font-size:.42em; }
   .lv-em{ display:block; font-size:1.05rem; line-height:1.15; }
+
+  /* 図鑑 */
+  .zukan-btn{ display:flex; justify-content:center; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; background:rgba(240,180,41,.1); border:2px solid var(--accent); color:var(--ink); border-radius:14px; padding:11px 14px; font-size:.98rem; font-weight:900; margin-bottom:14px; }
+  .zukan-btn:active{ transform:scale(.97); }
+  .zukan-btn .zk-count{ color:var(--accent); }
+  .zk-banner{ text-align:center; font-size:.95rem; font-weight:900; color:var(--ok); margin:0 0 10px; }
+  .zk-banner:empty{ display:none; }
+  .zk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .zk-card{ background:rgba(0,0,0,.2); border-radius:14px; padding:12px 8px 10px; text-align:center; }
+  .zk-em{ width:66px; height:66px; margin:0 auto 6px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.3rem; background:rgba(255,255,255,.07); border:4px solid transparent; }
+  .zk-card.c2 .zk-em{ border-color:#c8ccd8; box-shadow:0 0 10px rgba(200,204,216,.5); }
+  .zk-card.c3 .zk-em{ border-color:#f0b429; box-shadow:0 0 14px rgba(240,180,41,.75); }
+  .zk-card.lock .zk-em span{ filter:brightness(0) opacity(.55); }
+  .zk-name{ font-size:.95rem; font-weight:900; }
+  .zk-collar{ font-size:.72rem; font-weight:900; margin:2px 0 4px; color:#8a93b3; }
+  .zk-card.c2 .zk-collar{ color:#d6dae6; }
+  .zk-card.c3 .zk-collar{ color:var(--accent); }
+  .zk-flavor{ font-size:.72rem; line-height:1.55; opacity:.85; min-height:3.1em; }
+  .zk-best{ font-size:.68rem; opacity:.65; margin-top:4px; }
+  .result-zukan{ font-size:.92rem; font-weight:900; color:var(--accent); margin:2px 0 6px; }
   .hint-pulse{ animation:hintPulse 1s ease-in-out infinite; border-color:#fff !important; }
   @keyframes hintPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,.0);} 50%{ box-shadow:0 0 0 6px rgba(255,255,255,.55);} }
 
@@ -154,7 +174,17 @@
   <div id="screenToc" class="panel">
     <div class="sub">図や記号を動かして錠を開けるパズル。<br>手数が少ないほど星が増える！ 詰まったら💡ヒントもOK。</div>
     <div class="total-stars" id="totalStars"></div>
+    <button type="button" class="zukan-btn" id="zukanBtn">📖 どうぶつ図鑑 <span class="zk-count" id="zukanCount"></span></button>
     <div id="worldList"></div>
+  </div>
+
+  <!-- ==== 図鑑 ==== -->
+  <div id="screenZukan" class="panel hidden">
+    <div class="play-head"><div class="play-title">📖 どうぶつ図鑑</div><div class="play-count" id="zukanTotal"></div></div>
+    <div class="play-rule">ワールド1をクリアすると、その動物が仲間になります。星が多いほど首輪が豪華に！（★2＝銀の首輪、★3＝金の首輪）</div>
+    <div class="zk-banner" id="zukanBanner"></div>
+    <div class="zk-grid" id="zukanGrid"></div>
+    <div class="tool-row"><button type="button" class="tool-btn" id="zukanBackBtn">☰ 目次にもどる</button></div>
   </div>
 
   <!-- ==== プレイ画面 ==== -->
@@ -175,6 +205,7 @@
         <div class="result-title" id="resultTitle">🔓 錠が開いた！</div>
         <div class="result-stars" id="resultStars"></div>
         <div class="result-sub" id="resultSub"></div>
+        <div class="result-zukan" id="resultZukan"></div>
         <button type="button" class="primary-btn" id="nextBtn">次の錠へ →</button>
         <button type="button" class="primary-btn sub-btn" id="againBtn">もう一度この錠を解く</button>
         <button type="button" class="primary-btn sub-btn" id="tocBtn2">目次へ戻る</button>
@@ -260,6 +291,20 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
     { em: '🐻', name: 'くま',     color: '#c98f60' },
     { em: '🦁', name: 'らいおん', color: '#ffc94d' }
   ];
+  var ZUKAN_TEXT = [
+    '起こすと不機嫌。でも5分後にはまた寝ている。',
+    '起こされる前から起きていたフリをする。',
+    '寝ている間も、耳だけは起きている（気がする）。',
+    '起きても、とりあえず竹を食べる。',
+    '寝ているのか、じっとしているだけなのか分からない。',
+    '起こされると、なぜか他のさるも起こしに行く。',
+    '立ったまま寝ていた。器用。',
+    '寝たフリだったかもしれない。',
+    '冬眠中。起こすには勇気がいる。',
+    '1日20時間くらい寝る。これが平常運転。'
+  ];
+  var COLLAR_NAME = { 1: '首輪なし', 2: '銀の首輪', 3: '金の首輪' };
+  var COLLAR_ICON = { 1: '', 2: '🥈 ', 3: '🏅 ' };
   function hexToRgba(h, a){ var n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
 
   // ---------- 進捗 ----------
@@ -291,12 +336,35 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
   }
 
   // ---------- 画面切り替え ----------
-  function showToc(){ $('screenPlay').style.borderTop = ''; renderToc(); $('screenToc').classList.remove('hidden'); $('screenPlay').classList.add('hidden'); window.scrollTo(0, 0); }
-  function showPlay(){ $('screenToc').classList.add('hidden'); $('screenPlay').classList.remove('hidden'); window.scrollTo(0, 0); }
+  function showToc(){ $('screenPlay').style.borderTop = ''; renderToc(); $('screenToc').classList.remove('hidden'); $('screenPlay').classList.add('hidden'); $('screenZukan').classList.add('hidden'); window.scrollTo(0, 0); }
+  function showPlay(){ $('screenToc').classList.add('hidden'); $('screenZukan').classList.add('hidden'); $('screenPlay').classList.remove('hidden'); window.scrollTo(0, 0); }
+  function showZukan(){ renderZukan(); $('screenToc').classList.add('hidden'); $('screenPlay').classList.add('hidden'); $('screenZukan').classList.remove('hidden'); window.scrollTo(0, 0); }
+  function zukanOwned(){ var n = 0; for (var l = 1; l <= LEVELS_PER_WORLD; l++) if (starsOf(1, l)) n++; return n; }
+  function renderZukan(){
+    var grid = $('zukanGrid'); grid.innerHTML = '';
+    var owned = zukanOwned(), gold = 0;
+    LIGHTS_THEMES.forEach(function(th, i){
+      var l = i + 1, st = starsOf(1, l), rec = prog[lvId(1, l)];
+      if (st === 3) gold++;
+      var card = document.createElement('div');
+      card.className = 'zk-card ' + (st ? 'c' + st : 'lock');
+      if (st) {
+        card.innerHTML = '<div class="zk-em"><span>' + th.em + '</span></div><div class="zk-name"></div><div class="zk-collar">' + COLLAR_ICON[st] + COLLAR_NAME[st] + '</div><div class="zk-flavor"></div><div class="zk-best">1-' + l + '　ベスト ' + (rec ? rec.best : '-') + '手</div>';
+        card.querySelector('.zk-name').textContent = th.name;
+        card.querySelector('.zk-flavor').textContent = ZUKAN_TEXT[i];
+      } else {
+        card.innerHTML = '<div class="zk-em"><span>' + th.em + '</span></div><div class="zk-name">？？？</div><div class="zk-collar">まだ会えていない</div><div class="zk-flavor">1-' + l + ' をクリアすると仲間になる</div><div class="zk-best">&nbsp;</div>';
+      }
+      grid.appendChild(card);
+    });
+    $('zukanTotal').textContent = owned + ' / ' + LEVELS_PER_WORLD + '匹';
+    $('zukanBanner').textContent = gold === LEVELS_PER_WORLD ? '🏆 全員が金の首輪！ 完全制覇！' : (owned === LEVELS_PER_WORLD ? '🎉 10匹コンプリート！ 次は金の首輪をめざそう（金 ' + gold + '/10）' : '');
+  }
 
   function renderToc(){
     var t = totals();
     $('totalStars').textContent = '★ ' + t.stars + ' / ' + t.max + '　（' + t.cleared + '問クリア）';
+    $('zukanCount').textContent = zukanOwned() + ' / ' + LEVELS_PER_WORLD;
     var list = $('worldList'); list.innerHTML = '';
     WORLDS.forEach(function(w){
       var box = document.createElement('div'); box.className = 'world' + (w.key ? '' : ' soon');
@@ -646,11 +714,18 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
     if (extra <= 0 && !g.hintUsed) st = 3; else if (extra <= tol) st = 2; else st = 1;
     if (g.hintUsed && st > 2) st = 2;
     var id = lvId(g.w, g.l), rec = prog[id] || { stars: 0, best: 9999 };
+    var prevStars = rec.stars;
     rec.stars = Math.max(rec.stars, st); rec.best = Math.min(rec.best, g.moves); prog[id] = rec; saveProg();
     $('markBox').innerHTML = markSvg(st);
     $('resultTitle').textContent = TITLES[st];
     $('resultStars').innerHTML = starsHtml(st);
     $('resultSub').innerHTML = (g.theme ? g.theme.em + ' ' + g.theme.name + 'が全員起きた！<br>' : '') + g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
+    var zk = '';
+    if (g.theme) {
+      if (prevStars === 0) zk = '🆕 図鑑に ' + g.theme.em + ' ' + g.theme.name + ' が仲間入り！' + (st > 1 ? '（' + COLLAR_NAME[st] + '）' : '');
+      else if (st > prevStars) zk = g.theme.em + ' ' + g.theme.name + 'の首輪が「' + COLLAR_NAME[st] + '」にアップグレード！';
+    }
+    $('resultZukan').textContent = zk;
     var last = g.l >= LEVELS_PER_WORLD;
     $('nextBtn').textContent = last ? '🎉 ワールドクリア！ 目次へ' : '次の錠へ →';
     $('toolRow').classList.add('hidden'); $('resultBox').classList.remove('hidden');
@@ -659,6 +734,8 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
   $('nextBtn').addEventListener('click', function(){ if (g.l >= LEVELS_PER_WORLD) showToc(); else startLevel(g.w, g.l + 1); });
   $('againBtn').addEventListener('click', function(){ startLevel(g.w, g.l); });
   $('tocBtn').addEventListener('click', showToc);
+  $('zukanBtn').addEventListener('click', showZukan);
+  $('zukanBackBtn').addEventListener('click', showToc);
   $('tocBtn2').addEventListener('click', showToc);
   $('retryBtn').addEventListener('click', function(){
     if (g.done) return;
