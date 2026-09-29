@@ -4,71 +4,95 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>開かずの金庫｜しょーもなゲームズ</title>
-<meta name="description" content="タップだけで動かして鍵を開ける、ちょっと考える錠前パズル。試作版">
+<meta name="description" content="タップで図や記号を動かして錠を開ける、ちょっと考える錠前パズル。1-1から3-10まで30問">
 <style>
   :root{
-    --bg1:#262c42;
-    --bg2:#141827;
-    --card:#323a57;
-    --ink:#f4efe2;
-    --accent:#f0b429;
-    --accent-dark:#b9840f;
-    --on:#f0b429;
-    --off:#46506f;
-    --ok:#4cc38a;
+    --bg1:#262c42; --bg2:#141827; --card:#323a57; --ink:#f4efe2;
+    --accent:#f0b429; --accent-dark:#b9840f; --on:#f0b429; --off:#46506f; --ok:#4cc38a; --lock:#2b3149;
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0; min-height:100vh;
-    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
-    background:linear-gradient(160deg,var(--bg1),var(--bg2));
-    color:var(--ink);
-    display:flex; justify-content:center;
-    padding:24px 14px 60px;
-  }
+  body{ margin:0; min-height:100vh; font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2)); color:var(--ink); display:flex; justify-content:center; padding:24px 14px 60px; }
   .wrap{ width:100%; max-width:480px; }
   .hidden{ display:none !important; }
   h1{ text-align:center; font-size:1.5rem; margin:6px 0 4px; letter-spacing:.06em; }
   .tagline{ text-align:center; font-size:.9rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
-  .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:16px; line-height:1.6; }
-  .vault-icon{ text-align:center; font-size:3rem; margin:4px 0 8px; }
-
+  .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:14px; line-height:1.6; }
+  .vault-icon{ text-align:center; font-size:2.6rem; margin:2px 0 4px; }
   .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:8px; }
   .back-link-btn{ display:block; background:var(--accent); color:#2a2208; font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center; padding:14px 16px; border-radius:14px; margin-top:20px; box-shadow:0 4px 0 var(--accent-dark); }
   .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+  .panel{ background:var(--card); border-radius:20px; padding:16px 14px 18px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
 
-  .panel{ background:var(--card); border-radius:20px; padding:18px 14px 20px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
-  .lock-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-  .lock-title{ font-size:1.05rem; font-weight:900; }
-  .lock-count{ font-size:.85rem; font-weight:900; color:var(--accent); }
-  .lock-rule{ font-size:.82rem; line-height:1.7; opacity:.9; margin-bottom:14px; }
+  /* 目次 */
+  .total-stars{ text-align:center; font-size:1rem; font-weight:900; color:var(--accent); margin-bottom:12px; }
+  .world{ margin-bottom:18px; }
+  .world-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+  .world-name{ font-size:1rem; font-weight:900; }
+  .world-prog{ font-size:.8rem; color:var(--accent); font-weight:900; }
+  .world-desc{ font-size:.76rem; opacity:.75; margin-bottom:8px; line-height:1.5; }
+  .lv-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .lv{ border:none; border-radius:12px; padding:8px 0 6px; font-family:inherit; cursor:pointer; background:var(--off); color:var(--ink); font-weight:900; font-size:.95rem; line-height:1.2; }
+  .lv:active{ transform:scale(.94); }
+  .lv .st{ display:block; font-size:.62rem; letter-spacing:-.02em; margin-top:2px; color:#8a93b3; }
+  .lv .st b{ color:var(--accent); font-weight:900; }
+  .lv.cleared{ background:#4a4a3a; }
+  .lv.locked{ background:var(--lock); color:#6b7392; cursor:default; }
+  .lv.locked:active{ transform:none; }
+  .world.soon{ opacity:.55; }
 
-  .primary-btn{ display:block; width:100%; font-family:inherit; cursor:pointer; border:none; border-radius:14px; padding:14px 16px; font-size:1.05rem; font-weight:900; color:#2a2208; background:var(--accent); box-shadow:0 4px 0 var(--accent-dark); margin-top:14px; }
-  .primary-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
-  .text-btn{ display:block; margin:12px auto 0; font-family:inherit; cursor:pointer; background:none; border:2px dashed rgba(244,239,226,.4); color:var(--ink); border-radius:999px; padding:6px 18px; font-size:.82rem; font-weight:700; }
+  /* プレイ画面 */
+  .play-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .play-title{ font-size:1.05rem; font-weight:900; }
+  .play-count{ font-size:.9rem; font-weight:900; color:var(--accent); }
+  .play-rule{ font-size:.8rem; line-height:1.7; opacity:.9; margin-bottom:12px; }
+  .tool-row{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+  .tool-btn{ font-family:inherit; cursor:pointer; background:none; border:2px solid rgba(244,239,226,.4); color:var(--ink); border-radius:999px; padding:7px 14px; font-size:.82rem; font-weight:900; }
+  .tool-btn.hint-btn{ border-color:var(--accent); color:var(--accent); }
+  .tool-btn:active{ transform:scale(.95); }
+  .msg{ text-align:center; font-size:.85rem; font-weight:900; margin-top:10px; min-height:1.3em; color:var(--accent); }
 
-  /* 錠1：連動スイッチ */
-  .sw-grid{ display:grid; gap:10px; max-width:300px; margin:0 auto; }
-  .sw{ aspect-ratio:1/1; border:none; border-radius:16px; cursor:pointer; font-family:inherit; font-size:2rem; background:var(--off); color:#8a93b3; transition:transform .1s ease, background .15s ease; }
+  /* スイッチ */
+  .sw-grid{ display:grid; gap:10px; margin:0 auto; }
+  .sw{ aspect-ratio:1/1; border:3px solid transparent; border-radius:16px; cursor:pointer; font-family:inherit; font-size:1.8rem; background:var(--off); color:#8a93b3; transition:transform .1s ease, background .15s ease; }
   .sw:active{ transform:scale(.92); }
   .sw.on{ background:var(--on); color:#3a2c00; box-shadow:0 0 14px rgba(240,180,41,.55); }
+  .hint-pulse{ animation:hintPulse 1s ease-in-out infinite; border-color:#fff !important; }
+  @keyframes hintPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,.0);} 50%{ box-shadow:0 0 0 6px rgba(255,255,255,.55);} }
 
-  /* 錠3：記号並べ替え */
-  .clues{ background:rgba(0,0,0,.22); border-radius:12px; padding:10px 14px; margin:0 0 14px; font-size:.86rem; line-height:1.9; }
-  .clues li{ margin-left:1.2em; }
-  .clues li.done{ opacity:.55; text-decoration:line-through; }
-  .sym-row{ display:flex; gap:8px; justify-content:center; }
-  .sym{ flex:1; max-width:70px; aspect-ratio:1/1; border:3px solid transparent; border-radius:14px; cursor:pointer; font-family:inherit; font-size:1.8rem; background:var(--off); color:var(--ink); transition:transform .1s ease; }
+  /* 記号 */
+  .clues{ background:rgba(0,0,0,.22); border-radius:12px; padding:10px 14px 10px 8px; margin:0 0 14px; font-size:.86rem; line-height:1.9; }
+  .clues li{ margin-left:1.4em; }
+  .clues li.done{ opacity:.5; text-decoration:line-through; }
+  .sym-row{ display:flex; gap:6px; justify-content:center; }
+  .sym{ flex:1; max-width:64px; aspect-ratio:1/1; border:3px solid transparent; border-radius:14px; cursor:pointer; font-family:inherit; font-size:1.6rem; background:var(--off); color:var(--ink); transition:transform .1s ease; padding:0; }
   .sym:active{ transform:scale(.92); }
   .sym.sel{ border-color:var(--accent); background:#5a5238; }
-  .sym-hint{ text-align:center; font-size:.78rem; opacity:.7; margin-top:8px; }
+  .sym-hint{ text-align:center; font-size:.74rem; opacity:.65; margin-top:8px; }
 
-  .msg{ text-align:center; font-size:.9rem; font-weight:900; margin-top:12px; min-height:1.4em; color:var(--ok); }
+  /* スライド */
+  .slide-wrap{ position:relative; max-width:372px; margin:0 auto; padding-right:24px; }
+  .slide-board{ position:relative; width:100%; aspect-ratio:1/1; background:#1c2136; border-radius:12px; overflow:hidden;
+    background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+    background-size:calc(100%/6) calc(100%/6); }
+  .exit-mark{ position:absolute; right:0; font-size:.72rem; font-weight:900; color:var(--accent); width:24px; text-align:center; line-height:1.1; }
+  .car{ position:absolute; border:none; padding:0; background:none; cursor:pointer; font-family:inherit; }
+  .car > span{ display:flex; align-items:center; justify-content:center; position:absolute; inset:3px; border-radius:9px; font-size:1.2rem; box-shadow:inset 0 -3px 0 rgba(0,0,0,.25); }
+  .car.sel > span{ outline:3px solid #fff; }
+  .car.key > span{ background:var(--accent); color:#3a2c00; }
+  .dot{ position:absolute; border:none; padding:0; background:none; cursor:pointer; z-index:5; }
+  .dot > span{ position:absolute; left:50%; top:50%; width:34%; height:34%; transform:translate(-50%,-50%); background:rgba(255,255,255,.75); border-radius:50%; }
+  .dot.hint-dot > span{ background:#fff; animation:hintPulse 1s ease-in-out infinite; }
+  .car.hint-car > span{ outline:3px solid #fff; animation:hintPulse 1s ease-in-out infinite; }
 
-  .rank{ font-size:1.3rem; font-weight:900; text-align:center; color:var(--accent); margin:10px 0; }
-  .result-table{ width:100%; border-collapse:collapse; font-size:.9rem; margin:10px 0; }
-  .result-table td,.result-table th{ padding:6px 8px; border-bottom:1px solid rgba(244,239,226,.18); text-align:center; }
-  .teaser{ text-align:center; font-size:.85rem; opacity:.8; margin-top:10px; line-height:1.7; }
+  /* 結果 */
+  .result{ text-align:center; margin-top:14px; padding-top:12px; border-top:1px dashed rgba(244,239,226,.3); }
+  .result-title{ font-size:1.15rem; font-weight:900; color:var(--ok); }
+  .result-stars{ font-size:2rem; letter-spacing:.1em; color:var(--accent); margin:6px 0; }
+  .result-sub{ font-size:.85rem; opacity:.85; line-height:1.7; }
+  .primary-btn{ display:block; width:100%; font-family:inherit; cursor:pointer; border:none; border-radius:14px; padding:13px 16px; font-size:1rem; font-weight:900; color:#2a2208; background:var(--accent); box-shadow:0 4px 0 var(--accent-dark); margin-top:10px; }
+  .primary-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+  .primary-btn.sub-btn{ background:none; color:var(--ink); border:2px solid rgba(244,239,226,.4); box-shadow:none; }
 
   /* 課金バナー（標準テンプレート） */
   .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(244,239,226,.25); text-align:center; }
@@ -84,13 +108,10 @@
   .grade-msg{ font-size:.8rem; margin-top:8px; }
   .unlocked-badge{ display:inline-block; background:var(--accent); color:#2a2208; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; font-weight:900; }
   .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
-
-  /* Xシェア（標準テンプレート） */
   .x-share-zone{ margin-top:22px; padding-top:14px; border-top:1px dashed rgba(244,239,226,.25); text-align:center; }
   .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:12px; }
   .x-link-btn{ display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center; padding:14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer; font-family:inherit; }
   .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
-
   .usage-notice{ margin-top:18px; font-size:.72rem; line-height:1.8; opacity:.85; text-align:left; background:rgba(255,255,255,.06); border-radius:10px; padding:12px 14px; border:1px solid rgba(255,255,255,.16); }
   .usage-notice .usage-title{ font-weight:bold; color:var(--accent); display:block; margin-bottom:4px; }
 </style>
@@ -101,48 +122,34 @@
   <div class="vault-icon">🔐</div>
   <h1>開かずの金庫</h1>
   <div class="tagline">タップで動かして、鍵を開けろ</div>
-  <div class="sub">図や記号を動かして錠を開けるパズル。<br>今は試作版で、2つの錠だけ遊べます。</div>
 
-  <!-- ==== 導入 ==== -->
-  <div id="screenIntro" class="panel">
-    <div class="lock-rule">
-      金庫には錠が5つ付いています（試作版では<b>錠1</b>と<b>錠3</b>だけ）。<br>
-      どの錠も、<b>タップだけ</b>で動かして開けます。開けるまでの<b>手数</b>が少ないほど高ランク！
+  <!-- ==== 目次 ==== -->
+  <div id="screenToc" class="panel">
+    <div class="sub">図や記号を動かして錠を開けるパズル。<br>手数が少ないほど星が増える！ 詰まったら💡ヒントもOK。</div>
+    <div class="total-stars" id="totalStars"></div>
+    <div id="worldList"></div>
+  </div>
+
+  <!-- ==== プレイ画面 ==== -->
+  <div id="screenPlay" class="panel hidden">
+    <div class="play-head"><div class="play-title" id="playTitle"></div><div class="play-count" id="playCount">0手</div></div>
+    <div class="play-rule" id="playRule"></div>
+    <div id="board"></div>
+    <div class="msg" id="playMsg"></div>
+    <div class="tool-row" id="toolRow">
+      <button type="button" class="tool-btn hint-btn" id="hintBtn">💡 ヒント</button>
+      <button type="button" class="tool-btn" id="undoBtn">↶ 1手戻す</button>
+      <button type="button" class="tool-btn" id="retryBtn">↺ やり直す</button>
+      <button type="button" class="tool-btn" id="tocBtn">☰ 目次</button>
     </div>
-    <button type="button" id="startBtn" class="primary-btn">🔑 錠1に挑戦する</button>
-  </div>
-
-  <!-- ==== 錠1：連動スイッチ ==== -->
-  <div id="screenLock1" class="panel hidden">
-    <div class="lock-head"><div class="lock-title">🔒 錠1　連動スイッチ錠</div><div class="lock-count" id="count1">0手</div></div>
-    <div class="lock-rule">マスをタップすると、<b>そのマスと上下左右</b>の● ○が入れ替わります。全部 ○ にすると錠が開きます。</div>
-    <div class="sw-grid" id="grid1" style="grid-template-columns:repeat(3,1fr);"></div>
-    <div class="msg" id="msg1"></div>
-    <button type="button" id="reset1" class="text-btn">↺ 最初からやり直す</button>
-  </div>
-
-  <!-- ==== 錠3：記号並べ替え ==== -->
-  <div id="screenLock3" class="panel hidden">
-    <div class="lock-head"><div class="lock-title">🔒 錠3　記号並べ替え錠</div><div class="lock-count" id="count3">0手</div></div>
-    <div class="lock-rule">ヒントをすべて満たす並びにすると錠が開きます。記号を1つタップして選び、<b>となりの記号</b>をタップすると入れ替わります。</div>
-    <ul class="clues" id="clues3"></ul>
-    <div class="sym-row" id="row3"></div>
-    <div class="sym-hint">左から1番目 ～ 5番目</div>
-    <div class="msg" id="msg3"></div>
-    <button type="button" id="reset3" class="text-btn">↺ 最初からやり直す</button>
-  </div>
-
-  <!-- ==== 結果 ==== -->
-  <div id="screenClear" class="panel hidden">
-    <div class="lock-head"><div class="lock-title">🔓 錠が開いた！</div></div>
-    <div class="rank" id="rankText"></div>
-    <table class="result-table">
-      <tr><th>錠</th><th>あなた</th><th>最短</th></tr>
-      <tr><td>錠1</td><td id="r1me"></td><td id="r1min"></td></tr>
-      <tr><td>錠3</td><td id="r3me"></td><td id="r3min"></td></tr>
-    </table>
-    <div class="teaser">錠2（スライドキー）・錠4（歯車ダイヤル）・錠5（4×4スイッチ）は準備中です。つづく…！</div>
-    <button type="button" id="againBtn" class="primary-btn">もう一度あそぶ</button>
+    <div class="result hidden" id="resultBox">
+      <div class="result-title">🔓 カチャッ！ 錠が開いた！</div>
+      <div class="result-stars" id="resultStars"></div>
+      <div class="result-sub" id="resultSub"></div>
+      <button type="button" class="primary-btn" id="nextBtn">次の錠へ →</button>
+      <button type="button" class="primary-btn sub-btn" id="againBtn">もう一度この錠を解く</button>
+      <button type="button" class="primary-btn sub-btn" id="tocBtn2">目次へ戻る</button>
+    </div>
   </div>
 
   <div class="grade-zone">
@@ -179,6 +186,10 @@
 </div>
 
 <script>
+/* 問題データ（tools/akazu-gen で生成・全問BFSで解けることと最短手数を検証済み） */
+var LEVEL_DATA = {"w1":[{"n":3,"rows":["000","100","110"],"min":1},{"n":3,"rows":["000","110","001"],"min":2},{"n":3,"rows":["011","110","011"],"min":3},{"n":3,"rows":["101","000","111"],"min":4},{"n":3,"rows":["000","000","011"],"min":5},{"n":3,"rows":["011","111","101"],"min":6},{"n":4,"rows":["0011","0100","0001","0111"],"min":3},{"n":4,"rows":["1011","1110","0111","1011"],"min":5},{"n":4,"rows":["1111","1000","0100","1011"],"min":6},{"n":4,"rows":["1000","0001","0010","0101"],"min":7}],"w2":[{"syms":["★","●","▲","■"],"clues":[["notadj","●","★"],["notadj","▲","●"],["left","▲","■"],["between","▲","★","■"]],"start":["■","★","●","▲"],"target":["★","▲","■","●"],"min":3},{"syms":["★","●","▲","■"],"clues":[["end","▲"],["notadj","■","★"],["between","★","●","▲"],["left","▲","★"]],"start":["●","★","■","▲"],"target":["▲","★","●","■"],"min":4},{"syms":["★","●","▲","■"],"clues":[["adj","★","●"],["left","●","▲"],["end","★"],["notadj","■","●"]],"start":["■","●","▲","★"],"target":["★","●","▲","■"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["between","★","■","◆"],["left","■","▲"],["adj","★","■"],["notadj","◆","●"],["end","●"],["notadj","◆","▲"]],"start":["■","▲","★","◆","●"],"target":["◆","★","■","▲","●"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["left","■","★"],["adj","●","★"],["notadj","●","▲"],["notadj","▲","★"],["between","▲","★","◆"],["notadj","■","●"]],"start":["★","◆","●","■","▲"],"target":["◆","▲","■","★","●"],"min":6},{"syms":["★","●","▲","■","◆"],"clues":[["end","▲"],["between","◆","★","●"],["adj","▲","★"],["notadj","★","■"],["adj","◆","■"],["left","▲","◆"]],"start":["●","▲","■","◆","★"],"target":["▲","★","◆","■","●"],"min":7},{"syms":["★","●","▲","■","◆"],"clues":[["between","●","★","▲"],["adj","●","★"],["left","■","◆"],["notadj","★","◆"],["between","■","★","▲"],["notadj","◆","▲"]],"start":["●","★","■","◆","▲"],"target":["▲","■","◆","●","★"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","■","★"],["between","◆","●","■"],["notadj","★","◆"],["notadj","●","★"],["left","■","●"],["left","■","▲"],["left","●","♥"],["adj","■","▲"]],"start":["★","▲","■","●","♥","◆"],"target":["■","▲","◆","●","♥","★"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","★","●","♥"],["left","■","♥"],["left","■","●"],["notadj","★","◆"],["notadj","◆","●"],["between","▲","●","■"],["between","♥","■","◆"],["notadj","★","♥"]],"start":["★","●","■","◆","▲","♥"],"target":["■","♥","◆","▲","★","●"],"min":10},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","■","★"],["between","★","■","♥"],["notadj","■","◆"],["left","♥","★"],["adj","★","●"],["notadj","◆","♥"],["adj","●","♥"]],"start":["■","★","▲","◆","♥","●"],"target":["♥","●","★","◆","▲","■"],"min":12}],"w3":[{"cars":[[2,1,2,"H"],[1,0,3,"V"],[5,4,2,"H"],[0,1,2,"V"],[4,1,2,"V"],[0,5,3,"V"]],"min":3},{"cars":[[2,1,2,"H"],[4,2,2,"H"],[0,2,3,"H"],[3,4,2,"H"],[1,5,2,"V"],[1,4,2,"V"]],"min":4},{"cars":[[2,0,2,"H"],[4,2,2,"H"],[0,2,2,"H"],[5,3,2,"H"],[1,2,2,"V"],[2,4,3,"V"]],"min":5},{"cars":[[2,2,2,"H"],[1,2,2,"H"],[4,3,2,"V"],[0,4,3,"V"],[4,0,2,"V"],[4,4,2,"H"]],"min":6},{"cars":[[2,0,2,"H"],[4,3,2,"H"],[3,2,2,"V"],[1,2,2,"V"],[5,3,2,"H"],[0,4,3,"V"]],"min":7},{"cars":[[2,0,2,"H"],[0,2,3,"V"],[4,3,3,"H"],[5,0,3,"H"],[1,4,2,"V"],[1,5,3,"V"]],"min":9},{"cars":[[2,1,2,"H"],[4,1,2,"V"],[0,3,3,"V"],[4,3,2,"H"],[1,5,3,"V"],[5,4,2,"H"]],"min":11},{"cars":[[2,0,2,"H"],[1,3,2,"V"],[0,5,2,"V"],[3,5,2,"V"],[0,3,2,"H"],[3,0,3,"H"],[3,3,2,"V"],[0,1,2,"V"],[4,4,2,"V"]],"min":13},{"cars":[[2,0,2,"H"],[5,3,2,"H"],[4,4,2,"H"],[1,4,2,"V"],[1,2,2,"V"],[1,3,3,"V"],[2,5,2,"V"],[4,1,2,"V"],[0,5,2,"V"],[0,1,3,"H"]],"min":15},{"cars":[[2,0,2,"H"],[0,4,2,"V"],[0,0,3,"H"],[5,2,3,"H"],[3,5,2,"V"],[1,2,2,"H"],[4,1,2,"V"],[2,2,2,"V"],[3,4,2,"V"],[4,2,2,"H"]],"min":18}]};
+</script>
+<script>
 (function(){
   'use strict';
   var GAME_URL = 'https://kanae-project.github.io/syomona-games/games/013-akazu-no-kinko/';
@@ -187,185 +198,346 @@
   // ==== 全ゲーム共通「金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
   var MASTER_PASSWORD = '金ドブ全開放';
   var STORAGE_KEY = 'akazu_kinko_unlocked';
+  var PROG_KEY = 'akazu_kinko_progress_v1';
   var $ = function(id){ return document.getElementById(id); };
   function safeGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
   function safeSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
 
-  var screens = ['screenIntro', 'screenLock1', 'screenLock3', 'screenClear'];
-  function show(id){
-    screens.forEach(function(s){ $(s).classList.toggle('hidden', s !== id); });
+  var D = window.LEVEL_DATA;
+  var WORLDS = [
+    { id: 1, key: 'w1', name: 'スイッチ錠', type: 'lights',
+      desc: 'マスをタップすると、そのマスと上下左右の●○が入れ替わる。全部○にすれば開錠。',
+      rule: 'マスをタップすると、そのマスと上下左右の●○が入れ替わります。全部 ○ にすると錠が開きます。' },
+    { id: 2, key: 'w2', name: '記号錠', type: 'symbols',
+      desc: 'ヒントから正しい並びを推理して、隣どうしの入れ替えで揃える。',
+      rule: 'ヒントをすべて満たす並びにすると開錠。記号を1つタップして選び、となりの記号をタップすると入れ替わります。' },
+    { id: 3, key: 'w3', name: 'スライド錠', type: 'slide',
+      desc: '棒をスライドさせて道をあけ、鍵🔑を右の出口まで出す。',
+      rule: '棒をタップして選び、行き先の●をタップでスライド。鍵🔑を右の出口まで出そう。何マス動かしても1手です。' },
+    { id: 4, key: null, name: '歯車錠', type: null, desc: '準備中…（次のアップデートで登場！）' }
+  ];
+  var LEVELS_PER_WORLD = 10;
+
+  // ---------- 進捗 ----------
+  var prog = {};
+  try { prog = JSON.parse(safeGet(PROG_KEY) || '{}') || {}; } catch(e){ prog = {}; }
+  function lvId(w, l){ return w + '-' + l; }
+  function isUnlocked(w, l){ return l === 1 || !!prog[lvId(w, l - 1)]; }
+  function starsOf(w, l){ var r = prog[lvId(w, l)]; return r ? r.stars : 0; }
+  function stars(n){ return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+  function saveProg(){ safeSet(PROG_KEY, JSON.stringify(prog)); }
+  function totals(){
+    var s = 0, c = 0, max = 0;
+    WORLDS.forEach(function(w){ if (!w.key) return; for (var l = 1; l <= LEVELS_PER_WORLD; l++) { max += 3; var st = starsOf(w.id, l); s += st; if (st) c++; } });
+    return { stars: s, cleared: c, max: max };
   }
 
-  // ================= 錠1：連動スイッチ（3x3） =================
-  var N1 = 3;
-  // 初期状態 ○○○ / ●●○ / ●○○ （ビット位置 = 行*3+列）
-  var L1_INIT = (1 << 3) | (1 << 4) | (1 << 6);
-  var masks1 = [];
-  (function(){
-    for (var r = 0; r < N1; r++) for (var c = 0; c < N1; c++) {
-      var m = 0;
-      [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
-        var rr = r + d[0], cc = c + d[1];
-        if (rr >= 0 && rr < N1 && cc >= 0 && cc < N1) m |= 1 << (rr * N1 + cc);
-      });
-      masks1.push(m);
+  // ---------- 画面切り替え ----------
+  function showToc(){ renderToc(); $('screenToc').classList.remove('hidden'); $('screenPlay').classList.add('hidden'); window.scrollTo(0, 0); }
+  function showPlay(){ $('screenToc').classList.add('hidden'); $('screenPlay').classList.remove('hidden'); window.scrollTo(0, 0); }
+
+  function renderToc(){
+    var t = totals();
+    $('totalStars').textContent = '★ ' + t.stars + ' / ' + t.max + '　（' + t.cleared + '問クリア）';
+    var list = $('worldList'); list.innerHTML = '';
+    WORLDS.forEach(function(w){
+      var box = document.createElement('div'); box.className = 'world' + (w.key ? '' : ' soon');
+      var got = 0; if (w.key) for (var i = 1; i <= LEVELS_PER_WORLD; i++) got += starsOf(w.id, i);
+      var head = document.createElement('div'); head.className = 'world-head';
+      head.innerHTML = '<span class="world-name">ワールド' + w.id + '　' + w.name + '</span><span class="world-prog">' + (w.key ? '★' + got + '/' + LEVELS_PER_WORLD * 3 : '準備中') + '</span>';
+      var desc = document.createElement('div'); desc.className = 'world-desc'; desc.textContent = w.desc;
+      box.appendChild(head); box.appendChild(desc);
+      if (w.key) {
+        var grid = document.createElement('div'); grid.className = 'lv-grid';
+        for (var l = 1; l <= LEVELS_PER_WORLD; l++) {
+          (function(l){
+            var b = document.createElement('button'); b.type = 'button';
+            var ok = isUnlocked(w.id, l), st = starsOf(w.id, l);
+            b.className = 'lv' + (ok ? '' : ' locked') + (st ? ' cleared' : '');
+            b.innerHTML = (ok ? '' : '🔒') + w.id + '-' + l + '<span class="st">' + (ok ? (st ? '<b>' + stars(st) + '</b>' : '未クリア') : '&nbsp;') + '</span>';
+            if (ok) b.addEventListener('click', function(){ startLevel(w.id, l); });
+            grid.appendChild(b);
+          })(l);
+        }
+        box.appendChild(grid);
+      }
+      list.appendChild(box);
+    });
+  }
+
+  // ================= ゲームの型ごとの実装 =================
+  var TYPES = {};
+
+  // ---- 1) スイッチ錠 ----
+  TYPES.lights = {
+    init: function(lv){
+      var n = lv.n, s = 0, ms = [], r, c;
+      for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (lv.rows[r].charAt(c) === '1') s |= 1 << (r * n + c);
+      for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
+        var m = 0;
+        [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+          var rr = r + d[0], cc = c + d[1];
+          if (rr >= 0 && rr < n && cc >= 0 && cc < n) m |= 1 << (rr * n + cc);
+        });
+        ms.push(m);
+      }
+      var dist = {}; dist[0] = 0; var q = [0];
+      for (var qi = 0; qi < q.length; qi++) { var x = q[qi]; for (var i = 0; i < ms.length; i++) { var y = x ^ ms[i]; if (dist[y] === undefined) { dist[y] = dist[x] + 1; q.push(y); } } }
+      return { ctx: { n: n, ms: ms, dist: dist }, state: s, min: dist[s] };
+    },
+    apply: function(ctx, s, mv){ return s ^ ctx.ms[mv]; },
+    solved: function(ctx, s){ return s === 0; },
+    hint: function(ctx, s){
+      var d = ctx.dist[s];
+      for (var i = 0; i < ctx.ms.length; i++) if (ctx.dist[s ^ ctx.ms[i]] === d - 1) return { cell: i };
+      return null;
+    },
+    render: function(g, box){
+      var n = g.ctx.n, grid = document.createElement('div'); grid.className = 'sw-grid';
+      grid.style.gridTemplateColumns = 'repeat(' + n + ',1fr)';
+      grid.style.maxWidth = (n === 3 ? 300 : 340) + 'px';
+      for (var i = 0; i < n * n; i++) {
+        var b = document.createElement('button'); b.type = 'button';
+        var on = (g.state >> i) & 1;
+        b.className = 'sw' + (on ? ' on' : '') + (g.hint && g.hint.cell === i ? ' hint-pulse' : '');
+        b.textContent = on ? '●' : '○'; b.setAttribute('data-i', i);
+        b.addEventListener('click', function(e){ move(+e.currentTarget.getAttribute('data-i')); });
+        grid.appendChild(b);
+      }
+      box.appendChild(grid);
     }
-  })();
-  // 最短手数：BFSで計算（試作でも実際の解を保証するため）
-  function minPresses1(start){
-    var dist = {}; dist[start] = 0; var q = [start];
+  };
+
+  // ---- 2) 記号錠 ----
+  function clueText(c){
+    switch (c[0]) {
+      case 'left': return c[1] + 'は' + c[2] + 'より左';
+      case 'adj': return c[1] + 'と' + c[2] + 'は隣どうし';
+      case 'notadj': return c[1] + 'と' + c[2] + 'は隣ではない';
+      case 'pos': return c[1] + 'は左から' + (c[2] + 1) + '番目';
+      case 'end': return c[1] + 'は端（いちばん左かいちばん右）';
+      case 'between': return c[1] + 'は' + c[2] + 'と' + c[3] + 'のあいだ';
+    }
+    return '';
+  }
+  function clueOk(p, c){
+    var t = c[0];
+    if (t === 'end') { var e = p.indexOf(c[1]); return e === 0 || e === p.length - 1; }
+    if (t === 'pos') return p.indexOf(c[1]) === c[2];
+    if (t === 'between') { var a = p.indexOf(c[1]), b = p.indexOf(c[2]), d = p.indexOf(c[3]); return Math.min(b, d) < a && a < Math.max(b, d); }
+    var x = p.indexOf(c[1]), y = p.indexOf(c[2]);
+    if (t === 'left') return x < y;
+    if (t === 'adj') return Math.abs(x - y) === 1;
+    if (t === 'notadj') return Math.abs(x - y) !== 1;
+    return false;
+  }
+  TYPES.symbols = {
+    init: function(lv){
+      var inv = 0, i, j, st = lv.start;
+      for (i = 0; i < st.length; i++) for (j = i + 1; j < st.length; j++) if (lv.target.indexOf(st[i]) > lv.target.indexOf(st[j])) inv++;
+      return { ctx: { clues: lv.clues, target: lv.target, n: st.length }, state: st.slice(), min: inv, sel: -1 };
+    },
+    apply: function(ctx, s, mv){ var t = s.slice(); var x = t[mv]; t[mv] = t[mv + 1]; t[mv + 1] = x; return t; },
+    solved: function(ctx, s){ return ctx.clues.every(function(c){ return clueOk(s, c); }); },
+    hint: function(ctx, s){
+      for (var i = 0; i < s.length - 1; i++) if (ctx.target.indexOf(s[i]) > ctx.target.indexOf(s[i + 1])) return { a: i, b: i + 1 };
+      return null;
+    },
+    render: function(g, box){
+      var ul = document.createElement('ul'); ul.className = 'clues';
+      g.ctx.clues.forEach(function(c){ var li = document.createElement('li'); li.textContent = clueText(c); if (clueOk(g.state, c)) li.className = 'done'; ul.appendChild(li); });
+      var row = document.createElement('div'); row.className = 'sym-row';
+      g.state.forEach(function(s, i){
+        var b = document.createElement('button'); b.type = 'button';
+        var hi = g.hint && (g.hint.a === i || g.hint.b === i);
+        b.className = 'sym' + (i === g.sel ? ' sel' : '') + (hi ? ' hint-pulse' : '');
+        b.textContent = s; b.setAttribute('data-i', i);
+        b.addEventListener('click', function(e){
+          var k = +e.currentTarget.getAttribute('data-i');
+          if (g.sel < 0) { g.sel = k; refresh(); return; }
+          if (k === g.sel) { g.sel = -1; refresh(); return; }
+          if (Math.abs(k - g.sel) === 1) { var lo = Math.min(k, g.sel); g.sel = -1; move(lo); return; }
+          g.sel = k; refresh();
+        });
+        row.appendChild(b);
+      });
+      var note = document.createElement('div'); note.className = 'sym-hint'; note.textContent = '左から1番目 ～ ' + g.ctx.n + '番目';
+      box.appendChild(ul); box.appendChild(row); box.appendChild(note);
+    }
+  };
+
+  // ---- 3) スライド錠 ----
+  var SN = 6;
+  function slideOcc(ctx, pos){
+    var occ = []; for (var i = 0; i < SN * SN; i++) occ.push(-1);
+    ctx.cars.forEach(function(c, k){
+      for (var x = 0; x < c.L; x++) { var r = c.o === 'H' ? c.fixed : pos[k] + x, cc = c.o === 'H' ? pos[k] + x : c.fixed; occ[r * SN + cc] = k; }
+    });
+    return occ;
+  }
+  function slideMoves(ctx, pos){
+    var occ = slideOcc(ctx, pos), out = [];
+    ctx.cars.forEach(function(c, k){
+      [-1, 1].forEach(function(d){
+        var p = pos[k];
+        for (;;) {
+          p += d; if (p < 0 || p + c.L > SN) break;
+          var lead = p + (d === 1 ? c.L - 1 : 0);
+          var cell = c.o === 'H' ? c.fixed * SN + lead : lead * SN + c.fixed;
+          if (occ[cell] !== -1 && occ[cell] !== k) break;
+          out.push({ car: k, to: p });
+        }
+      });
+    });
+    return out;
+  }
+  function slideBfs(ctx, start){
+    var key = function(p){ return p.join(','); };
+    var prev = {}; prev[key(start)] = null; var q = [start];
     for (var qi = 0; qi < q.length; qi++) {
       var s = q[qi];
-      if (s === 0) return dist[s];
-      for (var i = 0; i < masks1.length; i++) {
-        var t = s ^ masks1[i];
-        if (dist[t] === undefined) { dist[t] = dist[s] + 1; q.push(t); }
+      if (s[0] + ctx.cars[0].L === SN) {
+        var path = [], cur = s;
+        while (prev[key(cur)]) { path.push(prev[key(cur)].mv); cur = prev[key(cur)].from; }
+        return path.reverse();
+      }
+      var ms = slideMoves(ctx, s);
+      for (var i = 0; i < ms.length; i++) {
+        var t = s.slice(); t[ms[i].car] = ms[i].to; var kk = key(t);
+        if (!(kk in prev)) { prev[kk] = { from: s, mv: ms[i] }; q.push(t); }
       }
     }
-    return -1;
+    return null;
   }
-  var L1_MIN = minPresses1(L1_INIT);
-  var st1 = L1_INIT, mv1 = 0, done1 = false, res1 = 0;
-  function render1(){
-    var g = $('grid1'); g.innerHTML = '';
-    for (var i = 0; i < 9; i++) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      var on = (st1 >> i) & 1;
-      b.className = 'sw' + (on ? ' on' : '');
-      b.textContent = on ? '●' : '○';
-      b.setAttribute('data-i', i);
-      b.addEventListener('click', onSw);
-      g.appendChild(b);
-    }
-    $('count1').textContent = mv1 + '手';
-  }
-  function onSw(e){
-    if (done1) return;
-    var i = +e.currentTarget.getAttribute('data-i');
-    st1 ^= masks1[i]; mv1++;
-    render1();
-    if (st1 === 0) {
-      done1 = true; res1 = mv1;
-      $('msg1').textContent = '🔓 カチャッ！ 錠1が開いた！（' + mv1 + '手／最短' + L1_MIN + '手）';
-      setTimeout(function(){ startLock3(); }, 1600);
-    }
-  }
-  function startLock1(){
-    st1 = L1_INIT; mv1 = 0; done1 = false; $('msg1').textContent = ''; render1(); show('screenLock1');
-  }
-  $('reset1').addEventListener('click', function(){ if (!done1) { st1 = L1_INIT; mv1 = 0; $('msg1').textContent = ''; render1(); } });
-
-  // ================= 錠3：記号並べ替え =================
-  var SYMS = ['★', '●', '▲', '■', '◆'];
-  var L3_START = ['◆', '▲', '★', '■', '●'];
-  var CLUES3 = [
-    { t: '▲と■は隣どうし',      f: function(p){ return Math.abs(p.indexOf('▲') - p.indexOf('■')) === 1; } },
-    { t: '■は▲より左',          f: function(p){ return p.indexOf('■') < p.indexOf('▲'); } },
-    { t: '◆は★より左',          f: function(p){ return p.indexOf('◆') < p.indexOf('★'); } },
-    { t: '■は★より左',          f: function(p){ return p.indexOf('■') < p.indexOf('★'); } },
-    { t: '●と■は隣どうし',      f: function(p){ return Math.abs(p.indexOf('●') - p.indexOf('■')) === 1; } },
-    { t: '◆は左から4番目',      f: function(p){ return p.indexOf('◆') === 3; } }
-  ];
-  function allClues(p){ return CLUES3.every(function(c){ return c.f(p); }); }
-  // ヒントを満たす並びを全探索（唯一解のはず）→ 最短の隣接入れ替え回数＝転倒数
-  var L3_TARGET = null;
-  (function(){
-    function perm(a, cur, out){
-      if (!a.length) { out.push(cur); return; }
-      for (var i = 0; i < a.length; i++) perm(a.slice(0, i).concat(a.slice(i + 1)), cur.concat(a[i]), out);
-    }
-    var all = []; perm(SYMS, [], all);
-    var ok = all.filter(allClues);
-    L3_TARGET = ok.length === 1 ? ok[0] : null;
-  })();
-  function inversions(from, to){
-    var n = 0;
-    for (var i = 0; i < from.length; i++) for (var j = i + 1; j < from.length; j++) if (to.indexOf(from[i]) > to.indexOf(from[j])) n++;
-    return n;
-  }
-  var L3_MIN = L3_TARGET ? inversions(L3_START, L3_TARGET) : 0;
-  var cur3 = L3_START.slice(), mv3 = 0, sel3 = -1, done3 = false, res3 = 0;
-  function render3(){
-    var ul = $('clues3'); ul.innerHTML = '';
-    CLUES3.forEach(function(c){
-      var li = document.createElement('li');
-      li.textContent = c.t;
-      if (c.f(cur3)) li.className = 'done';
-      ul.appendChild(li);
-    });
-    var row = $('row3'); row.innerHTML = '';
-    cur3.forEach(function(s, i){
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'sym' + (i === sel3 ? ' sel' : '');
-      b.textContent = s;
-      b.setAttribute('data-i', i);
-      b.addEventListener('click', onSym);
-      row.appendChild(b);
-    });
-    $('count3').textContent = mv3 + '手';
-  }
-  function onSym(e){
-    if (done3) return;
-    var i = +e.currentTarget.getAttribute('data-i');
-    if (sel3 < 0) { sel3 = i; render3(); return; }
-    if (i === sel3) { sel3 = -1; render3(); return; }
-    if (Math.abs(i - sel3) === 1) {
-      var t = cur3[i]; cur3[i] = cur3[sel3]; cur3[sel3] = t; mv3++; sel3 = -1;
-      render3();
-      if (allClues(cur3)) {
-        done3 = true; res3 = mv3;
-        $('msg3').textContent = '🔓 カチャッ！ 錠3が開いた！（' + mv3 + '手／最短' + L3_MIN + '手）';
-        setTimeout(showClear, 1600);
+  var CAR_COLORS = ['#f0b429', '#5aa9e6', '#e8788a', '#7bc67e', '#b58be0', '#e8a25a', '#5cc7c0', '#c9c26a', '#d98fd0', '#8aa0e8', '#e57f5b'];
+  TYPES.slide = {
+    init: function(lv){
+      var cars = lv.cars.map(function(c){ return { L: c[2], o: c[3], fixed: c[3] === 'H' ? c[0] : c[1] }; });
+      var pos = lv.cars.map(function(c){ return c[3] === 'H' ? c[1] : c[0]; });
+      var ctx = { cars: cars };
+      var path = slideBfs(ctx, pos);
+      return { ctx: ctx, state: pos, min: path ? path.length : 0, sel: -1 };
+    },
+    apply: function(ctx, s, mv){ var t = s.slice(); t[mv.car] = mv.to; return t; },
+    solved: function(ctx, s){ return s[0] + ctx.cars[0].L === SN; },
+    hint: function(ctx, s){ var p = slideBfs(ctx, s); return p && p.length ? p[0] : null; },
+    render: function(g, box){
+      var ctx = g.ctx, wrap = document.createElement('div'); wrap.className = 'slide-wrap';
+      var board = document.createElement('div'); board.className = 'slide-board';
+      var pct = 100 / SN;
+      function place(el, r, c, h, w){ el.style.left = (c * pct) + '%'; el.style.top = (r * pct) + '%'; el.style.width = (w * pct) + '%'; el.style.height = (h * pct) + '%'; }
+      ctx.cars.forEach(function(c, k){
+        var b = document.createElement('button'); b.type = 'button';
+        var r = c.o === 'H' ? c.fixed : g.state[k], cc = c.o === 'H' ? g.state[k] : c.fixed;
+        b.className = 'car' + (k === 0 ? ' key' : '') + (g.sel === k ? ' sel' : '') + (g.hint && g.hint.car === k ? ' hint-car' : '');
+        var sp = document.createElement('span'); sp.style.background = k === 0 ? '' : CAR_COLORS[k % CAR_COLORS.length]; sp.textContent = k === 0 ? '🔑' : '';
+        b.appendChild(sp);
+        place(b, r, cc, c.o === 'V' ? c.L : 1, c.o === 'H' ? c.L : 1);
+        b.setAttribute('data-k', k);
+        b.addEventListener('click', function(e){ var kk = +e.currentTarget.getAttribute('data-k'); g.sel = (g.sel === kk ? -1 : kk); refresh(); });
+        board.appendChild(b);
+      });
+      if (g.sel >= 0) {
+        var c0 = ctx.cars[g.sel];
+        slideMoves(ctx, g.state).filter(function(m){ return m.car === g.sel; }).forEach(function(m){
+          var d = document.createElement('button'); d.type = 'button';
+          var hint = g.hint && g.hint.car === m.car && g.hint.to === m.to;
+          d.className = 'dot' + (hint ? ' hint-dot' : '');
+          d.appendChild(document.createElement('span'));
+          var r = c0.o === 'H' ? c0.fixed : m.to, cc = c0.o === 'H' ? m.to : c0.fixed;
+          place(d, r, cc, c0.o === 'V' ? c0.L : 1, c0.o === 'H' ? c0.L : 1);
+          d.addEventListener('click', function(){ g.sel = -1; move({ car: m.car, to: m.to }); });
+          board.appendChild(d);
+        });
       }
-      return;
+      wrap.appendChild(board);
+      var ex = document.createElement('div'); ex.className = 'exit-mark'; ex.style.top = (2 * pct + pct / 2 - 1.2) + '%'; ex.innerHTML = '▶<br>出口';
+      wrap.appendChild(ex);
+      box.appendChild(wrap);
     }
-    sel3 = i; render3();
-  }
-  function startLock3(){
-    cur3 = L3_START.slice(); mv3 = 0; sel3 = -1; done3 = false; $('msg3').textContent = ''; render3(); show('screenLock3');
-  }
-  $('reset3').addEventListener('click', function(){ if (!done3) { cur3 = L3_START.slice(); mv3 = 0; sel3 = -1; $('msg3').textContent = ''; render3(); } });
+  };
 
-  // ================= 結果 =================
-  function rankFor(extra){
-    if (extra === 0) return '🏆 金庫破りの神（最短クリア！）';
-    if (extra <= 4) return '🥇 凄腕の金庫番';
-    if (extra <= 10) return '🥈 見習い錠前師';
-    return '🥉 ただの通りすがり';
+  // ================= プレイ制御 =================
+  var g = null;   // 現在の問題 { w, l, type, lv, ctx, state, min, moves, hist, hintUsed, hint, sel, done }
+  function startLevel(w, l){
+    var W = WORLDS[w - 1], T = TYPES[W.type], lv = D[W.key][l - 1];
+    var init = T.init(lv);
+    g = { w: w, l: l, T: T, W: W, ctx: init.ctx, state: init.state, min: init.min, sel: init.sel === undefined ? -1 : init.sel,
+          moves: 0, hist: [], hintUsed: false, hint: null, done: false, start: null };
+    g.start = (typeof init.state === 'object') ? init.state.slice() : init.state;
+    $('playTitle').textContent = w + '-' + l + '　' + W.name;
+    $('playRule').textContent = W.rule;
+    $('playMsg').textContent = '';
+    $('resultBox').classList.add('hidden'); $('toolRow').classList.remove('hidden');
+    showPlay(); refresh();
   }
-  function showClear(){
-    $('r1me').textContent = res1 + '手'; $('r1min').textContent = L1_MIN + '手';
-    $('r3me').textContent = res3 + '手'; $('r3min').textContent = L3_MIN + '手';
-    $('rankText').textContent = rankFor((res1 - L1_MIN) + (res3 - L3_MIN));
-    show('screenClear');
+  function copyState(s){ return (typeof s === 'object') ? s.slice() : s; }
+  function refresh(){
+    var box = $('board'); box.innerHTML = '';
+    g.T.render(g, box);
+    $('playCount').textContent = g.moves + '手';
   }
-  $('startBtn').addEventListener('click', startLock1);
-  $('againBtn').addEventListener('click', function(){ show('screenIntro'); });
+  function move(mv){
+    if (g.done) return;
+    g.hist.push(copyState(g.state));
+    g.state = g.T.apply(g.ctx, g.state, mv); g.moves++; g.hint = null; $('playMsg').textContent = '';
+    refresh();
+    if (g.T.solved(g.ctx, g.state)) finish();
+  }
+  function finish(){
+    g.done = true;
+    var extra = g.moves - g.min, tol = Math.max(2, Math.round(g.min * 0.4)), st;
+    if (extra <= 0 && !g.hintUsed) st = 3; else if (extra <= tol) st = 2; else st = 1;
+    if (g.hintUsed && st > 2) st = 2;
+    var id = lvId(g.w, g.l), rec = prog[id] || { stars: 0, best: 9999 };
+    rec.stars = Math.max(rec.stars, st); rec.best = Math.min(rec.best, g.moves); prog[id] = rec; saveProg();
+    $('resultStars').textContent = stars(st);
+    $('resultSub').innerHTML = g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
+    var last = g.l >= LEVELS_PER_WORLD;
+    $('nextBtn').textContent = last ? '🎉 ワールドクリア！ 目次へ' : '次の錠へ →';
+    $('toolRow').classList.add('hidden'); $('resultBox').classList.remove('hidden');
+  }
+  $('nextBtn').addEventListener('click', function(){ if (g.l >= LEVELS_PER_WORLD) showToc(); else startLevel(g.w, g.l + 1); });
+  $('againBtn').addEventListener('click', function(){ startLevel(g.w, g.l); });
+  $('tocBtn').addEventListener('click', showToc);
+  $('tocBtn2').addEventListener('click', showToc);
+  $('retryBtn').addEventListener('click', function(){
+    if (g.done) return;
+    g.state = copyState(g.start); g.moves = 0; g.hist = []; g.hint = null; g.sel = -1; $('playMsg').textContent = ''; refresh();
+  });
+  $('undoBtn').addEventListener('click', function(){
+    if (g.done || !g.hist.length) return;
+    g.state = g.hist.pop(); g.moves--; g.hint = null; g.sel = -1; refresh();
+  });
+  $('hintBtn').addEventListener('click', function(){
+    if (g.done) return;
+    var h = g.T.hint(g.ctx, g.state);
+    if (!h) return;
+    g.hint = h; g.hintUsed = true;
+    if (g.W.type === 'slide') g.sel = h.car;
+    $('playMsg').textContent = '💡 光っているところが次の一手です（ヒントを使うと最高★2）';
+    refresh();
+  });
 
   // ================= Xシェア（window.open方式） =================
   $('xShareBtn').addEventListener('click', function(){
-    var NL = String.fromCharCode(10);
-    var head = '「開かずの金庫」';
-    var body = (res1 && res3)
-      ? '錠1を' + res1 + '手、錠3を' + res3 + '手で開けた！（最短は' + L1_MIN + '手と' + L3_MIN + '手）'
-      : 'タップで動かして鍵を開ける錠前パズル！';
-    var text = head + NL + body + NL + 'CMなしの0秒ブラウザゲーム！' + NL + '#しょーもなゲームズ';
+    var t = totals(), NL = String.fromCharCode(10);
+    var body = t.cleared ? '★' + t.stars + '/' + t.max + '（' + t.cleared + '問クリア）！' : 'タップで動かして鍵を開ける錠前パズル！';
+    var text = '「開かずの金庫」' + NL + body + NL + 'CMなしの0秒ブラウザゲーム！' + NL + '#しょーもなゲームズ';
     window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
   });
 
   // ================= グレードアップ（合言葉）まわり =================
   var gradeForm = $('gradeForm'), gradeMsg = $('gradeMsg'), unlockedZone = $('unlockedZone');
-  function setUnlocked(){
-    gradeForm.classList.add('hidden'); gradeMsg.textContent = ''; unlockedZone.classList.remove('hidden');
-  }
+  function setUnlocked(){ gradeForm.classList.add('hidden'); gradeMsg.textContent = ''; unlockedZone.classList.remove('hidden'); }
   if (safeGet(STORAGE_KEY) === '1') setUnlocked();
   $('unlockBtn').addEventListener('click', function(){
     var val = $('passwordInput').value.trim();
     if (val === PASSWORD || val === MASTER_PASSWORD) { safeSet(STORAGE_KEY, '1'); setUnlocked(); }
     else { gradeMsg.textContent = '違うようです、もう一度確認してください…'; }
   });
+
+  renderToc();
 })();
 </script>
 </body>
