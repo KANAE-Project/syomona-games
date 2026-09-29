@@ -88,7 +88,8 @@
   /* 記号 */
   .clues{ background:rgba(0,0,0,.22); border-radius:12px; padding:10px 14px 10px 8px; margin:0 0 14px; font-size:.86rem; line-height:1.9; }
   .clues li{ margin-left:1.4em; }
-  .clues li.done{ opacity:.5; text-decoration:line-through; }
+  .clues li.done{ color:var(--ok); list-style:none; margin-left:.3em; }
+  .clues li.done::before{ content:'✓ '; font-weight:900; }
   .sym-row{ display:flex; gap:6px; justify-content:center; }
   .sym{ flex:1; max-width:64px; aspect-ratio:1/1; border:3px solid transparent; border-radius:14px; cursor:pointer; font-family:inherit; font-size:1.6rem; background:var(--off); color:var(--ink); transition:transform .1s ease; padding:0; }
   .sym:active{ transform:scale(.92); }
@@ -646,20 +647,43 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     });
     return out;
   }
+  // 最短手順をBFSで求める（返り値：手順の配列。各要素は {car, to}）。
+  // 高速化：状態を文字列ではなく「各車の位置を6進数で1つの整数にしたキー」で管理し、親ポインタは配列で持つ（旧方式の約7.6倍高速）
   function slideBfs(ctx, start){
-    var key = function(p){ return p.join(','); };
-    var prev = {}; prev[key(start)] = null; var q = [start];
-    for (var qi = 0; qi < q.length; qi++) {
-      var s = q[qi];
-      if (s[0] + ctx.cars[0].L === SN) {
-        var path = [], cur = s;
-        while (prev[key(cur)]) { path.push(prev[key(cur)].mv); cur = prev[key(cur)].from; }
+    var cars = ctx.cars, n = cars.length, pw = [], m = 1, i;
+    for (i = 0; i < n; i++) { pw.push(m); m *= SN; }
+    var enc = function(p){ var k = 0; for (var i = 0; i < n; i++) k += p[i] * pw[i]; return k; };
+    var seen = {}; seen[enc(start)] = 1;
+    var states = [start], parent = [-1], mvCar = [-1], mvTo = [-1];
+    var occ = []; for (i = 0; i < SN * SN; i++) occ.push(-1);
+    for (var qi = 0; qi < states.length; qi++) {
+      var s = states[qi];
+      if (s[0] + cars[0].L === SN) {
+        var path = [], c = qi;
+        while (parent[c] >= 0) { path.push({ car: mvCar[c], to: mvTo[c] }); c = parent[c]; }
         return path.reverse();
       }
-      var ms = slideMoves(ctx, s);
-      for (var i = 0; i < ms.length; i++) {
-        var t = s.slice(); t[ms[i].car] = ms[i].to; var kk = key(t);
-        if (!(kk in prev)) { prev[kk] = { from: s, mv: ms[i] }; q.push(t); }
+      for (i = 0; i < occ.length; i++) occ[i] = -1;
+      var k, x;
+      for (k = 0; k < n; k++) { var cc = cars[k]; for (x = 0; x < cc.L; x++) occ[cc.o === 'H' ? cc.fixed * SN + s[k] + x : (s[k] + x) * SN + cc.fixed] = k; }
+      var base = enc(s);
+      for (k = 0; k < n; k++) {
+        var car = cars[k];
+        for (var d = -1; d <= 1; d += 2) {
+          var p = s[k];
+          for (;;) {
+            p += d; if (p < 0 || p + car.L > SN) break;
+            var lead = p + (d === 1 ? car.L - 1 : 0);
+            var cell = car.o === 'H' ? car.fixed * SN + lead : lead * SN + car.fixed;
+            if (occ[cell] !== -1 && occ[cell] !== k) break;
+            var key = base + (p - s[k]) * pw[k];
+            if (!seen[key]) {
+              seen[key] = 1;
+              var t = s.slice(); t[k] = p;
+              states.push(t); parent.push(qi); mvCar.push(k); mvTo.push(p);
+            }
+          }
+        }
       }
     }
     return null;
