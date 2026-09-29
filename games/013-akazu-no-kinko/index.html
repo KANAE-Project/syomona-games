@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>開かずの金庫｜しょーもなゲームズ</title>
+<meta name="description" content="タップだけで動かして鍵を開ける、ちょっと考える錠前パズル。試作版">
+<style>
+  :root{
+    --bg1:#262c42;
+    --bg2:#141827;
+    --card:#323a57;
+    --ink:#f4efe2;
+    --accent:#f0b429;
+    --accent-dark:#b9840f;
+    --on:#f0b429;
+    --off:#46506f;
+    --ok:#4cc38a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    display:flex; justify-content:center;
+    padding:24px 14px 60px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  .hidden{ display:none !important; }
+  h1{ text-align:center; font-size:1.5rem; margin:6px 0 4px; letter-spacing:.06em; }
+  .tagline{ text-align:center; font-size:.9rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:16px; line-height:1.6; }
+  .vault-icon{ text-align:center; font-size:3rem; margin:4px 0 8px; }
+
+  .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:8px; }
+  .back-link-btn{ display:block; background:var(--accent); color:#2a2208; font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center; padding:14px 16px; border-radius:14px; margin-top:20px; box-shadow:0 4px 0 var(--accent-dark); }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+
+  .panel{ background:var(--card); border-radius:20px; padding:18px 14px 20px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+  .lock-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .lock-title{ font-size:1.05rem; font-weight:900; }
+  .lock-count{ font-size:.85rem; font-weight:900; color:var(--accent); }
+  .lock-rule{ font-size:.82rem; line-height:1.7; opacity:.9; margin-bottom:14px; }
+
+  .primary-btn{ display:block; width:100%; font-family:inherit; cursor:pointer; border:none; border-radius:14px; padding:14px 16px; font-size:1.05rem; font-weight:900; color:#2a2208; background:var(--accent); box-shadow:0 4px 0 var(--accent-dark); margin-top:14px; }
+  .primary-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+  .text-btn{ display:block; margin:12px auto 0; font-family:inherit; cursor:pointer; background:none; border:2px dashed rgba(244,239,226,.4); color:var(--ink); border-radius:999px; padding:6px 18px; font-size:.82rem; font-weight:700; }
+
+  /* 錠1：連動スイッチ */
+  .sw-grid{ display:grid; gap:10px; max-width:300px; margin:0 auto; }
+  .sw{ aspect-ratio:1/1; border:none; border-radius:16px; cursor:pointer; font-family:inherit; font-size:2rem; background:var(--off); color:#8a93b3; transition:transform .1s ease, background .15s ease; }
+  .sw:active{ transform:scale(.92); }
+  .sw.on{ background:var(--on); color:#3a2c00; box-shadow:0 0 14px rgba(240,180,41,.55); }
+
+  /* 錠3：記号並べ替え */
+  .clues{ background:rgba(0,0,0,.22); border-radius:12px; padding:10px 14px; margin:0 0 14px; font-size:.86rem; line-height:1.9; }
+  .clues li{ margin-left:1.2em; }
+  .clues li.done{ opacity:.55; text-decoration:line-through; }
+  .sym-row{ display:flex; gap:8px; justify-content:center; }
+  .sym{ flex:1; max-width:70px; aspect-ratio:1/1; border:3px solid transparent; border-radius:14px; cursor:pointer; font-family:inherit; font-size:1.8rem; background:var(--off); color:var(--ink); transition:transform .1s ease; }
+  .sym:active{ transform:scale(.92); }
+  .sym.sel{ border-color:var(--accent); background:#5a5238; }
+  .sym-hint{ text-align:center; font-size:.78rem; opacity:.7; margin-top:8px; }
+
+  .msg{ text-align:center; font-size:.9rem; font-weight:900; margin-top:12px; min-height:1.4em; color:var(--ok); }
+
+  .rank{ font-size:1.3rem; font-weight:900; text-align:center; color:var(--accent); margin:10px 0; }
+  .result-table{ width:100%; border-collapse:collapse; font-size:.9rem; margin:10px 0; }
+  .result-table td,.result-table th{ padding:6px 8px; border-bottom:1px solid rgba(244,239,226,.18); text-align:center; }
+  .teaser{ text-align:center; font-size:.85rem; opacity:.8; margin-top:10px; line-height:1.7; }
+
+  /* 課金バナー（標準テンプレート） */
+  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(244,239,226,.25); text-align:center; }
+  .grade-cta{ background:rgba(240,180,41,.08); border:3px dashed var(--accent); border-radius:18px; padding:18px 14px; }
+  .grade-headline{ font-size:1.15rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
+  .grade-price{ display:inline-block; background:rgba(255,255,255,.1); color:#fff; font-size:.85rem; font-weight:bold; padding:4px 14px; border-radius:999px; margin-bottom:10px; border:1px solid var(--accent); }
+  .note-link-btn{ display:block; background:#41c9b4; color:#fff; font-size:1.15rem; font-weight:900; text-decoration:none; text-align:center; padding:16px 14px; border-radius:14px; margin-bottom:14px; box-shadow:0 4px 0 #2e9c8c; }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{ font-size:.85rem; font-weight:bold; margin-bottom:14px; }
+  .grade-form{ display:flex; flex-direction:column; gap:10px; max-width:320px; margin:0 auto; }
+  .grade-form input[type=text]{ text-align:center; padding:10px 12px; border-radius:12px; border:2px solid var(--accent); font-size:1rem; font-family:inherit; }
+  .grade-form #unlockBtn{ font-size:1.05rem; padding:13px 16px; background:var(--accent); color:#2a2208; font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:bold; }
+  .grade-msg{ font-size:.8rem; margin-top:8px; }
+  .unlocked-badge{ display:inline-block; background:var(--accent); color:#2a2208; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; font-weight:900; }
+  .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
+
+  /* Xシェア（標準テンプレート） */
+  .x-share-zone{ margin-top:22px; padding-top:14px; border-top:1px dashed rgba(244,239,226,.25); text-align:center; }
+  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:12px; }
+  .x-link-btn{ display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center; padding:14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer; font-family:inherit; }
+  .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
+
+  .usage-notice{ margin-top:18px; font-size:.72rem; line-height:1.8; opacity:.85; text-align:left; background:rgba(255,255,255,.06); border-radius:10px; padding:12px 14px; border:1px solid rgba(255,255,255,.16); }
+  .usage-notice .usage-title{ font-weight:bold; color:var(--accent); display:block; margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <div class="vault-icon">🔐</div>
+  <h1>開かずの金庫</h1>
+  <div class="tagline">タップで動かして、鍵を開けろ</div>
+  <div class="sub">図や記号を動かして錠を開けるパズル。<br>今は試作版で、2つの錠だけ遊べます。</div>
+
+  <!-- ==== 導入 ==== -->
+  <div id="screenIntro" class="panel">
+    <div class="lock-rule">
+      金庫には錠が5つ付いています（試作版では<b>錠1</b>と<b>錠3</b>だけ）。<br>
+      どの錠も、<b>タップだけ</b>で動かして開けます。開けるまでの<b>手数</b>が少ないほど高ランク！
+    </div>
+    <button type="button" id="startBtn" class="primary-btn">🔑 錠1に挑戦する</button>
+  </div>
+
+  <!-- ==== 錠1：連動スイッチ ==== -->
+  <div id="screenLock1" class="panel hidden">
+    <div class="lock-head"><div class="lock-title">🔒 錠1　連動スイッチ錠</div><div class="lock-count" id="count1">0手</div></div>
+    <div class="lock-rule">マスをタップすると、<b>そのマスと上下左右</b>の● ○が入れ替わります。全部 ○ にすると錠が開きます。</div>
+    <div class="sw-grid" id="grid1" style="grid-template-columns:repeat(3,1fr);"></div>
+    <div class="msg" id="msg1"></div>
+    <button type="button" id="reset1" class="text-btn">↺ 最初からやり直す</button>
+  </div>
+
+  <!-- ==== 錠3：記号並べ替え ==== -->
+  <div id="screenLock3" class="panel hidden">
+    <div class="lock-head"><div class="lock-title">🔒 錠3　記号並べ替え錠</div><div class="lock-count" id="count3">0手</div></div>
+    <div class="lock-rule">ヒントをすべて満たす並びにすると錠が開きます。記号を1つタップして選び、<b>となりの記号</b>をタップすると入れ替わります。</div>
+    <ul class="clues" id="clues3"></ul>
+    <div class="sym-row" id="row3"></div>
+    <div class="sym-hint">左から1番目 ～ 5番目</div>
+    <div class="msg" id="msg3"></div>
+    <button type="button" id="reset3" class="text-btn">↺ 最初からやり直す</button>
+  </div>
+
+  <!-- ==== 結果 ==== -->
+  <div id="screenClear" class="panel hidden">
+    <div class="lock-head"><div class="lock-title">🔓 錠が開いた！</div></div>
+    <div class="rank" id="rankText"></div>
+    <table class="result-table">
+      <tr><th>錠</th><th>あなた</th><th>最短</th></tr>
+      <tr><td>錠1</td><td id="r1me"></td><td id="r1min"></td></tr>
+      <tr><td>錠3</td><td id="r3me"></td><td id="r3min"></td></tr>
+    </table>
+    <div class="teaser">錠2（スライドキー）・錠4（歯車ダイヤル）・錠5（4×4スイッチ）は準備中です。つづく…！</div>
+    <button type="button" id="againBtn" class="primary-btn">もう一度あそぶ</button>
+  </div>
+
+  <div class="grade-zone">
+    <div class="grade-cta" id="gradeForm">
+      <div class="grade-headline">損しかない課金はこちら💁</div>
+      <div class="grade-price">🪙 ワンコイン500円</div>
+      <a href="#" id="noteLinkBtn" class="note-link-btn">📝 note記事は準備中です</a>
+      <div class="grade-teaser">グレードアップの中身は検討中（お楽しみに）</div>
+      <div class="grade-form">
+        <input type="text" id="passwordInput" placeholder="合言葉">
+        <button type="button" id="unlockBtn">解放する</button>
+      </div>
+    </div>
+    <div id="gradeMsg" class="grade-msg"></div>
+    <div id="unlockedZone" class="hidden">
+      <span class="unlocked-badge">グレードアップ解放済み</span>
+      <div class="unlocked-note">（グレードアップの中身は近日実装予定です）</div>
+    </div>
+  </div>
+
+  <div class="x-share-zone">
+    <div class="x-share-title">このゲームを拡散！</div>
+    <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xでシェアする</button>
+  </div>
+
+  <div class="usage-notice">
+    <span class="usage-title">🎥 実況・動画での使用について</span>
+    「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+    ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
+    それ以外は自由に、しょーもなく広めていただけると嬉しいです。
+  </div>
+
+  <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var GAME_URL = 'https://kanae-project.github.io/syomona-games/games/013-akazu-no-kinko/';
+  // ==== 合言葉：グレードアップの中身が未定のため、値も未定のプレースホルダー ====
+  var PASSWORD = '＜合言葉は検討中＞';
+  // ==== 全ゲーム共通「金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
+  var MASTER_PASSWORD = '金ドブ全開放';
+  var STORAGE_KEY = 'akazu_kinko_unlocked';
+  var $ = function(id){ return document.getElementById(id); };
+  function safeGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function safeSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+
+  var screens = ['screenIntro', 'screenLock1', 'screenLock3', 'screenClear'];
+  function show(id){
+    screens.forEach(function(s){ $(s).classList.toggle('hidden', s !== id); });
+  }
+
+  // ================= 錠1：連動スイッチ（3x3） =================
+  var N1 = 3;
+  // 初期状態 ○○○ / ●●○ / ●○○ （ビット位置 = 行*3+列）
+  var L1_INIT = (1 << 3) | (1 << 4) | (1 << 6);
+  var masks1 = [];
+  (function(){
+    for (var r = 0; r < N1; r++) for (var c = 0; c < N1; c++) {
+      var m = 0;
+      [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+        var rr = r + d[0], cc = c + d[1];
+        if (rr >= 0 && rr < N1 && cc >= 0 && cc < N1) m |= 1 << (rr * N1 + cc);
+      });
+      masks1.push(m);
+    }
+  })();
+  // 最短手数：BFSで計算（試作でも実際の解を保証するため）
+  function minPresses1(start){
+    var dist = {}; dist[start] = 0; var q = [start];
+    for (var qi = 0; qi < q.length; qi++) {
+      var s = q[qi];
+      if (s === 0) return dist[s];
+      for (var i = 0; i < masks1.length; i++) {
+        var t = s ^ masks1[i];
+        if (dist[t] === undefined) { dist[t] = dist[s] + 1; q.push(t); }
+      }
+    }
+    return -1;
+  }
+  var L1_MIN = minPresses1(L1_INIT);
+  var st1 = L1_INIT, mv1 = 0, done1 = false, res1 = 0;
+  function render1(){
+    var g = $('grid1'); g.innerHTML = '';
+    for (var i = 0; i < 9; i++) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      var on = (st1 >> i) & 1;
+      b.className = 'sw' + (on ? ' on' : '');
+      b.textContent = on ? '●' : '○';
+      b.setAttribute('data-i', i);
+      b.addEventListener('click', onSw);
+      g.appendChild(b);
+    }
+    $('count1').textContent = mv1 + '手';
+  }
+  function onSw(e){
+    if (done1) return;
+    var i = +e.currentTarget.getAttribute('data-i');
+    st1 ^= masks1[i]; mv1++;
+    render1();
+    if (st1 === 0) {
+      done1 = true; res1 = mv1;
+      $('msg1').textContent = '🔓 カチャッ！ 錠1が開いた！（' + mv1 + '手／最短' + L1_MIN + '手）';
+      setTimeout(function(){ startLock3(); }, 1600);
+    }
+  }
+  function startLock1(){
+    st1 = L1_INIT; mv1 = 0; done1 = false; $('msg1').textContent = ''; render1(); show('screenLock1');
+  }
+  $('reset1').addEventListener('click', function(){ if (!done1) { st1 = L1_INIT; mv1 = 0; $('msg1').textContent = ''; render1(); } });
+
+  // ================= 錠3：記号並べ替え =================
+  var SYMS = ['★', '●', '▲', '■', '◆'];
+  var L3_START = ['◆', '▲', '★', '■', '●'];
+  var CLUES3 = [
+    { t: '▲と■は隣どうし',      f: function(p){ return Math.abs(p.indexOf('▲') - p.indexOf('■')) === 1; } },
+    { t: '■は▲より左',          f: function(p){ return p.indexOf('■') < p.indexOf('▲'); } },
+    { t: '◆は★より左',          f: function(p){ return p.indexOf('◆') < p.indexOf('★'); } },
+    { t: '■は★より左',          f: function(p){ return p.indexOf('■') < p.indexOf('★'); } },
+    { t: '●と■は隣どうし',      f: function(p){ return Math.abs(p.indexOf('●') - p.indexOf('■')) === 1; } },
+    { t: '◆は左から4番目',      f: function(p){ return p.indexOf('◆') === 3; } }
+  ];
+  function allClues(p){ return CLUES3.every(function(c){ return c.f(p); }); }
+  // ヒントを満たす並びを全探索（唯一解のはず）→ 最短の隣接入れ替え回数＝転倒数
+  var L3_TARGET = null;
+  (function(){
+    function perm(a, cur, out){
+      if (!a.length) { out.push(cur); return; }
+      for (var i = 0; i < a.length; i++) perm(a.slice(0, i).concat(a.slice(i + 1)), cur.concat(a[i]), out);
+    }
+    var all = []; perm(SYMS, [], all);
+    var ok = all.filter(allClues);
+    L3_TARGET = ok.length === 1 ? ok[0] : null;
+  })();
+  function inversions(from, to){
+    var n = 0;
+    for (var i = 0; i < from.length; i++) for (var j = i + 1; j < from.length; j++) if (to.indexOf(from[i]) > to.indexOf(from[j])) n++;
+    return n;
+  }
+  var L3_MIN = L3_TARGET ? inversions(L3_START, L3_TARGET) : 0;
+  var cur3 = L3_START.slice(), mv3 = 0, sel3 = -1, done3 = false, res3 = 0;
+  function render3(){
+    var ul = $('clues3'); ul.innerHTML = '';
+    CLUES3.forEach(function(c){
+      var li = document.createElement('li');
+      li.textContent = c.t;
+      if (c.f(cur3)) li.className = 'done';
+      ul.appendChild(li);
+    });
+    var row = $('row3'); row.innerHTML = '';
+    cur3.forEach(function(s, i){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sym' + (i === sel3 ? ' sel' : '');
+      b.textContent = s;
+      b.setAttribute('data-i', i);
+      b.addEventListener('click', onSym);
+      row.appendChild(b);
+    });
+    $('count3').textContent = mv3 + '手';
+  }
+  function onSym(e){
+    if (done3) return;
+    var i = +e.currentTarget.getAttribute('data-i');
+    if (sel3 < 0) { sel3 = i; render3(); return; }
+    if (i === sel3) { sel3 = -1; render3(); return; }
+    if (Math.abs(i - sel3) === 1) {
+      var t = cur3[i]; cur3[i] = cur3[sel3]; cur3[sel3] = t; mv3++; sel3 = -1;
+      render3();
+      if (allClues(cur3)) {
+        done3 = true; res3 = mv3;
+        $('msg3').textContent = '🔓 カチャッ！ 錠3が開いた！（' + mv3 + '手／最短' + L3_MIN + '手）';
+        setTimeout(showClear, 1600);
+      }
+      return;
+    }
+    sel3 = i; render3();
+  }
+  function startLock3(){
+    cur3 = L3_START.slice(); mv3 = 0; sel3 = -1; done3 = false; $('msg3').textContent = ''; render3(); show('screenLock3');
+  }
+  $('reset3').addEventListener('click', function(){ if (!done3) { cur3 = L3_START.slice(); mv3 = 0; sel3 = -1; $('msg3').textContent = ''; render3(); } });
+
+  // ================= 結果 =================
+  function rankFor(extra){
+    if (extra === 0) return '🏆 金庫破りの神（最短クリア！）';
+    if (extra <= 4) return '🥇 凄腕の金庫番';
+    if (extra <= 10) return '🥈 見習い錠前師';
+    return '🥉 ただの通りすがり';
+  }
+  function showClear(){
+    $('r1me').textContent = res1 + '手'; $('r1min').textContent = L1_MIN + '手';
+    $('r3me').textContent = res3 + '手'; $('r3min').textContent = L3_MIN + '手';
+    $('rankText').textContent = rankFor((res1 - L1_MIN) + (res3 - L3_MIN));
+    show('screenClear');
+  }
+  $('startBtn').addEventListener('click', startLock1);
+  $('againBtn').addEventListener('click', function(){ show('screenIntro'); });
+
+  // ================= Xシェア（window.open方式） =================
+  $('xShareBtn').addEventListener('click', function(){
+    var NL = String.fromCharCode(10);
+    var head = '「開かずの金庫」';
+    var body = (res1 && res3)
+      ? '錠1を' + res1 + '手、錠3を' + res3 + '手で開けた！（最短は' + L1_MIN + '手と' + L3_MIN + '手）'
+      : 'タップで動かして鍵を開ける錠前パズル！';
+    var text = head + NL + body + NL + 'CMなしの0秒ブラウザゲーム！' + NL + '#しょーもなゲームズ';
+    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
+  });
+
+  // ================= グレードアップ（合言葉）まわり =================
+  var gradeForm = $('gradeForm'), gradeMsg = $('gradeMsg'), unlockedZone = $('unlockedZone');
+  function setUnlocked(){
+    gradeForm.classList.add('hidden'); gradeMsg.textContent = ''; unlockedZone.classList.remove('hidden');
+  }
+  if (safeGet(STORAGE_KEY) === '1') setUnlocked();
+  $('unlockBtn').addEventListener('click', function(){
+    var val = $('passwordInput').value.trim();
+    if (val === PASSWORD || val === MASTER_PASSWORD) { safeSet(STORAGE_KEY, '1'); setUnlocked(); }
+    else { gradeMsg.textContent = '違うようです、もう一度確認してください…'; }
+  });
+})();
+</script>
+</body>
+</html>
