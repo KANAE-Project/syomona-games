@@ -52,11 +52,16 @@
   .tool-btn:active{ transform:scale(.95); }
   .msg{ text-align:center; font-size:.85rem; font-weight:900; margin-top:10px; min-height:1.3em; color:var(--accent); }
 
-  /* スイッチ */
-  .sw-grid{ display:grid; gap:10px; margin:0 auto; }
-  .sw{ aspect-ratio:1/1; border:3px solid transparent; border-radius:16px; cursor:pointer; font-family:inherit; font-size:1.8rem; background:var(--off); color:#8a93b3; transition:transform .1s ease, background .15s ease; }
+  /* スイッチ錠（動物：起きている=色つき、ねむっている=灰色+💤） */
+  .sw-grid{ display:grid; gap:10px; margin:0 auto; border-radius:14px; }
+  .sw{ position:relative; aspect-ratio:1/1; border:3px solid transparent; border-radius:16px; cursor:pointer; font-family:inherit; font-size:1.8rem; padding:0; line-height:1; background:var(--off); transition:transform .1s ease, background .15s ease; }
   .sw:active{ transform:scale(.92); }
-  .sw.on{ background:var(--on); color:#3a2c00; box-shadow:0 0 14px rgba(240,180,41,.55); }
+  .sw .em{ display:block; }
+  .sw.awake{ background:var(--on); box-shadow:0 0 14px var(--glow); }
+  .sw.sleep{ background:var(--off); }
+  .sw.sleep .em{ filter:grayscale(1) opacity(.42); }
+  .sw.sleep::after{ content:'💤'; position:absolute; right:5%; top:0; font-size:.42em; }
+  .lv-em{ display:block; font-size:1.05rem; line-height:1.15; }
   .hint-pulse{ animation:hintPulse 1s ease-in-out infinite; border-color:#fff !important; }
   @keyframes hintPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,.0);} 50%{ box-shadow:0 0 0 6px rgba(255,255,255,.55);} }
 
@@ -231,8 +236,8 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
   var D = window.LEVEL_DATA;
   var WORLDS = [
     { id: 1, key: 'w1', name: 'スイッチ錠', type: 'lights',
-      desc: 'マスをタップすると、そのマスと上下左右の●○が入れ替わる。レベルが上がるごとにマスが増える（2×2 → 7×7）。',
-      rule: 'マスをタップすると、そのマスと上下左右の●○が入れ替わります。全部 ○ にすると錠が開きます。' },
+      desc: 'ねむっている動物たちを、全員起こそう。タップすると、そのマスと上下左右が「起きる／ねむる」入れ替わる。レベルが上がるごとにマスが増える（2×2 → 7×7）。',
+      rule: 'ねむっている動物（💤）を、全員起こそう！ マスをタップすると、そのマスと上下左右の動物が「起きる／ねむる」入れ替わります。全員起きると錠が開きます。' },
     { id: 2, key: 'w2', name: '記号錠', type: 'symbols',
       desc: 'ヒントから正しい並びを推理して、隣どうしの入れ替えで揃える。',
       rule: 'ヒントをすべて満たす並びにすると開錠。記号を1つタップして選び、となりの記号をタップすると入れ替わります。' },
@@ -242,6 +247,20 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
     { id: 4, key: null, name: '歯車錠', type: null, desc: '準備中…（次のアップデートで登場！）' }
   ];
   var LEVELS_PER_WORLD = 10;
+  // ワールド1（スイッチ錠）：面ごとの動物と色。ねむっている(状態=1)を全員起こす(状態=0)＝従来の「全部○」と同じ判定
+  var LIGHTS_THEMES = [
+    { em: '🐱', name: 'ねこ',     color: '#f0b429' },
+    { em: '🐶', name: 'いぬ',     color: '#ff9f6b' },
+    { em: '🐰', name: 'うさぎ',   color: '#ff8fb3' },
+    { em: '🐼', name: 'ぱんだ',   color: '#7bc67e' },
+    { em: '🐸', name: 'かえる',   color: '#9bd94f' },
+    { em: '🐵', name: 'さる',     color: '#d2a56a' },
+    { em: '🐧', name: 'ぺんぎん', color: '#5aa9e6' },
+    { em: '🦊', name: 'きつね',   color: '#ff7a45' },
+    { em: '🐻', name: 'くま',     color: '#c98f60' },
+    { em: '🦁', name: 'らいおん', color: '#ffc94d' }
+  ];
+  function hexToRgba(h, a){ var n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
 
   // ---------- 進捗 ----------
   var prog = {};
@@ -272,7 +291,7 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
   }
 
   // ---------- 画面切り替え ----------
-  function showToc(){ renderToc(); $('screenToc').classList.remove('hidden'); $('screenPlay').classList.add('hidden'); window.scrollTo(0, 0); }
+  function showToc(){ $('screenPlay').style.borderTop = ''; renderToc(); $('screenToc').classList.remove('hidden'); $('screenPlay').classList.add('hidden'); window.scrollTo(0, 0); }
   function showPlay(){ $('screenToc').classList.add('hidden'); $('screenPlay').classList.remove('hidden'); window.scrollTo(0, 0); }
 
   function renderToc(){
@@ -293,7 +312,7 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
             var b = document.createElement('button'); b.type = 'button';
             var ok = isUnlocked(w.id, l), st = starsOf(w.id, l);
             b.className = 'lv' + (ok ? '' : ' locked') + (st ? ' cleared' : '');
-            b.innerHTML = (ok ? '' : '🔒') + w.id + '-' + l + '<span class="st">' + (ok ? (st ? '<b>' + stars(st) + '</b>' : '未クリア') : '&nbsp;') + '</span>';
+            b.innerHTML = (ok ? (w.type === 'lights' ? '<span class="lv-em">' + LIGHTS_THEMES[l - 1].em + '</span>' : '') : '🔒') + w.id + '-' + l + '<span class="st">' + (ok ? (st ? '<b>' + stars(st) + '</b>' : '未クリア') : '&nbsp;') + '</span>';
             if (ok) b.addEventListener('click', function(){ startLevel(w.id, l); });
             grid.appendChild(b);
           })(l);
@@ -369,17 +388,18 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
       return null;
     },
     render: function(g, box){
-      var n = g.ctx.n, grid = document.createElement('div'); grid.className = 'sw-grid';
+      var n = g.ctx.n, th = g.theme, grid = document.createElement('div'); grid.className = 'sw-grid';
       grid.style.gridTemplateColumns = 'repeat(' + n + ',1fr)';
       grid.style.maxWidth = ({ 2: 220, 3: 300, 4: 340 }[n] || 360) + 'px';
       grid.style.gap = (n <= 4 ? 10 : 6) + 'px';
-      var fs = ({ 2: 2.2, 3: 1.9, 4: 1.6, 5: 1.35, 6: 1.15, 7: 1.0 }[n] || 1.2);
+      grid.style.setProperty('--on', th.color); grid.style.setProperty('--glow', hexToRgba(th.color, .55));
+      var fs = ({ 2: 2.4, 3: 2.1, 4: 1.8, 5: 1.5, 6: 1.25, 7: 1.1 }[n] || 1.3);
       for (var i = 0; i < n * n; i++) {
         var b = document.createElement('button'); b.type = 'button';
-        var on = g.state[i];
-        b.className = 'sw' + (on ? ' on' : '') + (g.hint && g.hint.cell === i ? ' hint-pulse' : '');
+        var asleep = g.state[i];   // 状態1＝ねむっている、0＝起きている
+        b.className = 'sw ' + (asleep ? 'sleep' : 'awake') + (g.hint && g.hint.cell === i ? ' hint-pulse' : '');
         b.style.fontSize = fs + 'rem'; b.style.borderRadius = (n <= 4 ? 16 : 10) + 'px';
-        b.textContent = on ? '●' : '○'; b.setAttribute('data-i', i);
+        b.innerHTML = '<span class="em">' + th.em + '</span>'; b.setAttribute('data-i', i);
         b.addEventListener('click', function(e){ move(+e.currentTarget.getAttribute('data-i')); });
         grid.appendChild(b);
       }
@@ -544,7 +564,9 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
     g = { w: w, l: l, T: T, W: W, ctx: init.ctx, state: init.state, min: init.min, sel: init.sel === undefined ? -1 : init.sel,
           moves: 0, hist: [], hintUsed: false, hint: null, done: false, start: null };
     g.start = (typeof init.state === 'object') ? init.state.slice() : init.state;
-    $('playTitle').textContent = w + '-' + l + '　' + W.name;
+    g.theme = W.type === 'lights' ? LIGHTS_THEMES[l - 1] : null;
+    $('playTitle').textContent = w + '-' + l + '　' + (g.theme ? g.theme.em + ' ' : '') + W.name;
+    $('screenPlay').style.borderTop = g.theme ? '5px solid ' + g.theme.color : '';
     $('playRule').textContent = W.rule;
     $('playMsg').textContent = '';
     $('resultBox').classList.add('hidden'); $('toolRow').classList.remove('hidden');
@@ -628,7 +650,7 @@ var LEVEL_DATA = {"w1":[{"n":2,"rows":["11","01"],"min":1},{"n":3,"rows":["111",
     $('markBox').innerHTML = markSvg(st);
     $('resultTitle').textContent = TITLES[st];
     $('resultStars').innerHTML = starsHtml(st);
-    $('resultSub').innerHTML = g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
+    $('resultSub').innerHTML = (g.theme ? g.theme.em + ' ' + g.theme.name + 'が全員起きた！<br>' : '') + g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
     var last = g.l >= LEVELS_PER_WORLD;
     $('nextBtn').textContent = last ? '🎉 ワールドクリア！ 目次へ' : '次の錠へ →';
     $('toolRow').classList.add('hidden'); $('resultBox').classList.remove('hidden');
