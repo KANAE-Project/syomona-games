@@ -1613,8 +1613,9 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     var gain = Math.max(0, st - prevStars), lines = [];
     if (gain > 0) lines.push('💡 ヒント +' + gain + '（★が増えた分）');
     var nowDone = packDone(g.r, g.a), nowGold = packCollar(g.r, g.a) === 3;
-    var nextAnimal = null;
+    var nextAnimal = null, firstClear = false;
     if (nowDone && !wasDone && !prog.flags['c' + g.r + '_' + g.a]) {
+      firstClear = true;
       prog.flags['c' + g.r + '_' + g.a] = 1; gain += 3; lines.push('🎊 ' + g.theme.name + ' ' + lvLabel(g.r) + ' クリア！ 💡 ボーナス +3');
       var np = (g.a < ANIMALS_N - 1) ? [g.r, g.a + 1] : (g.r < ROUNDS ? [g.r + 1, 0] : null);
       if (np) nextAnimal = animalOf(np[0], np[1]);
@@ -1633,7 +1634,9 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     $('resultSub').innerHTML = g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
     $('resultZukan').innerHTML = lines.join('<br>');
     var packLast = (g.j >= PER - 1);
-    $('nextBtn').textContent = packLast ? (nextAnimal ? '🗺 マップへ（' + nextAnimal.name + 'に会いに行く）' : '🗺 マップへ') : '次のパズルへ →';
+    // パック最初のクリア：タイトルで演出が見られる。Lv1・地獄・天国＝仲間が増える、Lv2・Lv3＝王冠がのる
+    var joinLabel = (g.r === 1 || g.r === HELL_R || g.r === HEAVEN_R) ? '🎉 ' + g.theme.name + ' が仲間になった！' : '👑 ' + g.theme.name + ' に王冠がのる！';
+    $('nextBtn').textContent = packLast ? (firstClear ? joinLabel + '（タイトルへ）' : '🗺 マップへ') : '次のパズルへ →';
     $('toolRow').classList.add('hidden'); $('resultBox').classList.remove('hidden');
     confetti(st === 3 ? 70 : (st === 2 ? 36 : 14));
     if (nowDone && !wasDone) sfx('packClear'); else sfx('clear', st);
