@@ -786,6 +786,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   function show(id){ SCREENS.forEach(function(s){ $(s).classList.toggle('hidden', s !== id); }); renderHero(); window.scrollTo(0, 0); }
   // 表紙の仲間たち：Lv1を全問クリアした動物が、クリア順ではなく動物の番号順に並ぶ。Lv2を全問クリアで王冠👑、Lv3を全問クリアで金の王冠。新しく増えた・王冠がついた子だけポンと出る
   var heroSeen = null;   // 直前に描いた状態（最初の描画では動かさない）
+  var heroCelebrated = false;   // 直前の描画で、仲間が増えた／王冠がついた演出をしたか
   function heroBurst(host, gold){   // 動物・王冠のまわりに、きらきらを飛び散らせる
     var box = document.createElement('span'); box.className = 'hero-spark';
     var marks = gold ? ['✨', '⭐', '✨', '💛'] : ['✨', '⭐', '🎉', '💫', '✨'], n = gold ? 10 : 14;
@@ -821,6 +822,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     });
     if (!mem.length) { var e = document.createElement('span'); e.className = 'hero-empty'; e.textContent = '…まだ だれもいない'; row.appendChild(e); }
     heroSeen = now;
+    heroCelebrated = !!(joined.length || crowned.length);
     if (joined.length || crowned.length) {
       var plate = document.querySelector('.top-plate'); plate.classList.remove('celebrate'); void plate.offsetWidth; plate.classList.add('celebrate');
       if (crowned.length) { sfx('crown'); toast('👑 ' + crowned[0].name + ' に王冠がのった！'); }
@@ -841,12 +843,26 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     ['crumbPack', 'crumbPlay'].forEach(function(id){ var el = $(id); el.innerHTML = crumbHtml(r, a, id === 'crumbPlay' ? (extra || '') : ''); bindCrumb(el); });
   }
   // マップに戻る時は、トップではなく「いま遊んでいたコース（動物）」のところまで。focus＝{r,a}（その動物へ）／{top:true}（一番上へ）／省略（直前に開いたパックへ）
+  // その要素が画面の中央に来るまで、約0.6秒でなめらかに動く（ブラウザ標準のsmoothに頼らず、タイマーで動かす）
+  function glideTo(el){
+    var rc = el.getBoundingClientRect(), from = window.scrollY, to = Math.max(0, from + rc.top + rc.height / 2 - window.innerHeight / 2), t0 = Date.now();
+    var iv = setInterval(function(){
+      var k = Math.min(1, (Date.now() - t0) / 600), e = 1 - Math.pow(1 - k, 3);
+      window.scrollTo(0, from + (to - from) * e);
+      if (k >= 1) clearInterval(iv);
+    }, 16);
+  }
   function showMap(focus){
     document.body.setAttribute('data-mode', 'map'); $('screenPlay').style.borderTop = ''; setTheme(currentRound()); renderMap(); show('screenMap');
     var f = (focus && (focus.top || typeof focus.r === 'number')) ? focus : (hasPlayed ? cur : { top: true });
     if (f.top) return;
     var row = document.querySelector('#mapList .node-row[data-r="' + f.r + '"][data-a="' + f.a + '"]');
-    if (row) row.scrollIntoView({ block: 'center' });
+    if (!row) return;
+    if (heroCelebrated) {   // 仲間が増えた／王冠がついた時は、まずトップで演出を見せてから、コースの位置へ移る（その間に自分でスクロールしていたら移らない）
+      setTimeout(function(){ if (window.scrollY < 40 && !$('screenMap').classList.contains('hidden')) glideTo(row); }, 2300);
+      return;
+    }
+    row.scrollIntoView({ block: 'center' });
   }
   function showPack(r, a){ document.body.setAttribute('data-mode', 'stage'); setTheme(r); setCrumbs(r, a); renderPack(r, a); show('screenPack'); }
   function showZukan(){ document.body.setAttribute('data-mode', 'stage'); $('crumbZukan').innerHTML = '<button type="button" data-go="map">🗺 マップ</button><span class="sep">›</span><span class="here">📖 どうぶつ図鑑</span>'; bindCrumb($('crumbZukan')); renderZukan(); show('screenZukan'); }
