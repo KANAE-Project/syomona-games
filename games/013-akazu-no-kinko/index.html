@@ -237,7 +237,7 @@
   .sym.lit{ border-color:#ffd54a; background:rgba(255,213,74,.38); box-shadow:0 0 16px 5px rgba(255,213,74,.85); transform:scale(1.2); z-index:1; }
   .sym.hop{ animation:symHop .6s ease both; animation-delay:var(--d,0ms); border-color:#ffd54a; background:rgba(255,213,74,.3); }
   @keyframes symHop{ 0%{ transform:translateY(0) scale(1); } 40%{ transform:translateY(-16px) scale(1.25); box-shadow:0 0 18px 6px rgba(255,213,74,.85); } 100%{ transform:translateY(0) scale(1); box-shadow:0 0 10px 3px rgba(255,213,74,.5); } }
-  .clues li.flash{ animation:clueFlash .5s ease; }
+  .clues li.flash{ animation:clueFlash 1.2s ease; }
   @keyframes clueFlash{ 0%{ background:rgba(255,213,74,.5); transform:translateX(6px); } 100%{ background:transparent; transform:none; } }
   .sym-hint{ text-align:center; font-size:.74rem; opacity:.65; margin-top:8px; }
 
@@ -1485,7 +1485,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var clues = g.ctx.clues, n = clues.length;
     if (reduce || !lis.length || btns.length !== g.state.length) { done(); return; }
-    var step = Math.max(300, Math.min(520, Math.round(2800 / n)));
+    var step = Math.max(1200, Math.min(2080, Math.round(11200 / n)));    // 1条件ごとにじっくり（約4倍の遅さ）
     var i;
     for (i = 0; i < lis.length; i++) lis[i].classList.remove('done');      // いったん✓を外して、1つずつ付け直す
     for (i = 0; i < btns.length; i++) btns[i].classList.remove('sel');
