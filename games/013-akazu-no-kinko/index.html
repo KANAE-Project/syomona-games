@@ -232,6 +232,13 @@
   .sym{ min-width:0; flex:1; max-width:64px; aspect-ratio:1/1; border:3px solid transparent; border-radius:14px; cursor:pointer; font-family:inherit; font-size:1.6rem; background:var(--off); color:var(--ink); transition:transform .1s ease; padding:0; }
   .sym:active{ transform:scale(.92); }
   .sym.sel{ border-color:var(--accent); background:var(--ring); }
+  .sym{ transition:transform .15s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease; }
+  .sym.glow{ border-color:rgba(255,213,74,.55); }
+  .sym.lit{ border-color:#ffd54a; background:rgba(255,213,74,.38); box-shadow:0 0 16px 5px rgba(255,213,74,.85); transform:scale(1.2); z-index:1; }
+  .sym.hop{ animation:symHop .6s ease both; animation-delay:var(--d,0ms); border-color:#ffd54a; background:rgba(255,213,74,.3); }
+  @keyframes symHop{ 0%{ transform:translateY(0) scale(1); } 40%{ transform:translateY(-16px) scale(1.25); box-shadow:0 0 18px 6px rgba(255,213,74,.85); } 100%{ transform:translateY(0) scale(1); box-shadow:0 0 10px 3px rgba(255,213,74,.5); } }
+  .clues li.flash{ animation:clueFlash .5s ease; }
+  @keyframes clueFlash{ 0%{ background:rgba(255,213,74,.5); transform:translateX(6px); } 100%{ background:transparent; transform:none; } }
   .sym-hint{ text-align:center; font-size:.74rem; opacity:.65; margin-top:8px; }
 
   /* スライド */
@@ -671,6 +678,14 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       else { clack(1.0 * k); }                                                                            // カッ！（標準）
     },
     select: function(){ tone('sine', 1250, 1250, 0.045, 0.16); },
+    check: function(k){   // 条件を1つ確認：ポン（条件が進むごとに音階が上がる）
+      var scale = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760], f = scale[Math.min(k, scale.length - 1)];
+      tone('triangle', f, f, 0.18, 0.26); tone('sine', f * 2, f * 2, 0.10, 0.09);
+    },
+    symWin: function(n){   // 全員そろった：動物が順に跳ねる音＋きらきら
+      for (var i = 0; i < n; i++) tone('triangle', 784 + i * 110, 784 + i * 110, 0.12, 0.2, i * 0.07);
+      [1047, 1319, 1568, 2093].forEach(function(f, i){ tone('sine', f, f, 0.7, 0.14, n * 0.07 + i * 0.02); });
+    },
     join: function(){   // 仲間が増えた：キラキラ上昇＋ポン
       noiseSweep(0.30, 0.5, 900, 5200);
       [784, 988, 1319, 1568, 2093].forEach(function(f, i){ tone('triangle', f, f, 0.22, 0.26, 0.05 + i * 0.075); tone('sine', f * 2, f * 2, 0.12, 0.08, 0.05 + i * 0.075); });
@@ -1128,6 +1143,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
         b.className = 'sym' + (i === g.sel ? ' sel' : '') + (hi ? ' hint-pulse' : '');
         b.textContent = sym(s); b.setAttribute('data-i', i);
         b.addEventListener('click', function(e){
+          if (g.done) return;                                // クリア演出中は触れない（演出が壊れないように）
           var k = +e.currentTarget.getAttribute('data-i');
           if (g.sel < 0) { g.sel = k; sfx('select'); refresh(); return; }
           if (k === g.sel) { g.sel = -1; refresh(); return; }
@@ -1459,8 +1475,40 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     refresh();
     if (g.T.solved(g.ctx, g.state)) {
       g.done = true;                                    // 演出中は、これ以上操作できない
-      if (g.mech === 'slide') playSlideExit(finish); else if (g.mech === 'gear') playRingExit(finish); else finish();
+      if (g.mech === 'slide') playSlideExit(finish); else if (g.mech === 'gear') playRingExit(finish); else if (g.mech === 'symbols') playSymbolsClear(finish); else finish();
     }
+  }
+  // 並び替え錠：ヒント（条件）を上から1つずつ確認し、関わる動物を光らせて✓を付けていく。最後に全員がぴょんと跳ねる。動きを減らす設定の人には、演出なしで進む
+  function playSymbolsClear(done){
+    var box = document.getElementById('board');
+    var lis = box.querySelectorAll('.clues li'), btns = box.querySelectorAll('.sym');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var clues = g.ctx.clues, n = clues.length;
+    if (reduce || !lis.length || btns.length !== g.state.length) { done(); return; }
+    var step = Math.max(300, Math.min(520, Math.round(2800 / n)));
+    var i;
+    for (i = 0; i < lis.length; i++) lis[i].classList.remove('done');      // いったん✓を外して、1つずつ付け直す
+    for (i = 0; i < btns.length; i++) btns[i].classList.remove('sel');
+    function lit(idx, on){ if (btns[idx]) { btns[idx].classList.toggle('lit', on); if (on) btns[idx].classList.add('glow'); } }
+    function involved(c){
+      var syms = (c[0] === 'pos' || c[0] === 'end') ? [c[1]] : c.slice(1);
+      return syms.map(function(s){ return g.state.indexOf(s); }).filter(function(x){ return x >= 0; });
+    }
+    clues.forEach(function(c, k){
+      setTimeout(function(){
+        if (k > 0) involved(clues[k - 1]).forEach(function(x){ lit(x, false); });
+        involved(c).forEach(function(x){ lit(x, true); });
+        if (lis[k]) { lis[k].classList.add('done'); lis[k].classList.add('flash'); }
+        sfx('check', k);
+      }, 250 + k * step);
+    });
+    var tEnd = 250 + n * step;
+    setTimeout(function(){
+      involved(clues[n - 1]).forEach(function(x){ lit(x, false); });
+      for (var q = 0; q < btns.length; q++) { btns[q].style.setProperty('--d', (q * 70) + 'ms'); btns[q].classList.add('hop'); }
+      sfx('symWin', btns.length);
+    }, tEnd);
+    setTimeout(done, tEnd + 700 + btns.length * 70);
   }
   // 鍵の棒が、出口の門をスルッと抜けて盤面の外へ消える（約0.6秒）。動きを減らす設定の人には、演出なしで進む
   function playSlideExit(done){
