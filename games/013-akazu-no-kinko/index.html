@@ -557,7 +557,11 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       else { clack(1.0 * k); }                                                                            // カッ！（標準）
     },
     select: function(){ tone('sine', 1250, 1250, 0.045, 0.16); },
-    exit: function(){ noiseSweep(0.36, 0.45, 500, 3600); tone('sine', 520, 1500, 0.30, 0.09, 0, 0.02); },   // スルッ
+    exit: function(kind){
+      if (kind === 'ring') { noiseSweep(0.36, 0.45, 500, 3600); tone('sine', 520, 1500, 0.30, 0.09, 0, 0.02); return; }          // スルッ（ルーレット錠）
+      noiseSweep(0.36, 1.0, 500, 3600); tone('sine', 520, 1500, 0.30, 0.22, 0, 0.02);                                             // スルッ…（スライド錠：大きめ）
+      tone('sine', 900, 300, 0.09, 0.5, 0.34, 0.004); noiseBand(0.03, 0.5, 1600, 1.0, 0.34);                                      // …ポッ（抜けた瞬間）
+    },
     undo: function(){ tone('sine', 520, 330, 0.09, 0.2); },
     hint: function(){ tone('sine', 988, 988, 0.22, 0.22); tone('sine', 1319, 1319, 0.30, 0.20, 0.11); },        // ポーン
     lock: function(){ tone('sawtooth', 130, 95, 0.16, 0.16); },
@@ -1264,7 +1268,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     if (!svg || !an || !geo || reduce) { done(); return; }
     svg.classList.add('ring-open');                                  // 金色の道が光る
     setTimeout(function(){
-      sfx('exit');
+      sfx('exit', 'ring');
       an.style.transform = 'translateY(' + (-(geo.cy - 15)) + 'px) scale(1.25)';
       setTimeout(function(){
         var ph = THANKS[(g.r * 7 + g.a * 3 + g.j * 5) % THANKS.length];
