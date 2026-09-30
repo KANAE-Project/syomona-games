@@ -205,6 +205,12 @@
 
   /* 図鑑 */
   .zukan-btn{ display:flex; justify-content:center; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; background:rgba(240,180,41,.1); border:2px solid var(--accent); color:var(--ink); border-radius:14px; padding:11px 14px; font-size:.98rem; font-weight:900; margin-bottom:14px; }
+  .voice-zone{ margin-top:18px; text-align:center; }
+  .voice-panel{ margin-top:10px; background:rgba(0,0,0,.4); border-radius:14px; padding:10px 12px; text-align:left; color:#f4efe2; }
+  .vc-note{ font-size:.74rem; line-height:1.6; opacity:.85; margin-bottom:8px; }
+  .vc-row{ display:flex; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.07); border:0; border-radius:10px; color:#f4efe2; padding:7px 10px; margin-bottom:5px; font-size:.86rem; }
+  .vc-row.no{ opacity:.5; cursor:default; }
+  .vc-st{ width:1.6em; text-align:center; } .vc-w{ font-weight:900; flex:1; } .vc-l{ font-size:.72rem; opacity:.8; }
   .zukan-btn:active{ transform:scale(.97); }
   .zukan-btn .zk-count{ color:var(--accent); }
   .zk-banner{ text-align:center; font-size:.95rem; font-weight:900; color:var(--ok); margin:0 0 10px; }
@@ -420,6 +426,13 @@
     <button type="button" class="zukan-btn" id="zukanBtn">📖 どうぶつ図鑑 <span class="zk-count" id="zukanCount"></span></button>
     </div>
     <div id="mapList" style="margin-top:14px;"></div>
+    <div class="voice-zone">
+      <button type="button" class="tool-btn" id="voiceCheckBtn">🗣 ありがとうの声チェック</button>
+      <div id="voicePanel" class="voice-panel hidden">
+        <div class="vc-note">ルーレット錠をクリアした時の「ありがとう」を、各国の言葉で読み上げます。🔊の言語は、この端末で声が出ます（タップで試聴）。「声なし」の言語は、文字だけが表示されます。</div>
+        <div id="voiceList"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ==== パック（動物ごとの問題一覧） ==== -->
@@ -1552,9 +1565,51 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     setTimeout(done, 640);
   }
   // 真ん中の動物が、そろったあきの道を通って外へ出て、各国の言葉で「ありがとう」を言う（約1.9秒）
-  var THANKS = [['Thank you!', '英語'], ['谢谢!', '中国語'], ['Gracias!', 'スペイン語'], ['Merci!', 'フランス語'], ['Danke!', 'ドイツ語'], ['Grazie!', 'イタリア語'],
-                ['Obrigado!', 'ポルトガル語'], ['고마워요!', '韓国語'], ['Спасибо!', 'ロシア語'], ['ขอบคุณ!', 'タイ語'], ['Terima kasih!', 'インドネシア語'],
-                ['Cảm ơn!', 'ベトナム語'], ['Dank je!', 'オランダ語'], ['Tack!', 'スウェーデン語'], ['धन्यवाद!', 'ヒンディー語'], ['Kiitos!', 'フィンランド語']];
+  // [表示する言葉, 言語名, 読み上げの言語コード]
+  var THANKS = [['Thank you!', '英語', 'en-US'], ['谢谢!', '中国語', 'zh-CN'], ['Gracias!', 'スペイン語', 'es-ES'], ['Merci!', 'フランス語', 'fr-FR'], ['Danke!', 'ドイツ語', 'de-DE'], ['Grazie!', 'イタリア語', 'it-IT'],
+                ['Obrigado!', 'ポルトガル語', 'pt-BR'], ['고마워요!', '韓国語', 'ko-KR'], ['Спасибо!', 'ロシア語', 'ru-RU'], ['ขอบคุณ!', 'タイ語', 'th-TH'], ['Terima kasih!', 'インドネシア語', 'id-ID'],
+                ['Cảm ơn!', 'ベトナム語', 'vi-VN'], ['Dank je!', 'オランダ語', 'nl-NL'], ['Tack!', 'スウェーデン語', 'sv-SE'], ['धन्यवाद!', 'ヒンディー語', 'hi-IN'], ['Kiitos!', 'フィンランド語', 'fi-FI']];
+  // 端末に入っている音声から、その言語の声を探す（完全一致→言語の頭2文字が同じもの）。無ければnull（その場合は声なし＝文字だけ）
+  function pickVoice(lang){
+    var vs = (window.speechSynthesis && speechSynthesis.getVoices) ? speechSynthesis.getVoices() : [], i, p = lang.slice(0, 2).toLowerCase(), l = lang.toLowerCase().replace('_', '-');
+    for (i = 0; i < vs.length; i++) if (vs[i].lang.toLowerCase().replace('_', '-') === l) return vs[i];
+    for (i = 0; i < vs.length; i++) if (vs[i].lang.toLowerCase().slice(0, 2) === p) return vs[i];
+    return null;
+  }
+  // 「ありがとう」を、その国の言葉で読み上げる（声が無い言語は鳴らさない）。音ON/OFFボタンに連動。戻り値＝鳴らしたか
+  function speakThanks(ph, force){
+    if ((!force && !isSoundOn()) || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return false;
+    var v = pickVoice(ph[2]); if (!v) return false;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(ph[0].replace('!', '')); u.voice = v; u.lang = v.lang; u.rate = 0.95; u.pitch = 1.1;
+      speechSynthesis.speak(u);
+      return true;
+    } catch (e) { return false; }
+  }
+  // iOSなどは、最初の読み上げをタップ操作の中で始めておかないと、あとで鳴らない。最初のタップで無音の読み上げを1回だけ流して「解錠」する
+  document.addEventListener('pointerdown', function(){
+    try { if (window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } } catch (e) {}
+  }, { once: true });
+  // 声チェック：各言語の声が端末にあるかを一覧にし、タップで聞ける
+  function renderVoiceCheck(){
+    var box = $('voiceList'); if (!box) return;
+    box.innerHTML = '';
+    THANKS.forEach(function(ph){
+      var has = !!pickVoice(ph[2]);
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'vc-row' + (has ? ' ok' : ' no');
+      b.innerHTML = '<span class="vc-st"></span><span class="vc-w"></span><span class="vc-l"></span>';
+      b.children[0].textContent = has ? '🔊' : '－'; b.children[1].textContent = ph[0]; b.children[2].textContent = ph[1] + (has ? '' : '（声なし）');
+      b.addEventListener('click', function(){ if (has) speakThanks(ph, true); });
+      box.appendChild(b);
+    });
+  }
+  $('voiceCheckBtn').addEventListener('click', function(){
+    var p = $('voicePanel'), open = p.classList.contains('hidden');
+    p.classList.toggle('hidden', !open);
+    if (open) renderVoiceCheck();
+  });
+  if (window.speechSynthesis) speechSynthesis.onvoiceschanged = function(){ if (!$('voicePanel').classList.contains('hidden')) renderVoiceCheck(); };
   function playRingExit(done){
     var svg = document.querySelector('#board .ring-svg'), an = svg && svg.querySelector('.ring-animal'), geo = g.ringGeo;
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1568,8 +1623,8 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
         var b = document.createElement('div'); b.className = 'ring-thanks';
         b.innerHTML = '<span></span><small></small>'; b.firstChild.textContent = ph[0]; b.lastChild.textContent = ph[1];
         svg.parentNode.appendChild(b);
-        sfx('coin');
-        setTimeout(done, 1100);
+        sfx('coin'); speakThanks(ph);
+        setTimeout(done, 1600);
       }, 620);
     }, 320);
   }
