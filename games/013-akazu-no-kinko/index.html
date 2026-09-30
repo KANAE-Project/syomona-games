@@ -479,7 +479,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     } catch (e) { return null; }
   }
   // 1音：type波形、開始周波数f0→終了周波数f1、長さdur秒、音量vol。tは開始の遅れ（秒）
-  function tone(type, f0, f1, dur, vol, t){
+  function tone(type, f0, f1, dur, vol, t, atk){
     var ac = audio(); if (!ac) return;
     try {
       var t0 = ac.currentTime + (t || 0);
@@ -487,7 +487,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       o.type = type; o.frequency.setValueAtTime(f0, t0);
       if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
       g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.006);          // 立ち上がりは速く（ぷちっとしない程度に）
+      g.gain.exponentialRampToValueAtTime(vol, t0 + (atk || 0.006));  // 立ち上がりは速く（ぷちっとしない程度に）
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);         // すっと消える
       o.connect(g); g.connect(ac.destination);
       o.start(t0); o.stop(t0 + dur + 0.02);
@@ -505,14 +505,33 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t0);
     } catch (e) {}
   }
+  // 帯域を絞った短いノイズ：centerHz付近だけが残るので「カッ」という硬い打撃の破裂になる
+  function noiseBand(dur, vol, centerHz, q, t){
+    var ac = audio(); if (!ac) return;
+    try {
+      var t0 = ac.currentTime + (t || 0), n = Math.max(1, Math.floor(ac.sampleRate * dur));
+      var buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.2);   // 急速に減衰
+      var src = ac.createBufferSource(); src.buffer = buf;
+      var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = centerHz; f.Q.value = q || 1.2;
+      var g = ac.createGain(); g.gain.value = vol;
+      src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t0);
+    } catch (e) {}
+  }
+  // 「カッ！」：短く乾いた硬い打撃音（将棋の駒・拍子木のイメージ）。k＝音の高さの倍率（1が標準。小さいほど重い）
+  function clack(k, t){
+    noiseBand(0.022, 0.62, 2800 * k, 1.3, t);                                      // 破裂（カ）
+    tone('triangle', 1750 * k, 760 * k, 0.05, 0.36, t, 0.002);                     // 硬い打面（ッ）
+    tone('sine', 3500 * k, 2100 * k, 0.022, 0.10, t, 0.002);                       // 上のきらめき（切れ味）
+  }
   var tapStep = 0;   // 連打すると、音が少しずつ上がる（気持ちいい）。リセットで戻る
   var SFX = {
     tap: function(mech){
-      var up = 1 + (tapStep % 5) * 0.045; tapStep++;
-      if (mech === 'slide') { tone('triangle', 240 * up, 140, 0.11, 0.30); noiseTick(0.03, 0.10, 600); }        // コトッ
-      else if (mech === 'gear') { noiseTick(0.025, 0.22, 3000); tone('square', 900, 700, 0.03, 0.05); noiseTick(0.025, 0.18, 3500, 0.05); }   // カチカチッ
-      else if (mech === 'symbols') { tone('sine', 420 * up, 760 * up, 0.10, 0.26); }                              // ぴょ
-      else { tone('sine', 880 * up, 480 * up, 0.085, 0.28); tone('sine', 1760 * up, 960 * up, 0.05, 0.06); }     // ぽん
+      var k = 1 + (tapStep % 4) * 0.035; tapStep++;      // ほんの少しだけ高さを変えて、連打が機械的にならないように
+      if (mech === 'slide') { clack(0.62 * k); tone('sine', 190, 110, 0.07, 0.22, 0, 0.003); }           // カッ（重め・木の板を打つ）
+      else if (mech === 'gear') { clack(1.12 * k); clack(0.95 * k, 0.065); }                              // カカッ（歯車の2連打）
+      else if (mech === 'symbols') { clack(0.88 * k); }                                                   // カッ（やや低め）
+      else { clack(1.0 * k); }                                                                            // カッ！（標準）
     },
     select: function(){ tone('sine', 1250, 1250, 0.045, 0.16); },
     undo: function(){ tone('sine', 520, 330, 0.09, 0.2); },
