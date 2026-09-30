@@ -75,10 +75,32 @@
   .hero-row{ display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:4px 6px; min-height:3.6rem; padding-top:.5rem; margin:2px 0 4px; }
   .hero-empty{ align-self:center; font-size:.82rem; font-weight:900; opacity:.6; letter-spacing:.05em; }
   .hero-an{ position:relative; font-size:2rem; line-height:1.15; }
-  .hero-an.pop{ animation:popIn .55s cubic-bezier(.3,1.6,.5,1) both; }
+  .hero-an.pop{ animation:heroJoin 1.15s cubic-bezier(.25,1.4,.4,1) both; z-index:3; }
+  .hero-an.pop::after{ content:''; position:absolute; left:50%; top:52%; width:1.1em; height:1.1em; margin:-.55em 0 0 -.55em; border-radius:50%; border:3px solid #ffd54a; box-shadow:0 0 12px #ffd54a; opacity:0; animation:heroRing .9s ease-out .15s both; pointer-events:none; }
+  @keyframes heroJoin{
+    0%{ transform:translateY(46px) scale(0) rotate(-300deg); opacity:0; filter:brightness(3); }
+    35%{ transform:translateY(-16px) scale(1.9) rotate(12deg); opacity:1; filter:brightness(1.8) drop-shadow(0 0 10px #ffd54a); }
+    55%{ transform:translateY(2px) scale(.85) rotate(-6deg); filter:brightness(1.2); }
+    75%{ transform:translateY(-5px) scale(1.2) rotate(3deg); filter:none; }
+    100%{ transform:none; opacity:1; filter:none; }
+  }
+  @keyframes heroRing{ 0%{ transform:scale(.3); opacity:.95; } 100%{ transform:scale(3.4); opacity:0; } }
+  .hero-spark{ position:absolute; left:50%; top:52%; width:0; height:0; pointer-events:none; z-index:4; }
+  .hero-spark i{ position:absolute; left:-.5em; top:-.5em; font-style:normal; font-size:.55em; line-height:1; opacity:0; animation:sparkFly .95s ease-out var(--dl,0s) both; }
+  @keyframes sparkFly{ 0%{ transform:translate(0,0) scale(.3) rotate(0); opacity:1; } 70%{ opacity:1; } 100%{ transform:translate(var(--dx),var(--dy)) scale(1.1) rotate(var(--rt)); opacity:0; } }
+  .top-plate.celebrate{ animation:plateGlow 1.2s ease-out; }
+  @keyframes plateGlow{ 0%{ box-shadow:0 0 0 0 rgba(255,213,74,0); } 25%{ box-shadow:0 0 26px 6px rgba(255,213,74,.75); background:rgba(70,55,10,.5); } 100%{ box-shadow:0 0 0 0 rgba(255,213,74,0); } }
   .hero-an .crown{ position:absolute; left:50%; top:-.5em; font-size:.62em; line-height:1; transform:translateX(-50%) rotate(-8deg); filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
   .hero-an .crown.gold{ filter:drop-shadow(0 0 5px #ffd54a) drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
-  .hero-an .crown.pop{ animation:popIn .6s cubic-bezier(.3,1.6,.5,1) both; }
+  .hero-an .crown.pop{ animation:crownDrop 1.1s cubic-bezier(.3,1.3,.5,1) both; z-index:5; }
+  @keyframes crownDrop{
+    0%{ transform:translate(-50%,-70px) scale(2.6) rotate(50deg); opacity:0; filter:brightness(3); }
+    45%{ transform:translate(-50%,3px) scale(1.4) rotate(-14deg); opacity:1; filter:brightness(2) drop-shadow(0 0 10px #ffd54a); }
+    62%{ transform:translate(-50%,-9px) scale(.95) rotate(-4deg); filter:brightness(1.3); }
+    80%{ transform:translate(-50%,1px) scale(1.1) rotate(-9deg); filter:none; }
+    100%{ transform:translateX(-50%) rotate(-8deg); opacity:1; filter:none; }
+  }
+  @media (prefers-reduced-motion: reduce){ .hero-an.pop, .hero-an .crown.pop, .top-plate.celebrate, .hero-an.pop::after, .hero-spark i{ animation:none !important; } }
   .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:8px; }
   .back-link-btn{ display:block; background:var(--accent); color:#2a2208; font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center; padding:14px 16px; border-radius:14px; margin-top:20px; box-shadow:0 4px 0 var(--accent-dark); }
   .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
@@ -564,6 +586,17 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       else { clack(1.0 * k); }                                                                            // カッ！（標準）
     },
     select: function(){ tone('sine', 1250, 1250, 0.045, 0.16); },
+    join: function(){   // 仲間が増えた：キラキラ上昇＋ポン
+      noiseSweep(0.30, 0.5, 900, 5200);
+      [784, 988, 1319, 1568, 2093].forEach(function(f, i){ tone('triangle', f, f, 0.22, 0.26, 0.05 + i * 0.075); tone('sine', f * 2, f * 2, 0.12, 0.08, 0.05 + i * 0.075); });
+      tone('sine', 300, 160, 0.14, 0.4, 0, 0.004);
+    },
+    crown: function(){   // 王冠がのった：ファンファーレ風
+      noiseSweep(0.25, 0.45, 1200, 6000);
+      [659, 784, 988, 1319].forEach(function(f, i){ tone('square', f, f, 0.14, 0.09, i * 0.09); tone('triangle', f, f, 0.3, 0.26, i * 0.09); });
+      [1319, 1568, 2093].forEach(function(f, i){ tone('sine', f, f, 0.8, 0.16, 0.4 + i * 0.02); });
+      for (var k = 0; k < 5; k++) tone('sine', 3000 + k * 420, 3000 + k * 420, 0.08, 0.05, 0.5 + k * 0.06);
+    },
     exit: function(kind){
       if (kind === 'ring') { noiseSweep(0.36, 0.45, 500, 3600); tone('sine', 520, 1500, 0.30, 0.09, 0, 0.02); return; }          // スルッ（ルーレット錠）
       noiseSweep(0.36, 1.0, 500, 3600); tone('sine', 520, 1500, 0.30, 0.22, 0, 0.02);                                             // スルッ…（スライド錠：大きめ）
@@ -668,24 +701,45 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   function show(id){ SCREENS.forEach(function(s){ $(s).classList.toggle('hidden', s !== id); }); renderHero(); window.scrollTo(0, 0); }
   // 表紙の仲間たち：Lv1を全問クリアした動物が、クリア順ではなく動物の番号順に並ぶ。Lv2を全問クリアで王冠👑、Lv3を全問クリアで金の王冠。新しく増えた・王冠がついた子だけポンと出る
   var heroSeen = null;   // 直前に描いた状態（最初の描画では動かさない）
+  function heroBurst(host, gold){   // 動物・王冠のまわりに、きらきらを飛び散らせる
+    var box = document.createElement('span'); box.className = 'hero-spark';
+    var marks = gold ? ['✨', '⭐', '✨', '💛'] : ['✨', '⭐', '🎉', '💫', '✨'], n = gold ? 10 : 14;
+    for (var k = 0; k < n; k++) {
+      var i = document.createElement('i'), ang = (k / n) * Math.PI * 2 + Math.random() * .4, d = 34 + Math.random() * 40;
+      i.textContent = marks[k % marks.length];
+      i.style.setProperty('--dx', (Math.cos(ang) * d).toFixed(0) + 'px'); i.style.setProperty('--dy', (Math.sin(ang) * d - 8).toFixed(0) + 'px');
+      i.style.setProperty('--rt', ((Math.random() * 2 - 1) * 200).toFixed(0) + 'deg'); i.style.setProperty('--dl', (Math.random() * .18).toFixed(2) + 's');
+      box.appendChild(i);
+    }
+    host.appendChild(box);
+    setTimeout(function(){ if (box.parentNode) box.remove(); }, 1500);
+  }
   function renderHero(){
     var row = $('heroRow'); if (!row) return;
-    var now = {}, html = 0;
+    var now = {}, html = 0, joined = [], crowned = [];
     row.innerHTML = '';
     for (var a = 0; a < ANIMALS_N; a++) {
       if (!packDone(1, a)) continue;
       var crown = packDone(3, a) ? 3 : (packDone(2, a) ? 2 : 0);
       now[a] = crown; html++;
-      var sp = document.createElement('span'); sp.className = 'hero-an' + (heroSeen && heroSeen[a] === undefined ? ' pop' : '');
+      var isNew = heroSeen && heroSeen[a] === undefined, isUp = heroSeen && heroSeen[a] !== undefined && heroSeen[a] < crown;
+      var sp = document.createElement('span'); sp.className = 'hero-an' + (isNew ? ' pop' : '');
       sp.textContent = ANIMALS[a].em;
+      if (isNew) { joined.push(a); heroBurst(sp, false); }
       if (crown) {
-        var c = document.createElement('span'); c.className = 'crown' + (crown === 3 ? ' gold' : '') + (heroSeen && heroSeen[a] !== undefined && heroSeen[a] < crown ? ' pop' : '');
+        var c = document.createElement('span'); c.className = 'crown' + (crown === 3 ? ' gold' : '') + (isUp ? ' pop' : '');
         c.textContent = '👑'; sp.appendChild(c);
+        if (isUp) { crowned.push(a); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 380); }
       }
       row.appendChild(sp);
     }
     if (!html) { var e = document.createElement('span'); e.className = 'hero-empty'; e.textContent = '…まだ だれもいない'; row.appendChild(e); }
     heroSeen = now;
+    if (joined.length || crowned.length) {
+      var plate = document.querySelector('.top-plate'); plate.classList.remove('celebrate'); void plate.offsetWidth; plate.classList.add('celebrate');
+      if (crowned.length) { sfx('crown'); toast('👑 ' + ANIMALS[crowned[0]].name + ' に王冠がのった！'); }
+      else { sfx('join'); toast('🎉 ' + ANIMALS[joined[0]].name + ' が仲間になった！'); }
+    }
   }
   function currentRound(){   // マップの背景：いまの挑戦中（最初の未クリアのパック）の周回。全部クリア済みなら最後の周回
     for (var r = 1; r <= ROUNDS; r++) for (var a = 0; a < ANIMALS_N; a++) if (packUnlocked(r, a) && !packDone(r, a)) return r;
