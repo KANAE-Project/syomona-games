@@ -194,6 +194,10 @@
   .sw:active{ transform:scale(.92); }
   .sw .em{ display:block; }
   .sw.awake{ background:var(--on); box-shadow:0 0 14px var(--glow); }
+  .sw.wave{ animation:swWave .6s ease both; animation-delay:var(--d,0ms); z-index:1; }
+  @keyframes swWave{ 0%{ transform:scale(1); filter:brightness(1); } 45%{ transform:scale(1.3); filter:brightness(1.8); box-shadow:0 0 24px 9px rgba(255,255,255,.9); } 100%{ transform:scale(1); filter:brightness(1.2); box-shadow:0 0 16px var(--glow); } }
+  .sw-grid.allglow{ animation:gridGlow 1.3s ease both; }
+  @keyframes gridGlow{ 0%{ filter:brightness(1.1); box-shadow:0 0 0 0 var(--glow); } 30%{ filter:brightness(1.9); box-shadow:0 0 50px 18px var(--glow); } 100%{ filter:brightness(1.15); box-shadow:0 0 18px 4px var(--glow); } }
   .sw.sleep{ background:var(--off); }
   .sw.sleep .em{ filter:grayscale(1) opacity(.42); }
   .sw.sleep::after{ content:'💤'; position:absolute; right:5%; top:0; font-size:.42em; }
@@ -681,6 +685,14 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     check: function(k){   // 条件を1つ確認：ポン（条件が進むごとに音階が上がる）
       var scale = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760], f = scale[Math.min(k, scale.length - 1)];
       tone('triangle', f, f, 0.18, 0.26); tone('sine', f * 2, f * 2, 0.10, 0.09);
+    },
+    swStep: function(k){   // 光の波：斜めに1列進むごとに、ペンタトニックで音が上がっていく
+      var pent = [0, 2, 4, 7, 9], f = 523 * Math.pow(2, (pent[k % 5] + 12 * Math.floor(k / 5)) / 12);
+      tone('triangle', f, f, 0.16, 0.2); tone('sine', f * 2, f * 2, 0.08, 0.07);
+    },
+    swWin: function(){   // 盤面全体がぱぁっと光る：きらきらの和音
+      noiseSweep(0.3, 0.4, 1200, 6000);
+      [784, 1047, 1319, 1568, 2093].forEach(function(f, i){ tone('triangle', f, f, 0.9, 0.17, i * 0.03); tone('sine', f * 2, f * 2, 0.5, 0.06, i * 0.03); });
     },
     symWin: function(n){   // 全員そろった：動物が順に跳ねる音＋きらきら
       for (var i = 0; i < n; i++) tone('triangle', 784 + i * 110, 784 + i * 110, 0.12, 0.2, i * 0.07);
@@ -1475,8 +1487,23 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     refresh();
     if (g.T.solved(g.ctx, g.state)) {
       g.done = true;                                    // 演出中は、これ以上操作できない
-      if (g.mech === 'slide') playSlideExit(finish); else if (g.mech === 'gear') playRingExit(finish); else if (g.mech === 'symbols') playSymbolsClear(finish); else finish();
+      if (g.mech === 'slide') playSlideExit(finish); else if (g.mech === 'gear') playRingExit(finish); else if (g.mech === 'symbols') playSymbolsClear(finish); else if (g.mech === 'lights') playLightsClear(finish); else finish();
     }
+  }
+  // スイッチ錠：全員が起きた瞬間、左上から右下へ光の波が走り（1マスずつ跳ねて白く光る）、最後に盤面全体がぱぁっと光る。動きを減らす設定の人には、演出なしで進む
+  function playLightsClear(done){
+    var grid = document.querySelector('#board .sw-grid'), cells = grid ? grid.querySelectorAll('.sw') : [], n = g.ctx.n;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!grid || reduce || cells.length !== n * n) { done(); return; }
+    var STEP = 110, i, maxD = 2 * (n - 1);
+    for (i = 0; i < cells.length; i++) {
+      var d = Math.floor(i / n) + (i % n);                                  // 左上からの斜めの距離
+      cells[i].style.setProperty('--d', (d * STEP) + 'ms'); cells[i].classList.add('wave');
+    }
+    for (var k = 0; k <= maxD; k++) setTimeout(function(kk){ return function(){ sfx('swStep', kk); }; }(k), k * STEP);
+    var tAll = maxD * STEP + 600;
+    setTimeout(function(){ grid.classList.add('allglow'); sfx('swWin'); }, tAll);
+    setTimeout(done, tAll + 1300);
   }
   // 並び替え錠：ヒント（条件）を上から1つずつ確認し、関わる動物を光らせて✓を付けていく。最後に全員がぴょんと跳ねる。動きを減らす設定の人には、演出なしで進む
   function playSymbolsClear(done){
