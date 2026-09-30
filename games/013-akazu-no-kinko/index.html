@@ -1290,11 +1290,14 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   // 棒の長さ分、同じ動物が並ぶ。長さ3の棒は体の長い動物、長さ2の棒は小さめの動物。鍵の棒は「この面の動物＋🔑」
   var LONG_ANIMALS = ['🐍', '🐊', '🦒', '🐛', '🐘', '🦕', '🦎'];
   var SHORT_ANIMALS = ['🐢', '🦔', '🐙', '🦆', '🐝', '🦉', '🐌', '🐭'];
-  function slideAnimals(ctx, keyEm){
-    var li = 0, si = 0;
+  // 地獄コースでは、行列の顔ぶれが魔物になる（棒の長さ2＝お化け・悪魔たち、長さ3＝体の長い怪物）
+  var LONG_HELL = ['🐍', '🐉', '🦂', '🐛', '🐲', '🐊', '🦎'];
+  var SHORT_HELL = ['👻', '🦇', '💀', '🧟', '👿', '👺', '👹', '😈', '🎃', '🤡', '👽', '👾'];
+  function slideAnimals(ctx, keyEm, hell){
+    var li = 0, si = 0, LONG = (hell ? LONG_HELL : LONG_ANIMALS).filter(function(e){ return e !== keyEm; }), SHORT = (hell ? SHORT_HELL : SHORT_ANIMALS).filter(function(e){ return e !== keyEm; });   // 鍵の動物と同じ顔は使わない
     return ctx.cars.map(function(c, k){
       if (k === 0) return [keyEm, '🔑'];
-      var em = c.L >= 3 ? LONG_ANIMALS[li++ % LONG_ANIMALS.length] : SHORT_ANIMALS[si++ % SHORT_ANIMALS.length];
+      var em = c.L >= 3 ? LONG[li++ % LONG.length] : SHORT[si++ % SHORT.length];
       var cells = []; for (var x = 0; x < c.L; x++) cells.push(em);
       return cells;
     });
@@ -1314,7 +1317,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       var ctx = g.ctx, wrap = document.createElement('div'); wrap.className = 'slide-wrap ex-' + ctx.exit;
       var board = document.createElement('div'); board.className = 'slide-board';
       var pct = 100 / SN;
-      var animals = slideAnimals(ctx, g.theme ? g.theme.em : '🐱');
+      var animals = slideAnimals(ctx, g.theme ? g.theme.em : '🐱', g.r === HELL_R);
       function place(el, r, c, h, w){ el.style.left = (c * pct) + '%'; el.style.top = (r * pct) + '%'; el.style.width = (w * pct) + '%'; el.style.height = (h * pct) + '%'; }
       ctx.cars.forEach(function(c, k){
         var b = document.createElement('button'); b.type = 'button';
