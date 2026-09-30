@@ -10,18 +10,18 @@
     /* 既定＝草原。周回ごとに body[data-theme] で上書き（grass=草原 / savanna=サバンナ / ice=氷面）。配色はコントラスト比を計算して決定済み */
     --bg1:#26803c; --bg2:#12502a; --card:#174a2c; --ink:#f4fff0;
     --accent:#ffd54a; --accent-dark:#c79a12; --on:#ffd54a; --off:#2f6e45; --ok:#7ee787; --lock:#123b23;
-    --mute:#b4dbbf; --mute2:#7fb08a; --board:#103820; --cleared:#3d5a2b; --ring:#2a6b40;
+    --mute:#c4e6cc; --mute2:#b0d8ba; --board:#103820; --cleared:#3d5a2b; --ring:#2a6b40;
     --deco1:#66bb6a; --deco2:#3f9a4a; --hill1:#2f9a48; --hill2:#3aa856;
   }
-  body[data-theme=savanna]{
+  body[data-theme=savanna], .sec-savanna{
     --bg1:#a8611c; --bg2:#6b3c11; --card:#5b3512; --ink:#fff6e5;
     --accent:#ffe08a; --accent-dark:#c9a03a; --on:#ffe08a; --off:#8a5f2c; --ok:#b6f28a; --lock:#46280e;
-    --mute:#e0c08a; --mute2:#b08a55; --board:#3e240c; --cleared:#6a4d1f; --ring:#7a5326;
+    --mute:#f0d9a8; --mute2:#e6cb96; --board:#3e240c; --cleared:#6a4d1f; --ring:#7a5326;
     --deco1:#d9a441; --deco2:#b9812a; --hill1:#c07a2a; --hill2:#d08f36; }
-  body[data-theme=ice]{
+  body[data-theme=ice], .sec-ice{
     --bg1:#2f7fb0; --bg2:#1a5079; --card:#17446a; --ink:#f2fbff;
     --accent:#ffe27a; --accent-dark:#c9aa3a; --on:#ffe27a; --off:#33739b; --ok:#7ff0c0; --lock:#123957;
-    --mute:#b6ddf1; --mute2:#7fb3d3; --board:#0f3554; --cleared:#2f6488; --ring:#2a6690;
+    --mute:#c9e8f7; --mute2:#b8dcf0; --board:#0f3554; --cleared:#2f6488; --ring:#2a6690;
     --deco1:#dff4ff; --deco2:#a9dcf5; --hill1:#5aa8d0; --hill2:#7dc0e0; }
   *{box-sizing:border-box;}
   body{ margin:0; min-height:100vh; font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
@@ -32,6 +32,7 @@
   body{ position:relative; }
   #bgDeco{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
   .wrap{ position:relative; z-index:1; }
+  body[data-mode=map] #bgDeco .sky, body[data-mode=map] #bgDeco .hills, body[data-mode=map] #bgDeco .tree, body[data-mode=map] #bgDeco .snow, body[data-mode=map] #bgDeco .blades{ display:none !important; }
   #bgDeco .blades{ position:absolute; left:0; right:0; bottom:0; height:110px; background-repeat:repeat-x; background-size:150px 110px; }
   #bgDeco .blades.back{ height:140px; opacity:.7; background-position:60px 0; background-size:190px 140px; }
   #bgDeco .hills{ position:absolute; left:0; right:0; bottom:0; height:46vh; background:radial-gradient(ellipse 70% 100% at 20% 100%, var(--hill1) 0 60%, transparent 61%), radial-gradient(ellipse 80% 90% at 85% 100%, var(--hill2) 0 60%, transparent 61%); opacity:.55; }
@@ -71,6 +72,13 @@
   .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:8px; }
   .back-link-btn{ display:block; background:var(--accent); color:#2a2208; font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center; padding:14px 16px; border-radius:14px; margin-top:20px; box-shadow:0 4px 0 var(--accent-dark); }
   .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+  /* ---- ゲーム画面（パック・プレイ・図鑑）：額縁つきのパズル台。マップ（色の帯）と区別がつく ---- */
+  .stage{ border:4px solid rgba(255,255,255,.3); box-shadow:0 0 0 3px rgba(0,0,0,.25), 0 10px 28px rgba(0,0,0,.45) !important; }
+  .crumb{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:.78rem; font-weight:900; margin:-4px 0 10px; padding:6px 10px; border-radius:999px; background:rgba(0,0,0,.34); }
+  .crumb .sep{ opacity:.55; }
+  .crumb .here{ color:var(--accent); }
+  .crumb button{ font-family:inherit; font-weight:900; font-size:.78rem; color:var(--ink); background:none; border:none; cursor:pointer; padding:0; text-decoration:underline; text-underline-offset:3px; }
+  #board{ background:var(--board); border-radius:18px; padding:12px 10px; margin-bottom:4px; box-shadow:inset 0 3px 10px rgba(0,0,0,.35); }
   .panel{ background:color-mix(in srgb, var(--card) 88%, transparent); border-radius:20px; padding:16px 14px 18px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
 
   /* 目次 */
@@ -234,10 +242,24 @@
   .status-chip b{ color:var(--accent); font-size:1.05rem; }
   .daily-msg{ text-align:center; font-size:.8rem; font-weight:900; color:var(--ok); margin:0 0 8px; }
   .daily-msg:empty{ display:none; }
-  .map-round{ text-align:center; margin:18px 0 10px; padding:8px 6px 8px; border-radius:14px; background:rgba(0,0,0,.2); border:2px solid rgba(255,255,255,.12); }
-  .map-round[data-w=grass]{ background:linear-gradient(180deg, rgba(102,187,106,.28), rgba(0,0,0,.18)); }
-  .map-round[data-w=savanna]{ background:linear-gradient(180deg, rgba(233,180,80,.3), rgba(0,0,0,.18)); }
-  .map-round[data-w=ice]{ background:linear-gradient(180deg, rgba(190,235,255,.3), rgba(0,0,0,.18)); }
+  /* ---- マップ：周回ごとの色の帯 ---- */
+  .map-sec{ position:relative; margin:0 -6px 16px; padding:10px 12px 86px; border-radius:22px; overflow:hidden; color:var(--ink);
+    border:3px solid rgba(255,255,255,.22); box-shadow:0 8px 22px rgba(0,0,0,.28); }
+  .map-sec > *{ position:relative; z-index:1; }
+  .map-sec.sec-grass{ background:linear-gradient(180deg,#3aa04f 0%,#26803c 55%,#1b6a31 100%); }
+  .map-sec.sec-savanna{ background:linear-gradient(180deg,#c9822f 0%,#a8611c 55%,#8a4d14 100%); }
+  .map-sec.sec-ice{ background:linear-gradient(180deg,#4aa3d0 0%,#2f7fb0 55%,#22608c 100%); }
+  .map-sec::after{ content:''; position:absolute; left:0; right:0; bottom:0; height:74px; z-index:0; background-repeat:repeat-x; background-size:118px 74px; background-position:bottom; }
+  .map-sec.sec-grass::after{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M4 64 Q6 30 12 10 Q16 32 18 64Z M26 64 Q28 34 36 16 Q38 36 40 64Z M50 64 Q52 28 58 6 Q64 30 64 64Z M72 64 Q74 32 82 14 Q84 34 86 64Z' fill='%2366bb6a'/%3E%3Cpath d='M14 64 Q16 44 22 30 Q24 46 26 64Z M60 64 Q62 46 68 34 Q70 48 72 64Z' fill='%233f9a4a'/%3E%3Ccircle cx='30' cy='14' r='4' fill='%23ffeb3b'/%3E%3Ccircle cx='76' cy='12' r='4' fill='%23ff8fb3'/%3E%3C/svg%3E"); }
+  .map-sec.sec-savanna::after{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M4 64 Q10 30 8 8 Q18 34 18 64Z M28 64 Q34 36 34 14 Q42 38 42 64Z M52 64 Q58 26 56 4 Q66 30 66 64Z M74 64 Q80 34 80 12 Q88 36 88 64Z' fill='%23e8c777'/%3E%3Cpath d='M16 64 Q20 46 20 32 Q28 48 28 64Z M62 64 Q66 48 66 36 Q74 50 74 64Z' fill='%23d9a441'/%3E%3C/svg%3E"); }
+  .map-sec.sec-ice::after{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M0 64 L14 20 L28 64Z M22 64 L40 8 L58 64Z M52 64 L68 26 L84 64Z M76 64 L90 34 L104 64Z' fill='%23dff4ff'/%3E%3Cpath d='M40 8 L48 30 L36 30Z M14 20 L19 34 L9 34Z' fill='%23ffffff'/%3E%3C/svg%3E"); }
+  .sec-deco{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .sec-deco i{ position:absolute; font-style:normal; opacity:.55; }
+  .sec-savanna .sec-sun{ position:absolute; top:-70px; right:-50px; width:190px; height:190px; border-radius:50%; background:radial-gradient(circle, rgba(255,232,150,.95) 0 34%, rgba(255,200,80,.5) 36% 58%, transparent 72%); }
+  /* 帯の中の動物の説明は、半透明の暗いプレートに載せる（帯の色が明るくても読める。コントラスト計算済み） */
+  .map-sec .node-info{ background:rgba(0,0,0,.5); border-radius:12px; padding:6px 10px; }
+  .map-sec .node-row.locked .node-info{ background:rgba(0,0,0,.42); }
+  .map-round{ text-align:center; margin:4px 0 14px; padding:8px 6px 8px; border-radius:14px; background:rgba(0,0,0,.28); border:2px solid rgba(255,255,255,.2); }
   .mr-strip{ font-size:1.15rem; letter-spacing:.2em; line-height:1.3; }
   .mr-title{ font-size:.95rem; font-weight:900; color:var(--accent); letter-spacing:.05em; margin-top:2px; }
   .map-round.sub{ opacity:.6; }
@@ -285,7 +307,8 @@
   </div>
 
   <!-- ==== マップ ==== -->
-  <div id="screenMap" class="panel">
+  <div id="screenMap">
+    <div class="panel map-head">
     <div class="sub">ねむっている動物たちの錠を、順番に開けていこう。<br>手数が少ないほど★が増えて、ヒントがもらえる！</div>
     <div class="status-row">
       <div class="status-chip">💡 ヒント <b id="hintCount">0</b></div>
@@ -294,11 +317,13 @@
     <div class="daily-msg" id="dailyMsg"></div>
     <div class="daily-msg" id="openAllMsg" style="color:var(--accent)"></div>
     <button type="button" class="zukan-btn" id="zukanBtn">📖 どうぶつ図鑑 <span class="zk-count" id="zukanCount"></span></button>
-    <div id="mapList"></div>
+    </div>
+    <div id="mapList" style="margin-top:14px;"></div>
   </div>
 
   <!-- ==== パック（動物ごとの問題一覧） ==== -->
-  <div id="screenPack" class="panel hidden">
+  <div id="screenPack" class="panel stage hidden">
+    <div class="crumb" id="crumbPack"></div>
     <div class="pack-hero"><div class="em" id="packEm"></div><div class="nm" id="packName"></div><div class="mc" id="packMech"></div></div>
     <div class="play-rule" id="packRule"></div>
     <div class="lv-grid" id="packGrid"></div>
@@ -307,7 +332,8 @@
   </div>
 
   <!-- ==== 図鑑 ==== -->
-  <div id="screenZukan" class="panel hidden">
+  <div id="screenZukan" class="panel stage hidden">
+    <div class="crumb" id="crumbZukan"></div>
     <div class="play-head"><div class="play-title">📖 どうぶつ図鑑</div><div class="play-count" id="zukanTotal"></div></div>
     <div class="play-rule">動物のLv1をすべて解くと、その動物が仲間になります。Lvごとに、★の合計で首輪が決まります（全部★3＝金の首輪、合計が2/3以上＝銀の首輪）。</div>
     <div class="zk-banner" id="zukanBanner"></div>
@@ -316,7 +342,8 @@
   </div>
 
   <!-- ==== プレイ画面 ==== -->
-  <div id="screenPlay" class="panel hidden">
+  <div id="screenPlay" class="panel stage hidden">
+    <div class="crumb" id="crumbPlay"></div>
     <div class="play-head"><div class="play-title" id="playTitle"></div><div class="play-count" id="playCount">0手</div></div>
     <div class="play-rule" id="playRule"></div>
     <div id="board"></div>
@@ -493,9 +520,18 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     for (var r = 1; r <= ROUNDS; r++) for (var a = 0; a < ANIMALS_N; a++) if (packUnlocked(r, a) && !packDone(r, a)) return r;
     return ROUNDS;
   }
-  function showMap(){ $('screenPlay').style.borderTop = ''; setTheme(currentRound()); renderMap(); show('screenMap'); }
-  function showPack(r, a){ setTheme(r); renderPack(r, a); show('screenPack'); }
-  function showZukan(){ renderZukan(); show('screenZukan'); }
+  function crumbHtml(r, a, last){
+    var wd = worldOf(r), an = ANIMALS[a];
+    return '<button type="button" data-go="map">🗺 マップ</button><span class="sep">›</span><span>' + wd.icon + ' ' + wd.name + '</span><span class="sep">›</span>' +
+      (last ? '<span class="here">' + an.em + ' ' + an.name + ' Lv' + r + last + '</span>' : '<span class="here">' + an.em + ' ' + an.name + ' Lv' + r + '</span>');
+  }
+  function bindCrumb(el){ var b = el.querySelector('button[data-go=map]'); if (b) b.addEventListener('click', showMap); }
+  function setCrumbs(r, a, extra){
+    ['crumbPack', 'crumbPlay'].forEach(function(id){ var el = $(id); el.innerHTML = crumbHtml(r, a, id === 'crumbPlay' ? (extra || '') : ''); bindCrumb(el); });
+  }
+  function showMap(){ document.body.setAttribute('data-mode', 'map'); $('screenPlay').style.borderTop = ''; setTheme(currentRound()); renderMap(); show('screenMap'); }
+  function showPack(r, a){ document.body.setAttribute('data-mode', 'stage'); setTheme(r); setCrumbs(r, a); renderPack(r, a); show('screenPack'); }
+  function showZukan(){ document.body.setAttribute('data-mode', 'stage'); $('crumbZukan').innerHTML = '<button type="button" data-go="map">🗺 マップ</button><span class="sep">›</span><span class="here">📖 どうぶつ図鑑</span>'; bindCrumb($('crumbZukan')); renderZukan(); show('screenZukan'); }
 
   // ---------- マップ ----------
   var cur = { r: 1, a: 0 };   // いま開いているパック
@@ -508,18 +544,31 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     $('zukanCount').textContent = zukanOwned() + ' / ' + ANIMALS_N;
     var list = $('mapList'); list.innerHTML = '';
     var nowFound = false;
+    var sdeco = { grass: ['🌼', '🦋', '🌷', '🌿', '🌸'], savanna: ['🌵', '🌾', '🦓', '🌾', '🌵'], ice: ['❄', '🧊', '❄', '⛄', '❅'] };
     for (var r = 1; r <= ROUNDS; r++) {
       var wd = worldOf(r);
+      var sec = document.createElement('div'); sec.className = 'map-sec sec-' + wd.key; sec.setAttribute('data-w', wd.key);
+      // 装飾（帯の背景に散らす。位置は周回番号から決めるので、開くたびに同じ）
+      var deco = document.createElement('div'); deco.className = 'sec-deco';
+      if (wd.key === 'savanna') { var sun = document.createElement('div'); sun.className = 'sec-sun'; deco.appendChild(sun); }
+      var glyphs = sdeco[wd.key];
+      for (var q = 0; q < 12; q++) {
+        var gi = document.createElement('i'); gi.textContent = glyphs[(q + r) % glyphs.length];
+        gi.style.left = ((q * 37 + r * 11) % 92 + 2) + '%'; gi.style.top = ((q * 53 + r * 23) % 84 + 4) + '%';
+        gi.style.fontSize = (12 + (q * 7 + r) % 10) + 'px';
+        deco.appendChild(gi);
+      }
+      sec.appendChild(deco);
       var h = document.createElement('div'); h.className = 'map-round'; h.setAttribute('data-w', wd.key);
       h.innerHTML = '<div class="mr-strip"></div><div class="mr-title"></div>';
       h.querySelector('.mr-strip').textContent = wd.strip;
       h.querySelector('.mr-title').textContent = wd.icon + ' 周回' + r + '（Lv' + r + '）　' + wd.name;
-      list.appendChild(h);
+      sec.appendChild(h);
       for (var a = 0; a < ANIMALS_N; a++) {
         (function(r, a){
           var an = ANIMALS[a], pk = packOf(r, a), ok = packUnlocked(r, a), done = packDone(r, a);
           var isNow = ok && !done && !nowFound; if (isNow) nowFound = true;
-          var last = (r === ROUNDS && a === ANIMALS_N - 1);
+          var last = (a === ANIMALS_N - 1);
           var row = document.createElement('div');
           row.className = 'node-row' + (a % 2 ? ' right' : '') + (ok ? '' : ' locked') + (last ? ' last' : '');
           row.style.setProperty('--nc', an.color);
@@ -533,9 +582,10 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
             if (ok) { cur = { r: r, a: a }; showPack(r, a); }
             else toast('🔒 前の動物のパズルを、ぜんぶ解くと会えるよ');
           });
-          list.appendChild(row);
+          sec.appendChild(row);
         })(r, a);
       }
+      list.appendChild(sec);
     }
     var end = document.createElement('div'); end.className = 'map-end'; end.textContent = '🌱 周回' + (ROUNDS + 1) + 'は準備中… つづく！'; list.appendChild(end);
   }
@@ -945,7 +995,8 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
           moves: 0, hist: [], hintUsed: false, hint: null, done: false, start: null, theme: ANIMALS[a] };
     g.start = (typeof init.state === 'object') ? init.state.slice() : init.state;
     cur = { r: r, a: a };
-    setTheme(r);
+    document.body.setAttribute('data-mode', 'stage'); setTheme(r);
+    setCrumbs(r, a, '　' + (j + 1) + '/' + PER + '問目');
     $('playTitle').textContent = g.theme.em + ' ' + g.theme.name + ' Lv' + r + '　' + (j + 1) + '/' + PER;
     $('screenPlay').style.borderTop = '5px solid ' + g.theme.color;
     $('playRule').textContent = MECH[pk.mech].rule;
@@ -1109,6 +1160,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     else { gradeMsg.textContent = '違うようです、もう一度確認してください…'; }
   });
 
+  document.body.setAttribute('data-mode', 'map');
   setTheme(currentRound());   // 起動直後も、いまの挑戦中の周回の世界にする（開き直した時に草原へ戻らないように）
   renderMap();
 })();
