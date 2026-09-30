@@ -801,12 +801,19 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   function setCrumbs(r, a, extra){
     ['crumbPack', 'crumbPlay'].forEach(function(id){ var el = $(id); el.innerHTML = crumbHtml(r, a, id === 'crumbPlay' ? (extra || '') : ''); bindCrumb(el); });
   }
-  function showMap(){ document.body.setAttribute('data-mode', 'map'); $('screenPlay').style.borderTop = ''; setTheme(currentRound()); renderMap(); show('screenMap'); }
+  // マップに戻る時は、トップではなく「いま遊んでいたコース（動物）」のところまで。focus＝{r,a}（その動物へ）／{top:true}（一番上へ）／省略（直前に開いたパックへ）
+  function showMap(focus){
+    document.body.setAttribute('data-mode', 'map'); $('screenPlay').style.borderTop = ''; setTheme(currentRound()); renderMap(); show('screenMap');
+    var f = (focus && (focus.top || typeof focus.r === 'number')) ? focus : (hasPlayed ? cur : { top: true });
+    if (f.top) return;
+    var row = document.querySelector('#mapList .node-row[data-r="' + f.r + '"][data-a="' + f.a + '"]');
+    if (row) row.scrollIntoView({ block: 'center' });
+  }
   function showPack(r, a){ document.body.setAttribute('data-mode', 'stage'); setTheme(r); setCrumbs(r, a); renderPack(r, a); show('screenPack'); }
   function showZukan(){ document.body.setAttribute('data-mode', 'stage'); $('crumbZukan').innerHTML = '<button type="button" data-go="map">🗺 マップ</button><span class="sep">›</span><span class="here">📖 どうぶつ図鑑</span>'; bindCrumb($('crumbZukan')); renderZukan(); show('screenZukan'); }
 
   // ---------- マップ ----------
-  var cur = { r: 1, a: 0 };   // いま開いているパック
+  var cur = { r: 1, a: 0 }, hasPlayed = false;   // いま開いているパック／マップからパックを開いたことがあるか
   function renderMap(){
     var t = totals();
     $('hintCount').textContent = hintLabel();
@@ -845,6 +852,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
           var isNow = ok && !done && !nowFound; if (isNow) nowFound = true;
           var last = (a === ANIMALS_N - 1);
           var row = document.createElement('div');
+          row.setAttribute('data-r', r); row.setAttribute('data-a', a);
           row.className = 'node-row' + (a % 2 ? ' right' : '') + (ok ? '' : ' locked') + (last ? ' last' : '');
           row.style.setProperty('--nc', an.color);
           var badge = !ok ? '🔒' : (done ? ['', '✅', '🥈', '🏅'][packCollar(r, a)] : '');
@@ -854,7 +862,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
           row.querySelector('.node-mech').textContent = ok ? MECH[pk.mech].icon + ' ' + MECH[pk.mech].name : (r === HELL_R ? 'まだ ひそんでいる' : 'まだ ねむっている');
           row.querySelector('.node-prog').textContent = ok ? packClearedCount(r, a) + '/' + PER + '問　★' + packStars(r, a) + '/' + PER * 3 : (r === HELL_R ? '前の魔物を倒すと開放' : '前の動物を起こすと開放');
           row.addEventListener('click', function(){
-            if (ok) { cur = { r: r, a: a }; showPack(r, a); }
+            if (ok) { cur = { r: r, a: a }; hasPlayed = true; showPack(r, a); }
             else { sfx('lock'); toast('🔒 前の動物のパズルを、ぜんぶ解くと会えるよ'); }
           });
           sec.appendChild(row);
@@ -1520,13 +1528,17 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     if (gain > 0) setTimeout(function(){ sfx('coin'); }, nowDone && !wasDone ? 1500 : 1000);
     updateHintBtn();
   }
-  $('nextBtn').addEventListener('click', function(){ if (g.j >= PER - 1) showMap(); else startPuzzle(g.r, g.a, g.j + 1); });
+  $('nextBtn').addEventListener('click', function(){
+    if (g.j < PER - 1) { startPuzzle(g.r, g.a, g.j + 1); return; }
+    var nx = (g.a < ANIMALS_N - 1) ? { r: g.r, a: g.a + 1 } : (g.r < ROUNDS ? { r: g.r + 1, a: 0 } : { r: g.r, a: g.a });   // 最後の問題の後は、次に会える動物のところへ
+    showMap(nx);
+  });
   $('againBtn').addEventListener('click', function(){ startPuzzle(g.r, g.a, g.j); });
   $('tocBtn').addEventListener('click', function(){ showPack(g.r, g.a); });
   $('tocBtn2').addEventListener('click', function(){ showPack(g.r, g.a); });
   $('packBackBtn').addEventListener('click', showMap);
   $('zukanBtn').addEventListener('click', showZukan);
-  $('zukanBackBtn').addEventListener('click', showMap);
+  $('zukanBackBtn').addEventListener('click', function(){ showMap({ top: true }); });
   $('retryBtn').addEventListener('click', function(){
     if (g.done) return;
     g.state = copyState(g.start); g.moves = 0; g.hist = []; g.hint = null; g.sel = -1; tapStep = 0; sfx('undo'); $('playMsg').textContent = ''; refresh();
