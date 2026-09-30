@@ -121,8 +121,8 @@
   .hero-row{ display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:4px 6px; min-height:3.6rem; padding-top:.5rem; margin:2px 0 4px; }
   .hero-empty{ align-self:center; font-size:.82rem; font-weight:900; opacity:.6; letter-spacing:.05em; }
   .hero-an{ position:relative; font-size:2rem; line-height:1.15; }
-  .hero-an.pop{ animation:heroJoin 1.15s cubic-bezier(.25,1.4,.4,1) both; z-index:3; }
-  .hero-an.pop::after{ content:''; position:absolute; left:50%; top:52%; width:1.1em; height:1.1em; margin:-.55em 0 0 -.55em; border-radius:50%; border:3px solid #ffd54a; box-shadow:0 0 12px #ffd54a; opacity:0; animation:heroRing .9s ease-out .15s both; pointer-events:none; }
+  .hero-an.pop{ animation:heroJoin 2.3s cubic-bezier(.25,1.4,.4,1) both; z-index:3; }
+  .hero-an.pop::after{ content:''; position:absolute; left:50%; top:52%; width:1.1em; height:1.1em; margin:-.55em 0 0 -.55em; border-radius:50%; border:3px solid #ffd54a; box-shadow:0 0 12px #ffd54a; opacity:0; animation:heroRing 1.3s ease-out .15s 2 both; pointer-events:none; }
   @keyframes heroJoin{
     0%{ transform:translateY(46px) scale(0) rotate(-300deg); opacity:0; filter:brightness(3); }
     35%{ transform:translateY(-16px) scale(1.9) rotate(12deg); opacity:1; filter:brightness(1.8) drop-shadow(0 0 10px #ffd54a); }
@@ -132,14 +132,14 @@
   }
   @keyframes heroRing{ 0%{ transform:scale(.3); opacity:.95; } 100%{ transform:scale(3.4); opacity:0; } }
   .hero-spark{ position:absolute; left:50%; top:52%; width:0; height:0; pointer-events:none; z-index:4; }
-  .hero-spark i{ position:absolute; left:-.5em; top:-.5em; font-style:normal; font-size:.55em; line-height:1; opacity:0; animation:sparkFly .95s ease-out var(--dl,0s) both; }
+  .hero-spark i{ position:absolute; left:-.5em; top:-.5em; font-style:normal; font-size:.55em; line-height:1; opacity:0; animation:sparkFly 1.7s ease-out var(--dl,0s) both; }
   @keyframes sparkFly{ 0%{ transform:translate(0,0) scale(.3) rotate(0); opacity:1; } 70%{ opacity:1; } 100%{ transform:translate(var(--dx),var(--dy)) scale(1.1) rotate(var(--rt)); opacity:0; } }
-  .top-plate.celebrate{ animation:plateGlow 1.2s ease-out; }
+  .top-plate.celebrate{ animation:plateGlow 2.6s ease-out; }
   @keyframes plateGlow{ 0%{ box-shadow:0 0 0 0 rgba(255,213,74,0); } 25%{ box-shadow:0 0 26px 6px rgba(255,213,74,.75); background:rgba(70,55,10,.5); } 100%{ box-shadow:0 0 0 0 rgba(255,213,74,0); } }
   .hero-an .crown{ position:absolute; left:50%; top:-.5em; font-size:.62em; line-height:1; transform:translateX(-50%) rotate(-8deg); filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
   .hero-row .hero-an.hell.pop{ filter:none; }
   .hero-an .crown.gold{ filter:drop-shadow(0 0 5px #ffd54a) drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
-  .hero-an .crown.pop{ animation:crownDrop 1.1s cubic-bezier(.3,1.3,.5,1) both; z-index:5; }
+  .hero-an .crown.pop{ animation:crownDrop 2.2s cubic-bezier(.3,1.3,.5,1) both; z-index:5; }
   @keyframes crownDrop{
     0%{ transform:translate(-50%,-70px) scale(2.6) rotate(50deg); opacity:0; filter:brightness(3); }
     45%{ transform:translate(-50%,3px) scale(1.4) rotate(-14deg); opacity:1; filter:brightness(2) drop-shadow(0 0 10px #ffd54a); }
@@ -775,10 +775,10 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     }
   })();
   function hintLabel(){ return isUnlimited() ? '∞' : String(prog.hints); }
-  function toast(msg){
+  function toast(msg, ms){
     var old = document.querySelector('.toast'); if (old) old.remove();
     var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t);
-    setTimeout(function(){ if (t.parentNode) t.remove(); }, 2600);
+    setTimeout(function(){ if (t.parentNode) t.remove(); }, ms || 2600);
   }
 
   // ---------- 画面切り替え ----------
@@ -794,11 +794,11 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       var i = document.createElement('i'), ang = (k / n) * Math.PI * 2 + Math.random() * .4, d = 34 + Math.random() * 40;
       i.textContent = marks[k % marks.length];
       i.style.setProperty('--dx', (Math.cos(ang) * d).toFixed(0) + 'px'); i.style.setProperty('--dy', (Math.sin(ang) * d - 8).toFixed(0) + 'px');
-      i.style.setProperty('--rt', ((Math.random() * 2 - 1) * 200).toFixed(0) + 'deg'); i.style.setProperty('--dl', (Math.random() * .18).toFixed(2) + 's');
+      i.style.setProperty('--rt', ((Math.random() * 2 - 1) * 200).toFixed(0) + 'deg'); i.style.setProperty('--dl', (Math.random() * .5).toFixed(2) + 's');
       box.appendChild(i);
     }
     host.appendChild(box);
-    setTimeout(function(){ if (box.parentNode) box.remove(); }, 1500);
+    setTimeout(function(){ if (box.parentNode) box.remove(); }, 2600);
   }
   function renderHero(){
     var row = $('heroRow'); if (!row) return;
@@ -812,11 +812,11 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
       var isNew = heroSeen && heroSeen[m.key] === undefined, isUp = heroSeen && heroSeen[m.key] !== undefined && heroSeen[m.key] < m.crown;
       var sp = document.createElement('span'); sp.className = 'hero-an' + (m.hell ? ' hell' : '') + (m.heaven ? ' heaven' : '') + (isNew ? ' pop' : '');
       sp.textContent = m.an.em;
-      if (isNew) { joined.push(m.an); heroBurst(sp, false); }
+      if (isNew) { joined.push(m.an); heroBurst(sp, false); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 1100); }
       if (m.crown) {
         var c = document.createElement('span'); c.className = 'crown' + (m.crown === 3 ? ' gold' : '') + (isUp ? ' pop' : '');
         c.textContent = '👑'; sp.appendChild(c);
-        if (isUp) { crowned.push(m.an); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 380); }
+        if (isUp) { crowned.push(m.an); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 380); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 1500); }
       }
       row.appendChild(sp);
     });
@@ -825,8 +825,8 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     heroCelebrated = !!(joined.length || crowned.length);
     if (joined.length || crowned.length) {
       var plate = document.querySelector('.top-plate'); plate.classList.remove('celebrate'); void plate.offsetWidth; plate.classList.add('celebrate');
-      if (crowned.length) { sfx('crown'); toast('👑 ' + crowned[0].name + ' に王冠がのった！'); }
-      else { sfx('join'); toast('🎉 ' + joined[0].name + ' が仲間になった！'); }
+      if (crowned.length) { sfx('crown'); setTimeout(function(){ sfx('coin'); }, 1300); toast('👑 ' + crowned[0].name + ' に王冠がのった！', 4200); }
+      else { sfx('join'); setTimeout(function(){ sfx('coin'); }, 1100); toast('🎉 ' + joined[0].name + ' が仲間になった！', 4200); }
     }
   }
   function currentRound(){   // マップの背景：いまの挑戦中（最初の未クリアのパック）の周回。全部クリア済みなら最後の周回
@@ -859,7 +859,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
     var row = document.querySelector('#mapList .node-row[data-r="' + f.r + '"][data-a="' + f.a + '"]');
     if (!row) return;
     if (heroCelebrated) {   // 仲間が増えた／王冠がついた時は、まずトップで演出を見せてから、コースの位置へ移る（その間に自分でスクロールしていたら移らない）
-      setTimeout(function(){ if (window.scrollY < 40 && !$('screenMap').classList.contains('hidden')) glideTo(row); }, 2300);
+      setTimeout(function(){ if (window.scrollY < 40 && !$('screenMap').classList.contains('hidden')) glideTo(row); }, 4600);
       return;
     }
     row.scrollIntoView({ block: 'center' });
