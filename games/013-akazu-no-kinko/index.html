@@ -118,7 +118,8 @@
   .tagline{ text-align:center; font-size:.9rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
   .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:14px; line-height:1.6; }
   /* 表紙の仲間たち：最初は誰もいない。動物のLv1をクリアするごとに増え、Lv2クリアで王冠、Lv3クリアで金の王冠がつく */
-  .hero-row{ display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:4px 6px; min-height:3.6rem; padding-top:.5rem; margin:2px 0 4px; }
+  .hero-row{ display:flex; flex-direction:column; align-items:center; gap:4px; min-height:3.6rem; padding-top:.5rem; margin:2px 0 4px; }
+  .hero-line{ display:flex; justify-content:center; align-items:flex-end; gap:4px 14px; }
   .hero-empty{ align-self:center; font-size:.82rem; font-weight:900; opacity:.6; letter-spacing:.05em; }
   .hero-an{ position:relative; font-size:2rem; line-height:1.15; }
   .hero-an.pop{ animation:heroJoin 2.3s cubic-bezier(.25,1.4,.4,1) both; z-index:3; }
@@ -842,7 +843,7 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
   }
   function renderHero(){
     var row = $('heroRow'); if (!row) return;
-    var now = {}, joined = [], crowned = [], mem = [], a;
+    var now = {}, joined = [], crowned = [], mem = [], a, line = null;
     for (a = 0; a < ANIMALS_N; a++) if (packDone(1, a)) mem.push({ key: 'a' + a, an: ANIMALS[a], crown: packDone(3, a) ? 3 : (packDone(2, a) ? 2 : 0), hell: false });
     for (a = 0; a < ANIMALS_N; a++) if (packDone(HELL_R, a)) mem.push({ key: 'h' + a, an: HELL[a], crown: 0, hell: true });
     for (a = 0; a < ANIMALS_N; a++) if (packDone(HEAVEN_R, a)) mem.push({ key: 'e' + a, an: HEAVEN[a], crown: 0, hell: false, heaven: true });
@@ -858,7 +859,8 @@ var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11
         c.textContent = '👑'; sp.appendChild(c);
         if (isUp) { crowned.push(m.an); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 380); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 1500); }
       }
-      row.appendChild(sp);
+      if (!line || line.children.length >= 5) { line = document.createElement('div'); line.className = 'hero-line'; row.appendChild(line); }   // 5匹ずつ段にする（2段・3段…と増える）
+      line.appendChild(sp);
     });
     if (!mem.length) { var e = document.createElement('span'); e.className = 'hero-empty'; e.textContent = '…まだ だれもいない'; row.appendChild(e); }
     heroSeen = now;
