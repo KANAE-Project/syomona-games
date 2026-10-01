@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>【ラボ】どうぶつまみれ（実験版）</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="ねむっている動物たちの錠を、タップで動かして開けていく動物パズル。動物だらけのマップを進もう">
+<style>
+  :root{
+    /* 既定＝草原。周回ごとに body[data-theme] で上書き（grass=草原 / savanna=サバンナ / ice=氷面）。配色はコントラスト比を計算して決定済み */
+    --bg1:#26803c; --bg2:#12502a; --card:#174a2c; --ink:#f4fff0;
+    --accent:#ffd54a; --accent-dark:#c79a12; --on:#ffd54a; --off:#2f6e45; --ok:#7ee787; --lock:#123b23;
+    --mute:#c4e6cc; --mute2:#b0d8ba; --board:#103820; --cleared:#3d5a2b; --ring:#2a6b40;
+    --deco1:#66bb6a; --deco2:#3f9a4a; --hill1:#2f9a48; --hill2:#3aa856;
+  }
+  body[data-theme=savanna], .sec-savanna{
+    --bg1:#a8611c; --bg2:#6b3c11; --card:#5b3512; --ink:#fff6e5;
+    --accent:#ffe08a; --accent-dark:#c9a03a; --on:#ffe08a; --off:#8a5f2c; --ok:#b6f28a; --lock:#46280e;
+    --mute:#f0d9a8; --mute2:#e6cb96; --board:#3e240c; --cleared:#6a4d1f; --ring:#7a5326;
+    --deco1:#d9a441; --deco2:#b9812a; --hill1:#c07a2a; --hill2:#d08f36; }
+  body[data-theme=ice], .sec-ice{
+    --bg1:#2f7fb0; --bg2:#1a5079; --card:#17446a; --ink:#f2fbff;
+    --accent:#ffe27a; --accent-dark:#c9aa3a; --on:#ffe27a; --off:#33739b; --ok:#7ff0c0; --lock:#123957;
+    --mute:#c9e8f7; --mute2:#b8dcf0; --board:#0f3554; --cleared:#2f6488; --ring:#2a6690;
+    --deco1:#dff4ff; --deco2:#a9dcf5; --hill1:#5aa8d0; --hill2:#7dc0e0; }
+  body[data-theme=hell], .sec-hell{
+    --bg1:#4a0f18; --bg2:#180509; --card:#2e0b12; --ink:#fff2eb;
+    --accent:#ff9a4d; --accent-dark:#c25f1a; --on:#ff9a4d; --off:#4d1c25; --ok:#ffc27a; --lock:#22080d;
+    --mute:#f4cfc2; --mute2:#eab9a9; --board:#1c070c; --cleared:#622c1e; --ring:#732833;
+    --deco1:#ff6a3d; --deco2:#c2331f; --hill1:#6a1824; --hill2:#8a2030; }
+  body[data-theme=heaven], .sec-heaven{
+    --bg1:#3a6cc4; --bg2:#6a4bb0; --card:#22407e; --ink:#f7faff;
+    --accent:#ffe066; --accent-dark:#c9a41a; --on:#ffe066; --off:#3c5d9f; --ok:#9af0c4; --lock:#1a3163;
+    --mute:#d6e4ff; --mute2:#c2d6f8; --board:#15295a; --cleared:#40629f; --ring:#4b6fb4;
+    --deco1:#ffffff; --deco2:#dbeeff; --hill1:#8fb6ee; --hill2:#b8a4e6; }
+  *{box-sizing:border-box;}
+  body{ margin:0; min-height:100vh; font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2)); color:var(--ink); display:flex; justify-content:center; padding:24px 14px 60px; }
+  .wrap{ width:100%; max-width:480px; }
+  .hidden{ display:none !important; }
+  /* ---- 背景の装飾レイヤー（画面の背面に固定） ---- */
+  body{ position:relative; }
+  #bgDeco{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .wrap{ position:relative; z-index:1; }
+  body[data-mode=map] #bgDeco .sky, body[data-mode=map] #bgDeco .hills, body[data-mode=map] #bgDeco .tree, body[data-mode=map] #bgDeco .snow, body[data-mode=map] #bgDeco .blades{ display:none !important; }
+  #bgDeco .blades{ position:absolute; left:0; right:0; bottom:0; height:110px; background-repeat:repeat-x; background-size:150px 110px; }
+  #bgDeco .blades.back{ height:140px; opacity:.7; background-position:60px 0; background-size:190px 140px; }
+  #bgDeco .hills{ position:absolute; left:0; right:0; bottom:0; height:46vh; background:radial-gradient(ellipse 70% 100% at 20% 100%, var(--hill1) 0 60%, transparent 61%), radial-gradient(ellipse 80% 90% at 85% 100%, var(--hill2) 0 60%, transparent 61%); opacity:.55; }
+  #bgDeco .sky{ position:absolute; inset:0; }
+  #bgDeco .snow{ position:absolute; inset:0; display:none; }
+  #bgDeco .snow i{ position:absolute; top:-30px; font-style:normal; color:#fff; opacity:.85; animation:snowFall linear infinite; }
+  @keyframes snowFall{ from{ transform:translateY(-30px) rotate(0); } to{ transform:translateY(112vh) rotate(300deg); } }
+  /* 草原：雲・草・花 */
+  body[data-theme=grass] #bgDeco .sky{ background:
+    radial-gradient(ellipse 90px 26px at 18% 7%, rgba(255,255,255,.45), transparent 70%),
+    radial-gradient(ellipse 120px 30px at 78% 12%, rgba(255,255,255,.4), transparent 70%),
+    radial-gradient(ellipse 80px 22px at 55% 4%, rgba(255,255,255,.35), transparent 70%); }
+  body[data-theme=grass] #bgDeco .blades.front{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M4 64 Q6 30 12 10 Q16 32 18 64Z M26 64 Q28 34 36 16 Q38 36 40 64Z M50 64 Q52 28 58 6 Q64 30 64 64Z M72 64 Q74 32 82 14 Q84 34 86 64Z' fill='%2366bb6a'/%3E%3Cpath d='M14 64 Q16 44 22 30 Q24 46 26 64Z M60 64 Q62 46 68 34 Q70 48 72 64Z' fill='%233f9a4a'/%3E%3Ccircle cx='30' cy='14' r='4' fill='%23ffeb3b'/%3E%3Ccircle cx='76' cy='12' r='4' fill='%23ff8fb3'/%3E%3C/svg%3E"); }
+  body[data-theme=grass] #bgDeco .blades.back{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='84' viewBox='0 0 120 84'%3E%3Cpath d='M6 84 Q8 40 16 14 Q22 42 24 84Z M40 84 Q42 44 52 20 Q56 46 58 84Z M78 84 Q80 38 90 10 Q96 40 98 84Z' fill='%23a5d6a7'/%3E%3C/svg%3E"); }
+  /* サバンナ：太陽・アカシア・乾いた草 */
+  body[data-theme=savanna] #bgDeco .sky{ background:
+    radial-gradient(circle 120px at 88% 6%, rgba(255,232,150,.95) 0 34%, rgba(255,200,80,.5) 36% 56%, transparent 72%),
+    radial-gradient(ellipse 110px 24px at 20% 9%, rgba(255,235,200,.28), transparent 70%); }
+  body[data-theme=savanna] #bgDeco .blades.front{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M4 64 Q10 30 8 8 Q18 34 18 64Z M28 64 Q34 36 34 14 Q42 38 42 64Z M52 64 Q58 26 56 4 Q66 30 66 64Z M74 64 Q80 34 80 12 Q88 36 88 64Z' fill='%23d9a441'/%3E%3Cpath d='M16 64 Q20 46 20 32 Q28 48 28 64Z M62 64 Q66 48 66 36 Q74 50 74 64Z' fill='%23b9812a'/%3E%3C/svg%3E"); }
+  body[data-theme=savanna] #bgDeco .blades.back{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='84' viewBox='0 0 120 84'%3E%3Cpath d='M6 84 Q12 42 10 16 Q22 44 24 84Z M44 84 Q50 46 50 22 Q60 48 60 84Z M82 84 Q88 40 86 12 Q98 42 100 84Z' fill='%23e8c777'/%3E%3C/svg%3E"); }
+  body[data-theme=savanna] #bgDeco .tree{ display:block; }
+  #bgDeco .tree{ display:none; position:absolute; left:-10px; bottom:34px; width:150px; height:110px; opacity:.55; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='110' viewBox='0 0 150 110'%3E%3Cpath d='M72 110 L74 60 Q72 48 58 40 M74 60 Q80 46 96 38' stroke='%233b2208' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Cellipse cx='70' cy='30' rx='62' ry='16' fill='%233b2208'/%3E%3Cellipse cx='104' cy='42' rx='30' ry='9' fill='%233b2208'/%3E%3C/svg%3E") no-repeat center bottom / contain; }
+  /* 氷面：雪・氷の山 */
+  body[data-theme=ice] #bgDeco .snow{ display:block; }
+  body[data-theme=ice] #bgDeco .sky{ background:
+    radial-gradient(ellipse 140px 30px at 25% 5%, rgba(255,255,255,.28), transparent 70%),
+    radial-gradient(ellipse 110px 24px at 80% 10%, rgba(255,255,255,.22), transparent 70%); }
+  body[data-theme=ice] #bgDeco .blades.front{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M0 64 L14 20 L28 64Z M22 64 L40 8 L58 64Z M52 64 L68 26 L84 64Z M76 64 L90 34 L104 64Z' fill='%23dff4ff'/%3E%3Cpath d='M40 8 L48 30 L36 30Z M14 20 L19 34 L9 34Z' fill='%23ffffff'/%3E%3C/svg%3E"); }
+  body[data-theme=ice] #bgDeco .blades.back{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='84' viewBox='0 0 120 84'%3E%3Cpath d='M0 84 L26 24 L52 84Z M40 84 L70 10 L100 84Z M90 84 L112 40 L134 84Z' fill='%23a9dcf5'/%3E%3C/svg%3E"); }
+  /* 地獄：赤黒い空・溶岩の丘・舞い上がる火の粉 */
+  body[data-theme=hell] #bgDeco .sky{ background:
+    radial-gradient(ellipse 130% 48% at 50% 112%, rgba(255,96,24,.6), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 15% 100%, rgba(255,170,50,.4), transparent 70%),
+    radial-gradient(ellipse 50% 26% at 88% 100%, rgba(255,120,40,.4), transparent 70%); }
+  body[data-theme=hell] #bgDeco .snow{ display:block; }
+  body[data-theme=hell] #bgDeco .snow i{ color:transparent; animation-name:emberRise; }
+  body[data-theme=hell] #bgDeco .snow i::before{ content:'✦'; position:absolute; left:0; top:0; color:#ff9a4a; }
+  @keyframes emberRise{ from{ transform:translateY(112vh) rotate(0); opacity:.9; } to{ transform:translateY(-30px) rotate(200deg); opacity:.2; } }
+  .map-sec.sec-hell{ background:linear-gradient(180deg,#5a141f 0%,#3a0d15 55%,#1c060a 100%); border-color:rgba(255,140,80,.45); box-shadow:0 8px 26px rgba(255,80,20,.25); }
+  .map-sec.sec-hell::after{ background-image:linear-gradient(0deg, rgba(255,110,30,.65), transparent); background-size:100% 100%; }
+  /* 天国：雲と光・きらめき */
+  body[data-theme=heaven] #bgDeco .sky{ background:
+    radial-gradient(ellipse 130px 34px at 22% 8%, rgba(255,255,255,.5), transparent 70%),
+    radial-gradient(ellipse 170px 42px at 78% 15%, rgba(255,255,255,.45), transparent 70%),
+    radial-gradient(circle 190px at 90% -3%, rgba(255,240,170,.8), transparent 70%),
+    radial-gradient(ellipse 150px 32px at 35% 32%, rgba(255,255,255,.28), transparent 70%); }
+  body[data-theme=heaven] #bgDeco .snow{ display:block; }
+  body[data-theme=heaven] #bgDeco .snow i{ color:transparent; }
+  body[data-theme=heaven] #bgDeco .snow i::before{ content:'✧'; position:absolute; left:0; top:0; color:#fff3b0; }
+  .map-sec.sec-heaven{ background:linear-gradient(180deg,#4f8fe6 0%,#7fb4f4 45%,#c9b8ee 100%); border-color:rgba(255,255,255,.7); box-shadow:0 8px 26px rgba(255,255,255,.25); }
+  .map-sec.sec-heaven::after{ background-image:radial-gradient(circle 26px at 25% 100%,#fff 97%,transparent),radial-gradient(circle 34px at 55% 106%,#fff 97%,transparent),radial-gradient(circle 24px at 84% 100%,#fff 97%,transparent); background-size:118px 74px; opacity:.9; }
+  .map-sec.sec-heaven .map-round{ background:rgba(12,24,70,.6); }
+  .hero-an.heaven{ filter:drop-shadow(0 0 6px #fff2a8); }
+  .hero-row .hero-an.heaven.pop{ filter:none; }
+  /* 課金エリアの門（地獄・天国） */
+  .gate-zone{ display:grid; gap:12px; margin:6px 0 18px; }
+  .gate-card{ text-align:center; padding:16px 14px; border-radius:18px; cursor:pointer; border:2px solid rgba(255,255,255,.28); box-shadow:0 6px 18px rgba(0,0,0,.3); }
+  .gate-card .gt-em{ font-size:1.9rem; line-height:1.2; letter-spacing:.15em; }
+  .gate-card .gt-title{ font-size:1.25rem; font-weight:900; margin:2px 0 4px; letter-spacing:.1em; }
+  .gate-card .gt-sub{ font-size:.8rem; line-height:1.6; opacity:.92; }
+  .gate-card.hell{ background:linear-gradient(160deg,#5a141f,#1c060a); color:#fff2eb; border-color:#ff9a4d; box-shadow:0 0 18px rgba(255,90,20,.45); }
+  .gate-card.hell .gt-title{ color:#ffb26b; }
+  .gate-card.heaven{ background:linear-gradient(160deg,#fdf6d8,#bfe3ff); color:#3a4a5c; border-color:#fff; }
+  .gate-card.heaven .gt-title{ color:#8a6a10; }
+  .hero-an.hell{ filter:drop-shadow(0 0 5px #ff5a2a); }
+  /* 頭まわりの読みやすさ用プレート（背景が明るくても文字が読める） */
+  .sound-notice{ display:block; margin:8px auto 0; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.12); color:var(--ink); border:2px solid var(--accent); border-radius:999px; padding:6px 16px; font-size:.8rem; font-weight:900; }
+  .sound-notice:active{ transform:scale(.96); }
+  .sound-notice.off{ opacity:.65; border-style:dashed; }
+  .top-plate{ background:rgba(3,25,12,.34); border-radius:18px; padding:8px 12px 6px; margin-bottom:12px; }
+  @media (prefers-reduced-motion: reduce){ #bgDeco .snow i{ animation:none; } }
+  h1{ text-align:center; font-size:1.5rem; margin:6px 0 4px; letter-spacing:.06em; }
+  .tagline{ text-align:center; font-size:.9rem; font-weight:900; color:var(--accent); margin-bottom:6px; }
+  .sub{ text-align:center; font-size:.8rem; opacity:.75; margin-bottom:14px; line-height:1.6; }
+  /* 表紙の仲間たち：最初は誰もいない。動物のLv1をクリアするごとに増え、Lv2クリアで王冠、Lv3クリアで金の王冠がつく */
+  .hero-row{ display:flex; flex-direction:column; align-items:center; gap:4px; min-height:3.6rem; padding-top:.5rem; margin:2px 0 4px; }
+  .hero-line{ display:flex; justify-content:center; align-items:flex-end; gap:4px 14px; }
+  .hero-empty{ align-self:center; font-size:.82rem; font-weight:900; opacity:.6; letter-spacing:.05em; }
+  .hero-an{ position:relative; font-size:2rem; line-height:1.15; }
+  .hero-an.pop{ animation:heroJoin 2.3s cubic-bezier(.25,1.4,.4,1) both; z-index:3; }
+  .hero-an.pop::after{ content:''; position:absolute; left:50%; top:52%; width:1.1em; height:1.1em; margin:-.55em 0 0 -.55em; border-radius:50%; border:3px solid #ffd54a; box-shadow:0 0 12px #ffd54a; opacity:0; animation:heroRing 1.3s ease-out .15s 2 both; pointer-events:none; }
+  @keyframes heroJoin{
+    0%{ transform:translateY(46px) scale(0) rotate(-300deg); opacity:0; filter:brightness(3); }
+    35%{ transform:translateY(-16px) scale(1.9) rotate(12deg); opacity:1; filter:brightness(1.8) drop-shadow(0 0 10px #ffd54a); }
+    55%{ transform:translateY(2px) scale(.85) rotate(-6deg); filter:brightness(1.2); }
+    75%{ transform:translateY(-5px) scale(1.2) rotate(3deg); filter:none; }
+    100%{ transform:none; opacity:1; filter:none; }
+  }
+  @keyframes heroRing{ 0%{ transform:scale(.3); opacity:.95; } 100%{ transform:scale(3.4); opacity:0; } }
+  .hero-spark{ position:absolute; left:50%; top:52%; width:0; height:0; pointer-events:none; z-index:4; }
+  .hero-spark i{ position:absolute; left:-.5em; top:-.5em; font-style:normal; font-size:.55em; line-height:1; opacity:0; animation:sparkFly 1.7s ease-out var(--dl,0s) both; }
+  @keyframes sparkFly{ 0%{ transform:translate(0,0) scale(.3) rotate(0); opacity:1; } 70%{ opacity:1; } 100%{ transform:translate(var(--dx),var(--dy)) scale(1.1) rotate(var(--rt)); opacity:0; } }
+  .top-plate.celebrate{ animation:plateGlow 2.6s ease-out; }
+  @keyframes plateGlow{ 0%{ box-shadow:0 0 0 0 rgba(255,213,74,0); } 25%{ box-shadow:0 0 26px 6px rgba(255,213,74,.75); background:rgba(70,55,10,.5); } 100%{ box-shadow:0 0 0 0 rgba(255,213,74,0); } }
+  .hero-an .crown{ position:absolute; left:50%; top:-.5em; font-size:.62em; line-height:1; transform:translateX(-50%) rotate(-8deg); filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
+  .hero-row .hero-an.hell.pop{ filter:none; }
+  .hero-an .crown.gold{ filter:drop-shadow(0 0 5px #ffd54a) drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
+  .hero-an .crown.pop{ animation:crownDrop 2.2s cubic-bezier(.3,1.3,.5,1) both; z-index:5; }
+  @keyframes crownDrop{
+    0%{ transform:translate(-50%,-70px) scale(2.6) rotate(50deg); opacity:0; filter:brightness(3); }
+    45%{ transform:translate(-50%,3px) scale(1.4) rotate(-14deg); opacity:1; filter:brightness(2) drop-shadow(0 0 10px #ffd54a); }
+    62%{ transform:translate(-50%,-9px) scale(.95) rotate(-4deg); filter:brightness(1.3); }
+    80%{ transform:translate(-50%,1px) scale(1.1) rotate(-9deg); filter:none; }
+    100%{ transform:translateX(-50%) rotate(-8deg); opacity:1; filter:none; }
+  }
+  @media (prefers-reduced-motion: reduce){ .hero-an.pop, .hero-an .crown.pop, .top-plate.celebrate, .hero-an.pop::after, .hero-spark i{ animation:none !important; } }
+  .back-link{ display:inline-block; font-size:.8rem; font-weight:700; color:var(--ink); opacity:.7; text-decoration:none; margin-bottom:8px; }
+  .back-link-btn{ display:block; background:var(--accent); color:#2a2208; font-size:1.05rem; font-weight:900; text-decoration:none; text-align:center; padding:14px 16px; border-radius:14px; margin-top:20px; box-shadow:0 4px 0 var(--accent-dark); }
+  .back-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+  /* ---- ゲーム画面（パック・プレイ・図鑑）：額縁つきのパズル台。マップ（色の帯）と区別がつく ---- */
+  .stage{ border:4px solid rgba(255,255,255,.3); box-shadow:0 0 0 3px rgba(0,0,0,.25), 0 10px 28px rgba(0,0,0,.45) !important; }
+  .crumb{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:.78rem; font-weight:900; margin:-4px 0 10px; padding:6px 10px; border-radius:999px; background:rgba(0,0,0,.34); }
+  .crumb .sep{ opacity:.55; }
+  .crumb .here{ color:var(--accent); }
+  .crumb button{ font-family:inherit; font-weight:900; font-size:.78rem; color:var(--ink); background:none; border:none; cursor:pointer; padding:0; text-decoration:underline; text-underline-offset:3px; }
+  #board{ background:var(--board); border-radius:18px; padding:12px 10px; margin-bottom:4px; box-shadow:inset 0 3px 10px rgba(0,0,0,.35); }
+  .panel{ background:color-mix(in srgb, var(--card) 88%, transparent); border-radius:20px; padding:16px 14px 18px; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+
+  /* 目次 */
+  .total-stars{ text-align:center; font-size:1rem; font-weight:900; color:var(--accent); margin-bottom:12px; }
+  .world{ margin-bottom:18px; }
+  .world-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+  .world-name{ font-size:1rem; font-weight:900; }
+  .world-prog{ font-size:.8rem; color:var(--accent); font-weight:900; }
+  .world-desc{ font-size:.76rem; opacity:.75; margin-bottom:8px; line-height:1.5; }
+  .lv-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .lv{ border:none; border-radius:12px; padding:8px 0 6px; font-family:inherit; cursor:pointer; background:var(--off); color:var(--ink); font-weight:900; font-size:.95rem; line-height:1.2; }
+  .lv:active{ transform:scale(.94); }
+  .lv .st{ display:block; font-size:.62rem; letter-spacing:-.02em; margin-top:2px; color:var(--mute); }
+  .lv .st b{ color:var(--accent); font-weight:900; }
+  .lv.cleared{ background:var(--cleared); }
+  .lv.locked{ background:var(--lock); color:var(--mute2); cursor:default; }
+  .lv.locked:active{ transform:none; }
+  .world.soon{ opacity:.55; }
+
+  /* プレイ画面 */
+  .play-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .play-title{ font-size:1.05rem; font-weight:900; }
+  .play-count{ font-size:.9rem; font-weight:900; color:var(--accent); }
+  .play-rule{ font-size:.8rem; line-height:1.7; opacity:.9; margin-bottom:12px; }
+  .tool-row{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+  .tool-btn{ font-family:inherit; cursor:pointer; background:none; border:2px solid rgba(244,239,226,.4); color:var(--ink); border-radius:999px; padding:7px 14px; font-size:.82rem; font-weight:900; }
+  .tool-btn.hint-btn{ border-color:var(--accent); color:var(--accent); }
+  .tool-btn:active{ transform:scale(.95); }
+  .msg{ text-align:center; font-size:.85rem; font-weight:900; margin-top:10px; min-height:1.3em; color:var(--accent); }
+
+  /* スイッチ錠（動物：起きている=色つき、ねむっている=灰色+💤） */
+  .sw-grid{ display:grid; gap:10px; margin:0 auto; border-radius:14px; }
+  .sw{ position:relative; aspect-ratio:1/1; border:3px solid transparent; border-radius:16px; cursor:pointer; font-family:inherit; font-size:1.8rem; padding:0; line-height:1; background:var(--off); transition:transform .1s ease, background .15s ease; }
+  .sw:active{ transform:scale(.92); }
+  .sw .em{ display:block; }
+  .sw.awake{ background:var(--on); box-shadow:0 0 14px var(--glow); }
+  .sw.wave{ animation:swWave .6s ease both; animation-delay:var(--d,0ms); z-index:1; }
+  @keyframes swWave{ 0%{ transform:scale(1); filter:brightness(1); } 45%{ transform:scale(1.3); filter:brightness(1.8); box-shadow:0 0 24px 9px rgba(255,255,255,.9); } 100%{ transform:scale(1); filter:brightness(1.2); box-shadow:0 0 16px var(--glow); } }
+  .sw-grid.allglow{ animation:gridGlow 1.3s ease both; }
+  @keyframes gridGlow{ 0%{ filter:brightness(1.1); box-shadow:0 0 0 0 var(--glow); } 30%{ filter:brightness(1.9); box-shadow:0 0 50px 18px var(--glow); } 100%{ filter:brightness(1.15); box-shadow:0 0 18px 4px var(--glow); } }
+  .sw.sleep{ background:var(--off); }
+  .sw.sleep .em{ filter:grayscale(1) opacity(.42); }
+  .sw.sleep::after{ content:'💤'; position:absolute; right:5%; top:0; font-size:.42em; }
+  .lv-em{ display:block; font-size:1.05rem; line-height:1.15; }
+
+  /* 図鑑 */
+  .zukan-btn{ display:flex; justify-content:center; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; background:rgba(240,180,41,.1); border:2px solid var(--accent); color:var(--ink); border-radius:14px; padding:11px 14px; font-size:.98rem; font-weight:900; margin-bottom:14px; }
+  .voice-zone{ margin-top:18px; text-align:center; }
+  .voice-panel{ margin-top:10px; background:rgba(0,0,0,.4); border-radius:14px; padding:10px 12px; text-align:left; color:#f4efe2; }
+  .vc-note{ font-size:.74rem; line-height:1.6; opacity:.85; margin-bottom:8px; }
+  .vc-row{ display:flex; align-items:center; gap:10px; width:100%; font-family:inherit; cursor:pointer; background:rgba(255,255,255,.07); border:0; border-radius:10px; color:#f4efe2; padding:7px 10px; margin-bottom:5px; font-size:.86rem; }
+  .vc-row.no{ opacity:.5; cursor:default; }
+  .vc-st{ width:1.6em; text-align:center; } .vc-w{ font-weight:900; flex:1; } .vc-l{ font-size:.72rem; opacity:.8; }
+  .zukan-btn:active{ transform:scale(.97); }
+  .zukan-btn .zk-count{ color:var(--accent); }
+  .zk-banner{ text-align:center; font-size:.95rem; font-weight:900; color:var(--ok); margin:0 0 10px; }
+  .zk-banner:empty{ display:none; }
+  .zk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .zk-card{ background:rgba(0,0,0,.2); border-radius:14px; padding:12px 8px 10px; text-align:center; }
+  .zk-em{ width:66px; height:66px; margin:0 auto 6px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.3rem; background:rgba(255,255,255,.07); border:4px solid transparent; }
+  .zk-card.c2 .zk-em{ border-color:#c8ccd8; box-shadow:0 0 10px rgba(200,204,216,.5); }
+  .zk-card.c3 .zk-em{ border-color:#f0b429; box-shadow:0 0 14px rgba(240,180,41,.75); }
+  .zk-card.lock .zk-em span{ filter:brightness(0) opacity(.55); }
+  .zk-name{ font-size:.95rem; font-weight:900; }
+  .zk-collar{ font-size:.72rem; font-weight:900; margin:2px 0 4px; color:var(--mute); }
+  .zk-card.c2 .zk-collar{ color:#d6dae6; }
+  .zk-card.c3 .zk-collar{ color:var(--accent); }
+  .zk-flavor{ font-size:.72rem; line-height:1.55; opacity:.85; min-height:3.1em; }
+  .zk-best{ font-size:.68rem; opacity:.65; margin-top:4px; }
+  .result-zukan{ font-size:.92rem; font-weight:900; color:var(--accent); margin:2px 0 6px; }
+  .hint-pulse{ animation:hintPulse 1s ease-in-out infinite; border-color:#fff !important; }
+  @keyframes hintPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,.0);} 50%{ box-shadow:0 0 0 6px rgba(255,255,255,.55);} }
+
+  /* 記号 */
+  .clues{ background:rgba(0,0,0,.22); border-radius:12px; padding:10px 14px 10px 8px; margin:0 0 14px; font-size:.86rem; line-height:1.9; }
+  .clues li{ margin-left:1.4em; }
+  .clues li.done{ color:var(--ok); list-style:none; margin-left:.3em; }
+  .clues li.done::before{ content:'✓ '; font-weight:900; }
+  .sym-row{ display:flex; gap:6px; justify-content:center; }
+  .sym-row.tight{ gap:3px; }
+  .sym-row.tight .sym{ font-size:1.15rem; border-width:2px; border-radius:10px; }
+  .sym{ min-width:0; flex:1; max-width:64px; aspect-ratio:1/1; border:3px solid transparent; border-radius:14px; cursor:pointer; font-family:inherit; font-size:1.6rem; background:var(--off); color:var(--ink); transition:transform .1s ease; padding:0; }
+  .sym:active{ transform:scale(.92); }
+  .sym.sel{ border-color:var(--accent); background:var(--ring); }
+  .sym{ transition:transform .15s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease; }
+  .sym.glow{ border-color:rgba(255,213,74,.55); }
+  .sym.lit{ border-color:#ffd54a; background:rgba(255,213,74,.38); box-shadow:0 0 16px 5px rgba(255,213,74,.85); transform:scale(1.2); z-index:1; }
+  .sym.hop{ animation:symHop .6s ease both; animation-delay:var(--d,0ms); border-color:#ffd54a; background:rgba(255,213,74,.3); }
+  @keyframes symHop{ 0%{ transform:translateY(0) scale(1); } 40%{ transform:translateY(-16px) scale(1.25); box-shadow:0 0 18px 6px rgba(255,213,74,.85); } 100%{ transform:translateY(0) scale(1); box-shadow:0 0 10px 3px rgba(255,213,74,.5); } }
+  .clues li.flash{ animation:clueFlash 1.2s ease; }
+  @keyframes clueFlash{ 0%{ background:rgba(255,213,74,.5); transform:translateX(6px); } 100%{ background:transparent; transform:none; } }
+  .sym-hint{ text-align:center; font-size:.74rem; opacity:.65; margin-top:8px; }
+
+  /* スライド */
+  .slide-wrap{ position:relative; max-width:372px; margin:0 auto; padding:6px; }
+  .slide-wrap.ex-R{ padding-right:30px; } .slide-wrap.ex-L{ padding-left:30px; }
+  .slide-wrap.ex-U{ padding-top:28px; } .slide-wrap.ex-D{ padding-bottom:28px; }
+  .slide-board{ position:relative; width:100%; aspect-ratio:1/1; background:var(--board); border-radius:12px; overflow:hidden; outline:4px solid rgba(255,255,255,.3);   /* 外周は壁。出口の位置だけ金色の門 */
+    background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+    background-size:calc(100%/6) calc(100%/6); }
+  .gate-bar{ position:absolute; z-index:3; background:var(--accent); border-radius:3px; box-shadow:0 0 10px var(--accent); pointer-events:none; }
+  .gate-label{ position:absolute; z-index:3; font-size:.66rem; font-weight:900; color:var(--accent); text-align:center; line-height:1.15; white-space:nowrap; pointer-events:none; }
+  .car.exiting{ transition:transform .55s cubic-bezier(.5,0,.9,.4), opacity .5s ease-in .1s; pointer-events:none; z-index:9; }
+  .car{ position:absolute; border:none; padding:0; background:none; cursor:pointer; font-family:inherit; }
+  .car > span{ display:flex; align-items:center; justify-content:center; position:absolute; inset:3px; border-radius:9px; font-size:1.2rem; box-shadow:inset 0 -3px 0 rgba(0,0,0,.25); }
+  .car.sel > span{ outline:3px solid #fff; }
+  /* 歯車錠 */
+  /* 円形ルーレット錠：同心円の輪をタップで回す。真上の金色のラインに、すべての輪のあきをそろえる */
+  .ring-wrap{ position:relative; max-width:360px; margin:0 auto; }
+  .ring-svg{ display:block; width:100%; height:auto; touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .ring-rot{ transition:transform .28s cubic-bezier(.3,1.25,.5,1); transform-box:view-box; }
+  .ring-hit{ cursor:pointer; }
+  .ring-hint{ fill:#fff; fill-opacity:.4; pointer-events:none; animation:ringHint 1s ease-in-out infinite; }
+  @keyframes ringHint{ 0%,100%{ fill-opacity:.12; } 50%{ fill-opacity:.55; } }
+  .ring-animal{ transform-box:fill-box; transform-origin:center; transition:transform .65s cubic-bezier(.45,0,.75,.45), opacity .2s; }
+  .ring-svg .corridor{ fill:var(--accent); fill-opacity:.28; transition:fill-opacity .3s; }
+  .ring-svg.ring-open .corridor{ fill-opacity:.85; }
+  .ring-svg.ring-open .key-mark{ opacity:0; }
+  .ring-link{ text-align:center; font-size:.76rem; font-weight:900; color:var(--accent); margin-top:6px; line-height:1.55; }
+  .ring-thanks{ position:absolute; left:calc(50% + 26px); top:-4px; background:#fff; color:#3a2a16; border-radius:16px; padding:6px 12px; font-weight:900; font-size:1.05rem; line-height:1.15; box-shadow:0 3px 10px rgba(0,0,0,.35); white-space:nowrap; transform-origin:0% 60%; animation:thanksPop .4s cubic-bezier(.3,1.6,.5,1) both; z-index:5; }
+  .ring-thanks small{ display:block; font-size:.62rem; font-weight:700; opacity:.6; margin-top:2px; }
+  .ring-thanks::before{ content:''; position:absolute; left:-7px; top:14px; border:8px solid transparent; border-right-color:#fff; border-left:0; }
+  @keyframes thanksPop{ from{ transform:scale(.2); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .cbody{ display:flex; flex-direction:row; width:100%; height:100%; }
+  .cbody.v{ flex-direction:column; }
+  .cbody i{ flex:1; display:flex; align-items:center; justify-content:center; font-style:normal; line-height:1; font-size:calc(var(--cell, 48px) * .58); }
+  .car.key > span{ background:var(--accent); color:#3a2c00; }
+  .dot{ position:absolute; border:none; padding:0; background:none; cursor:pointer; z-index:5; }
+  .dot > span{ position:absolute; left:50%; top:50%; width:34%; height:34%; transform:translate(-50%,-50%); background:rgba(255,255,255,.75); border-radius:50%; }
+  .dot.hint-dot > span{ background:#fff; animation:hintPulse 1s ease-in-out infinite; }
+  .car.hint-car > span{ outline:3px solid #fff; animation:hintPulse 1s ease-in-out infinite; }
+
+  /* 結果 */
+  /* クリア演出：全画面オーバーレイ（#resultBox） */
+  .result{ position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:18px; text-align:center; background:rgba(4,20,10,.96); overflow-y:auto; animation:fadeIn .25s ease; }
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  .result-inner{ width:100%; max-width:380px; }
+  .mark-box{ width:min(64vw,250px); height:min(64vw,250px); margin:0 auto 4px; }
+  .mark-box svg{ width:100%; height:100%; overflow:visible; }
+  .mark-draw{ stroke-dasharray:1; stroke-dashoffset:1; animation:drawOn .9s ease-out .15s forwards; }
+  .mark-draw.d2{ animation-delay:.55s; animation-duration:.8s; }
+  .mark-draw.d3{ animation-delay:.9s; animation-duration:.7s; }
+  @keyframes drawOn{ to{ stroke-dashoffset:0; } }
+  .mark-petals{ transform-origin:100px 100px; animation:popIn .55s cubic-bezier(.2,1.5,.4,1) forwards; opacity:0; }
+  @keyframes popIn{ from{ transform:scale(.3) rotate(-25deg); opacity:0; } to{ transform:scale(1) rotate(0); opacity:1; } }
+  .result-title{ font-size:1.5rem; font-weight:900; color:var(--ok); margin-top:2px; animation:titleIn .5s ease .5s both; }
+  @keyframes titleIn{ from{ transform:translateY(12px) scale(.9); opacity:0; } to{ transform:none; opacity:1; } }
+  .result-stars{ font-size:2.4rem; letter-spacing:.14em; color:var(--accent); margin:6px 0 2px; }
+  .result-stars .star{ display:inline-block; opacity:0; animation:starIn .45s cubic-bezier(.2,1.6,.4,1) forwards; }
+  .result-stars .star.off{ color:var(--mute2); }
+  @keyframes starIn{ from{ transform:scale(.2) rotate(-40deg); opacity:0; } to{ transform:scale(1) rotate(0); opacity:1; } }
+  .result-sub{ font-size:.9rem; opacity:.9; line-height:1.7; margin-bottom:4px; }
+  .confetti{ position:absolute; top:-20px; width:9px; height:14px; border-radius:2px; opacity:0; animation:confettiFall linear forwards; pointer-events:none; }
+  @keyframes confettiFall{ 0%{ transform:translateY(0) rotate(0); opacity:1; } 100%{ transform:translateY(112vh) rotate(720deg); opacity:.9; } }
+  @media (prefers-reduced-motion: reduce){
+    .mark-draw,.mark-petals,.result-title,.result-stars .star{ animation:none !important; opacity:1 !important; stroke-dashoffset:0 !important; }
+    .confetti{ display:none; }
+  }
+  .primary-btn{ display:block; width:100%; font-family:inherit; cursor:pointer; border:none; border-radius:14px; padding:13px 16px; font-size:1rem; font-weight:900; color:#2a2208; background:var(--accent); box-shadow:0 4px 0 var(--accent-dark); margin-top:10px; }
+  .primary-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--accent-dark); }
+  .primary-btn.sub-btn{ background:none; color:var(--ink); border:2px solid rgba(244,239,226,.4); box-shadow:none; }
+
+  /* 課金バナー（標準テンプレート） */
+  .grade-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed rgba(244,239,226,.25); text-align:center; }
+  .grade-cta{ background:rgba(240,180,41,.08); border:3px dashed var(--accent); border-radius:18px; padding:18px 14px; }
+  .grade-headline{ font-size:1.15rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
+  .grade-price{ display:inline-block; background:rgba(255,255,255,.1); color:#fff; font-size:.85rem; font-weight:bold; padding:4px 14px; border-radius:999px; margin-bottom:10px; border:1px solid var(--accent); }
+  .note-link-btn{ display:block; background:#41c9b4; color:#fff; font-size:1.15rem; font-weight:900; text-decoration:none; text-align:center; padding:16px 14px; border-radius:14px; margin-bottom:14px; box-shadow:0 4px 0 #2e9c8c; }
+  .note-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #2e9c8c; }
+  .grade-teaser{ font-size:.85rem; font-weight:bold; margin-bottom:14px; }
+  .grade-form{ display:flex; flex-direction:column; gap:10px; max-width:320px; margin:0 auto; }
+  .grade-form input[type=text]{ text-align:center; padding:10px 12px; border-radius:12px; border:2px solid var(--accent); font-size:1rem; font-family:inherit; }
+  .grade-form #unlockBtn{ font-size:1.05rem; padding:13px 16px; background:var(--accent); color:#2a2208; font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:bold; }
+  .grade-msg{ font-size:.8rem; margin-top:8px; }
+  .unlocked-badge{ display:inline-block; background:var(--accent); color:#2a2208; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; font-weight:900; }
+  .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
+  .x-share-zone{ margin-top:22px; padding-top:14px; border-top:1px dashed rgba(244,239,226,.25); text-align:center; }
+  .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:12px; }
+  .x-link-btn{ display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center; padding:14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer; font-family:inherit; }
+  .x-link-btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #444; }
+  .usage-notice{ margin-top:18px; font-size:.72rem; line-height:1.8; opacity:.85; text-align:left; background:rgba(255,255,255,.06); border-radius:10px; padding:12px 14px; border:1px solid rgba(255,255,255,.16); }
+  .usage-notice .usage-title{ font-weight:bold; color:var(--accent); display:block; margin-bottom:4px; }
+
+  /* ===== 動物マップ ===== */
+  .status-row{ display:flex; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .status-chip{ flex:1; text-align:center; background:rgba(0,0,0,.22); border-radius:12px; padding:8px 4px; font-size:.82rem; font-weight:900; }
+  .status-chip b{ color:var(--accent); font-size:1.05rem; }
+  .daily-msg{ text-align:center; font-size:.8rem; font-weight:900; color:var(--ok); margin:0 0 8px; }
+  .daily-msg:empty{ display:none; }
+  /* ---- マップ：周回ごとの色の帯 ---- */
+  .map-sec{ position:relative; margin:0 -6px 16px; padding:10px 12px 86px; border-radius:22px; overflow:hidden; color:var(--ink);
+    border:3px solid rgba(255,255,255,.22); box-shadow:0 8px 22px rgba(0,0,0,.28); }
+  .map-sec > *{ position:relative; z-index:1; }
+  .map-sec.sec-grass{ background:linear-gradient(180deg,#3aa04f 0%,#26803c 55%,#1b6a31 100%); }
+  .map-sec.sec-savanna{ background:linear-gradient(180deg,#c9822f 0%,#a8611c 55%,#8a4d14 100%); }
+  .map-sec.sec-ice{ background:linear-gradient(180deg,#4aa3d0 0%,#2f7fb0 55%,#22608c 100%); }
+  .map-sec::after{ content:''; position:absolute; left:0; right:0; bottom:0; height:74px; z-index:0; background-repeat:repeat-x; background-size:118px 74px; background-position:bottom; }
+  .map-sec.sec-grass::after{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M4 64 Q6 30 12 10 Q16 32 18 64Z M26 64 Q28 34 36 16 Q38 36 40 64Z M50 64 Q52 28 58 6 Q64 30 64 64Z M72 64 Q74 32 82 14 Q84 34 86 64Z' fill='%2366bb6a'/%3E%3Cpath d='M14 64 Q16 44 22 30 Q24 46 26 64Z M60 64 Q62 46 68 34 Q70 48 72 64Z' fill='%233f9a4a'/%3E%3Ccircle cx='30' cy='14' r='4' fill='%23ffeb3b'/%3E%3Ccircle cx='76' cy='12' r='4' fill='%23ff8fb3'/%3E%3C/svg%3E"); }
+  .map-sec.sec-savanna::after{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M4 64 Q10 30 8 8 Q18 34 18 64Z M28 64 Q34 36 34 14 Q42 38 42 64Z M52 64 Q58 26 56 4 Q66 30 66 64Z M74 64 Q80 34 80 12 Q88 36 88 64Z' fill='%23e8c777'/%3E%3Cpath d='M16 64 Q20 46 20 32 Q28 48 28 64Z M62 64 Q66 48 66 36 Q74 50 74 64Z' fill='%23d9a441'/%3E%3C/svg%3E"); }
+  .map-sec.sec-ice::after{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='64' viewBox='0 0 96 64'%3E%3Cpath d='M0 64 L14 20 L28 64Z M22 64 L40 8 L58 64Z M52 64 L68 26 L84 64Z M76 64 L90 34 L104 64Z' fill='%23dff4ff'/%3E%3Cpath d='M40 8 L48 30 L36 30Z M14 20 L19 34 L9 34Z' fill='%23ffffff'/%3E%3C/svg%3E"); }
+  .sec-deco{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .sec-deco i{ position:absolute; font-style:normal; opacity:.55; }
+  .sec-savanna .sec-sun{ position:absolute; top:-70px; right:-50px; width:190px; height:190px; border-radius:50%; background:radial-gradient(circle, rgba(255,232,150,.95) 0 34%, rgba(255,200,80,.5) 36% 58%, transparent 72%); }
+  /* 帯の中の動物の説明は、半透明の暗いプレートに載せる（帯の色が明るくても読める。コントラスト計算済み） */
+  .map-sec .node-info{ background:rgba(0,0,0,.5); border-radius:12px; padding:6px 10px; }
+  .map-sec .node-row.locked .node-info{ background:rgba(0,0,0,.42); }
+  .map-round{ text-align:center; margin:4px 0 14px; padding:8px 6px 8px; border-radius:14px; background:rgba(0,0,0,.28); border:2px solid rgba(255,255,255,.2); }
+  .mr-strip{ font-size:1.15rem; letter-spacing:.2em; line-height:1.3; }
+  .mr-title{ font-size:.95rem; font-weight:900; color:var(--accent); letter-spacing:.05em; margin-top:2px; }
+  .map-round.sub{ opacity:.6; }
+  .node-row{ position:relative; display:flex; align-items:center; gap:14px; margin:0 0 22px; cursor:pointer; }
+  .node-row.right{ flex-direction:row-reverse; text-align:right; }
+  .node-row.locked{ cursor:default; }
+  .node-row:not(.last)::after{ content:''; position:absolute; top:78px; height:24px; border-left:3px dotted rgba(244,239,226,.28); }
+  .node-row:not(.right):not(.last)::after{ left:37px; }
+  .node-row.right:not(.last)::after{ right:37px; }
+  .node{ position:relative; flex:none; width:76px; height:76px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.4rem;
+    background:rgba(255,255,255,.08); border:4px solid var(--nc, var(--off)); }
+  .node.done{ box-shadow:0 0 14px var(--nc); }
+  .node.now{ animation:nodePulse 1.4s ease-in-out infinite; background:rgba(255,255,255,.16); }
+  @keyframes nodePulse{ 0%,100%{ box-shadow:0 0 0 0 var(--nc); } 50%{ box-shadow:0 0 0 9px rgba(255,255,255,.18); } }
+  .node.locked{ border-color:var(--lock); }
+  .node.locked .em{ filter:brightness(0) opacity(.5); }
+  .node .badge{ position:absolute; right:-6px; bottom:-4px; font-size:1.05rem; background:var(--card); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; }
+  .node-info{ flex:1; min-width:0; }
+  .node-name{ font-size:1rem; font-weight:900; }
+  .node-mech{ font-size:.74rem; opacity:.75; margin:1px 0 3px; }
+  .node-prog{ font-size:.78rem; font-weight:900; color:var(--accent); }
+  .node-row.locked .node-name, .node-row.locked .node-mech, .node-row.locked .node-prog{ color:var(--mute2); opacity:.8; }
+  .map-end{ text-align:center; font-size:.85rem; opacity:.7; margin:6px 0 4px; }
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:rgba(4,20,10,.95); color:var(--ink); border:2px solid var(--accent); border-radius:999px; padding:10px 18px; font-size:.85rem; font-weight:900; z-index:60; max-width:90vw; text-align:center; animation:fadeIn .2s ease; }
+  /* ===== パック画面 ===== */
+  .pack-hero{ text-align:center; margin-bottom:8px; }
+  .pack-hero .em{ font-size:3rem; line-height:1.1; }
+  .pack-hero .nm{ font-size:1.1rem; font-weight:900; }
+  .pack-hero .mc{ font-size:.8rem; opacity:.8; }
+  .pack-bonus{ background:rgba(0,0,0,.2); border-radius:12px; padding:9px 12px; font-size:.78rem; line-height:1.7; margin:10px 0 12px; }
+  .pack-bonus .got{ color:var(--ok); }
+  .lv .em2{ display:block; font-size:.7rem; opacity:.7; font-weight:700; }
+  .zk-lv{ display:flex; justify-content:center; gap:6px; margin:3px 0 4px; font-size:.7rem; font-weight:900; }
+  .zk-lv span{ background:rgba(255,255,255,.08); border-radius:8px; padding:1px 6px; }
+</style>
+</head>
+<body data-theme="grass">
+<div id="bgDeco" aria-hidden="true"><div class="sky"></div><div class="hills"></div><div class="tree"></div><div class="blades back"></div><div class="blades front"></div><div class="snow" id="snowLayer"></div></div>
+<div class="wrap">
+  <div class="top-plate">
+  <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
+  <div class="hero-row" id="heroRow" aria-live="polite"></div>
+  <h1>どうぶつまみれ <small style="font-size:.5em;color:#ffd54a">🧪ラボ版</small></h1>
+  <div class="tagline">タップで動かして、どうぶつたちにまみれよう！</div>
+  <button type="button" id="soundToggleBtn" class="sound-notice">🔊 このゲームは音が出ます（タップでOFF）</button>
+  </div>
+
+  <!-- ==== マップ ==== -->
+  <div id="screenMap">
+    <div class="panel map-head">
+    <div class="sub">ねむっている動物たちの錠を、順番に開けていこう。<br>手数が少ないほど★が増えて、ヒントがもらえる！</div>
+    <div class="status-row">
+      <div class="status-chip">💡 ヒント <b id="hintCount">0</b></div>
+      <div class="status-chip">★ <b id="starCount">0</b> / <span id="starMax">0</span></div>
+    </div>
+    <div class="daily-msg" id="dailyMsg"></div>
+    <div class="daily-msg" id="openAllMsg" style="color:var(--accent)"></div>
+    <button type="button" class="zukan-btn" id="zukanBtn">📖 どうぶつ図鑑 <span class="zk-count" id="zukanCount"></span></button>
+    </div>
+    <div id="mapList" style="margin-top:14px;"></div>
+    <div class="voice-zone">
+      <button type="button" class="tool-btn" id="voiceCheckBtn">🗣 ありがとうの声チェック</button>
+      <div id="voicePanel" class="voice-panel hidden">
+        <div class="vc-note">ルーレット錠をクリアした時の「ありがとう」を、各国の言葉で読み上げます。🔊の言語は、この端末で声が出ます（タップで試聴）。「声なし」の言語は、文字だけが表示されます。</div>
+        <div id="voiceList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== パック（動物ごとの問題一覧） ==== -->
+  <div id="screenPack" class="panel stage hidden">
+    <div class="crumb" id="crumbPack"></div>
+    <div class="pack-hero"><div class="em" id="packEm"></div><div class="nm" id="packName"></div><div class="mc" id="packMech"></div></div>
+    <div class="play-rule" id="packRule"></div>
+    <div class="lv-grid" id="packGrid"></div>
+    <div class="pack-bonus" id="packBonus"></div>
+    <div class="tool-row"><button type="button" class="tool-btn" id="packBackBtn">🗺 マップにもどる</button></div>
+  </div>
+
+  <!-- ==== 図鑑 ==== -->
+  <div id="screenZukan" class="panel stage hidden">
+    <div class="crumb" id="crumbZukan"></div>
+    <div class="play-head"><div class="play-title">📖 どうぶつ図鑑</div><div class="play-count" id="zukanTotal"></div></div>
+    <div class="play-rule">動物のLv1をすべて解くと、その動物が仲間になります。Lvごとに、★の合計で首輪が決まります（全部★3＝金の首輪、合計が2/3以上＝銀の首輪）。</div>
+    <div class="zk-banner" id="zukanBanner"></div>
+    <div class="zk-grid" id="zukanGrid"></div>
+    <div class="tool-row"><button type="button" class="tool-btn" id="zukanBackBtn">🗺 マップにもどる</button></div>
+  </div>
+
+  <!-- ==== プレイ画面 ==== -->
+  <div id="screenPlay" class="panel stage hidden">
+    <div class="crumb" id="crumbPlay"></div>
+    <div class="play-head"><div class="play-title" id="playTitle"></div><div class="play-count" id="playCount">0手</div></div>
+    <div class="play-rule" id="playRule"></div>
+    <div id="board"></div>
+    <div class="msg" id="playMsg"></div>
+    <div class="tool-row" id="toolRow">
+      <button type="button" class="tool-btn hint-btn" id="hintBtn">💡 ヒント</button>
+      <button type="button" class="tool-btn" id="undoBtn">↶ 1手戻す</button>
+      <button type="button" class="tool-btn" id="retryBtn">↺ やり直す</button>
+      <button type="button" class="tool-btn" id="tocBtn">☰ もどる</button>
+    </div>
+    <div class="result hidden" id="resultBox">
+      <div class="result-inner">
+        <div class="mark-box" id="markBox"></div>
+        <div class="result-title" id="resultTitle">🔓 錠が開いた！</div>
+        <div class="result-stars" id="resultStars"></div>
+        <div class="result-sub" id="resultSub"></div>
+        <div class="result-zukan" id="resultZukan"></div>
+        <button type="button" class="primary-btn" id="nextBtn">次のパズルへ →</button>
+        <button type="button" class="primary-btn sub-btn" id="againBtn">もう一度この錠を解く</button>
+        <button type="button" class="primary-btn sub-btn" id="tocBtn2">動物のページへ戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grade-zone">
+    <div class="grade-cta" id="gradeForm">
+      <div class="grade-headline">損しかない課金はこちら💁</div>
+      <div class="grade-price">🪙 ワンコイン500円</div>
+      <a href="#" id="noteLinkBtn" class="note-link-btn">📝 note記事は準備中です</a>
+      <div class="grade-teaser">課金すると、💡ヒントが使い放題になり、鬼・悪魔・お化けが待つ激ムズの特別コース「🔥地獄」（50問）と、その先の最高難易度「👼天国」（50問）に挑めます。本当にお金をドブに捨てる気ですか？</div>
+      <div class="grade-form">
+        <input type="text" id="passwordInput" placeholder="合言葉">
+        <button type="button" id="unlockBtn">解放する</button>
+      </div>
+    </div>
+    <div id="gradeMsg" class="grade-msg"></div>
+    <div id="unlockedZone" class="hidden">
+      <span class="unlocked-badge">グレードアップ解放済み</span>
+      <div class="unlocked-note">💡ヒントが使い放題になりました。マップの下に「🔥地獄コース」が開いています（全部クリアすると「👼天国コース」が開きます）。</div>
+    </div>
+  </div>
+
+  <div class="x-share-zone">
+    <div class="x-share-title">このゲームを拡散！</div>
+    <button type="button" class="x-link-btn" id="xShareBtn">🐦 Xでシェアする</button>
+  </div>
+
+  <div class="usage-notice">
+    <span class="usage-title">🎥 実況・動画での使用について</span>
+    「しょーもなゲームズ」シリーズは、YouTubeなどでの実況・配信・動画への使用OKです！広告付き・収益化された動画でもご自由にお使いください。<br>
+    ただし、グレードアップ用の「合言葉」を画面に映したり読み上げたりするのはご遠慮ください。<br>
+    それ以外は自由に、しょーもなく広めていただけると嬉しいです。
+  </div>
+
+  <a href="../../" class="back-link-btn">← ゲーム一覧に戻る</a>
+</div>
+
+<script>
+/* 問題データ（tools/akazu-gen で生成。全問、BFS・GF(2)・総当たりで「必ず解ける」ことと最短手数を検証済み） */
+var LEVEL_DATA = {"rounds":[[{"mech":"lights","puzzles":[{"n":2,"rows":["01","11"],"min":1},{"n":2,"rows":["11","00"],"min":2},{"n":3,"rows":["100","110","100"],"min":1},{"n":3,"rows":["010","011","100"],"min":2},{"n":3,"rows":["110","101","011"],"min":2}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■"],"clues":[["left","●","■"],["notadj","★","▲"],["between","●","▲","■"],["end","★"]],"start":["▲","★","■","●"],"target":["▲","●","■","★"],"min":3},{"syms":["★","●","▲","■"],"clues":[["left","★","▲"],["notadj","●","★"],["end","■"],["between","▲","●","■"]],"start":["■","●","▲","★"],"target":["■","★","▲","●"],"min":3},{"syms":["★","●","▲","■"],"clues":[["adj","▲","●"],["between","▲","★","●"],["left","★","■"],["adj","▲","■"]],"start":["▲","■","●","★"],"target":["★","■","▲","●"],"min":4},{"syms":["★","●","▲","■"],"clues":[["notadj","●","★"],["notadj","★","▲"],["adj","●","■"],["left","●","▲"]],"start":["●","▲","★","■"],"target":["★","■","●","▲"],"min":4},{"syms":["★","●","▲","■"],"clues":[["adj","▲","■"],["left","■","▲"],["left","★","▲"],["between","●","★","▲"]],"start":["■","▲","●","★"],"target":["★","●","■","▲"],"min":5}]},{"mech":"slide","puzzles":[{"cars":[[0,2,2,"H"],[3,0,3,"V"],[2,5,2,"V"],[2,2,2,"V"],[5,4,2,"H"],[4,1,2,"V"],[1,2,2,"H"],[0,1,2,"V"],[0,4,3,"V"],[2,3,2,"V"]],"exit":"L","min":2},{"cars":[[2,5,2,"V"],[5,0,3,"H"],[2,0,2,"V"],[0,0,2,"V"],[4,1,2,"H"],[2,4,2,"V"],[4,4,2,"H"],[0,1,3,"H"],[1,1,2,"V"],[3,3,2,"V"]],"exit":"D","min":3},{"cars":[[5,4,2,"H"],[1,0,2,"V"],[0,1,2,"H"],[3,5,2,"V"],[4,1,2,"V"],[2,3,2,"V"],[1,3,2,"H"],[2,4,2,"H"],[4,2,2,"V"],[1,1,2,"V"]],"exit":"L","min":3},{"cars":[[5,2,2,"H"],[0,5,3,"V"],[0,3,2,"H"],[3,0,2,"V"],[4,2,2,"H"],[4,4,2,"V"],[2,2,2,"V"],[1,3,2,"V"],[3,3,3,"H"],[2,0,2,"H"]],"exit":"R","min":4},{"cars":[[0,2,2,"H"],[3,5,3,"V"],[5,3,2,"H"],[1,0,2,"V"],[1,2,2,"H"],[0,4,2,"V"],[2,2,2,"V"],[2,3,3,"H"],[3,0,2,"H"],[4,3,2,"H"]],"exit":"R","min":4}]},{"mech":"lights","puzzles":[{"n":3,"rows":["011","100","101"],"min":3},{"n":3,"rows":["101","110","001"],"min":4},{"n":4,"rows":["0010","0110","1100","0000"],"min":3},{"n":4,"rows":["0010","0110","0100","1100"],"min":4},{"n":4,"rows":["0110","0111","1100","1000"],"min":5}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■"],"clues":[["left","▲","★"],["adj","●","★"],["between","▲","●","■"],["adj","▲","★"]],"start":["●","★","■","▲"],"target":["■","▲","★","●"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["notadj","▲","◆"],["left","★","▲"],["notadj","◆","■"],["notadj","■","●"],["between","●","★","◆"],["notadj","●","▲"],["left","■","▲"]],"start":["◆","■","★","▲","●"],"target":["◆","●","★","■","▲"],"min":4},{"syms":["★","●","▲","■","◆"],"clues":[["notadj","★","●"],["notadj","▲","◆"],["adj","★","◆"],["left","■","▲"],["notadj","▲","★"],["left","▲","◆"]],"start":["●","◆","■","★","▲"],"target":["■","▲","●","◆","★"],"min":5},{"syms":["★","●","▲","■","◆"],"clues":[["adj","★","●"],["left","◆","■"],["notadj","■","★"],["between","▲","★","◆"],["left","●","■"],["notadj","■","◆"]],"start":["●","▲","★","■","◆"],"target":["◆","▲","★","●","■"],"min":6},{"syms":["★","●","▲","■","◆"],"clues":[["adj","▲","■"],["left","◆","★"],["notadj","▲","◆"],["notadj","▲","●"],["left","■","●"],["between","■","★","◆"]],"start":["▲","■","●","★","◆"],"target":["◆","■","▲","★","●"],"min":6}]},{"mech":"slide","puzzles":[{"cars":[[5,2,2,"H"],[0,5,3,"V"],[2,0,2,"V"],[0,0,2,"H"],[0,4,2,"V"],[4,2,2,"H"],[4,4,2,"V"],[2,2,2,"V"],[4,0,2,"H"],[1,1,2,"H"],[3,3,2,"H"]],"exit":"R","min":5},{"cars":[[2,0,2,"V"],[0,3,3,"H"],[2,5,2,"V"],[4,5,2,"V"],[1,4,2,"H"],[2,1,2,"V"],[1,0,2,"H"],[3,2,2,"H"],[4,1,2,"V"],[3,4,2,"V"],[1,2,2,"V"]],"exit":"U","min":5},{"cars":[[1,5,2,"V"],[5,1,2,"H"],[3,0,2,"V"],[0,0,2,"V"],[4,4,2,"H"],[2,2,2,"H"],[1,1,2,"V"],[3,3,3,"V"],[0,2,2,"V"],[3,4,2,"H"],[4,1,2,"H"]],"exit":"D","min":6},{"cars":[[0,3,2,"H"],[0,0,2,"V"],[5,1,2,"H"],[1,5,2,"V"],[0,1,2,"V"],[2,3,2,"V"],[4,2,3,"H"],[2,1,3,"V"],[0,2,2,"V"],[2,4,2,"V"]],"exit":"L","min":6},{"cars":[[0,1,2,"H"],[3,5,2,"V"],[5,3,2,"H"],[1,0,2,"V"],[0,4,2,"V"],[2,2,2,"V"],[4,1,2,"H"],[2,3,3,"H"],[3,0,2,"H"],[0,3,2,"V"]],"exit":"R","min":7}]},{"mech":"gear","puzzles":[{"R":2,"N":8,"gates":[[4],[4]],"link":[-1,-1],"start":[1,4],"min":3},{"R":2,"N":8,"gates":[[6],[6]],"link":[-1,-1],"start":[0,4],"min":4},{"R":3,"N":8,"gates":[[2],[4],[4]],"link":[-1,-1,-1],"start":[0,5,3],"min":4},{"R":3,"N":8,"gates":[[3],[3],[4]],"link":[-1,-1,-1],"start":[6,3,2],"min":5},{"R":3,"N":8,"gates":[[7],[6],[5]],"link":[-1,-1,-1],"start":[3,5,4],"min":6}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆"],"clues":[["notadj","●","◆"],["between","▲","●","■"],["between","▲","★","◆"],["notadj","▲","■"],["left","◆","●"],["adj","★","▲"]],"start":["●","▲","◆","■","★"],"target":["■","◆","▲","★","●"],"min":7},{"syms":["★","●","▲","■","◆"],"clues":[["left","■","●"],["between","◆","▲","■"],["adj","◆","★"],["adj","▲","◆"],["adj","●","■"],["end","●"]],"start":["●","■","▲","★","◆"],"target":["▲","◆","★","■","●"],"min":8},{"syms":["★","●","▲","■","◆"],"clues":[["left","●","◆"],["between","▲","★","◆"],["left","●","■"],["adj","●","▲"],["between","▲","●","■"],["end","■"]],"start":["■","▲","◆","★","●"],"target":["★","●","▲","◆","■"],"min":8},{"syms":["★","●","▲","■","◆"],"clues":[["left","●","▲"],["notadj","■","●"],["notadj","●","▲"],["end","★"],["between","◆","★","■"],["between","■","▲","◆"]],"start":["▲","■","●","◆","★"],"target":["★","●","◆","■","▲"],"min":9},{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","◆","★"],["notadj","●","▲"],["between","◆","★","♥"],["between","■","▲","◆"],["between","▲","★","♥"],["notadj","▲","★"],["notadj","◆","★"]],"start":["▲","■","★","◆","♥","●"],"target":["♥","▲","■","◆","●","★"],"min":6}]},{"mech":"slide","puzzles":[{"cars":[[0,3,2,"H"],[3,0,2,"V"],[5,1,2,"H"],[1,5,2,"V"],[0,1,2,"V"],[2,3,2,"V"],[4,3,2,"H"],[2,0,3,"H"],[3,4,2,"H"],[0,2,2,"V"],[3,2,2,"V"]],"exit":"L","min":7},{"cars":[[5,0,2,"H"],[1,5,2,"V"],[0,3,2,"H"],[3,0,2,"V"],[4,4,2,"V"],[2,2,2,"V"],[1,1,2,"H"],[3,3,3,"H"],[2,0,2,"H"],[4,3,2,"V"],[1,4,2,"V"]],"exit":"R","min":8},{"cars":[[4,0,2,"V"],[0,3,2,"H"],[1,5,2,"V"],[5,1,2,"H"],[1,0,2,"H"],[3,2,2,"H"],[3,4,2,"V"],[0,2,3,"V"],[2,0,2,"H"],[1,3,2,"H"]],"exit":"U","min":8},{"cars":[[1,0,2,"V"],[5,0,2,"H"],[3,5,2,"V"],[0,1,2,"H"],[4,0,2,"H"],[2,2,2,"H"],[1,4,2,"V"],[3,2,3,"V"],[3,0,2,"H"],[1,2,2,"H"],[1,1,2,"V"]],"exit":"D","min":9},{"cars":[[1,5,2,"V"],[5,4,2,"H"],[3,0,2,"V"],[0,3,2,"H"],[4,4,2,"H"],[2,2,2,"H"],[1,1,3,"V"],[3,3,3,"V"],[3,4,2,"H"],[1,2,2,"H"],[1,4,2,"V"]],"exit":"D","min":9}]},{"mech":"gear","puzzles":[{"R":2,"N":8,"gates":[[4],[5]],"link":[-1,0],"start":[3,2],"min":3},{"R":3,"N":8,"gates":[[3],[4],[6]],"link":[-1,0,1],"start":[6,4,3],"min":4},{"R":3,"N":8,"gates":[[5],[0],[4]],"link":[1,-1,1],"start":[2,5,4],"min":5},{"R":3,"N":8,"gates":[[6],[3],[7]],"link":[1,-1,1],"start":[1,7,3],"min":6},{"R":3,"N":8,"gates":[[6],[0],[6]],"link":[1,-1,1],"start":[7,7,2],"min":7}]}],[{"mech":"lights","puzzles":[{"n":5,"rows":["11000","00111","00111","10001","11000"],"min":4},{"n":5,"rows":["11011","11010","01000","00000","01100"],"min":5},{"n":5,"rows":["01010","11010","11001","11011","10111"],"min":5},{"n":5,"rows":["11110","01011","01110","10010","11001"],"min":6},{"n":5,"rows":["00000","00010","11100","01101","10001"],"min":7}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥"],"clues":[["adj","◆","■"],["left","★","♥"],["left","★","▲"],["adj","★","●"],["adj","♥","★"],["between","▲","●","◆"],["adj","▲","◆"]],"start":["♥","◆","▲","●","★","■"],"target":["●","★","♥","▲","◆","■"],"min":7},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","▲","●"],["left","■","◆"],["left","♥","◆"],["notadj","●","◆"],["between","■","●","♥"],["left","★","●"],["notadj","♥","▲"],["end","★"]],"start":["◆","♥","★","■","●","▲"],"target":["★","●","■","♥","◆","▲"],"min":8},{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","◆","▲"],["adj","♥","◆"],["between","★","▲","♥"],["notadj","■","▲"],["adj","♥","★"],["between","♥","★","●"],["end","●"]],"start":["■","▲","♥","◆","★","●"],"target":["●","■","◆","♥","★","▲"],"min":9},{"syms":["★","●","▲","■","◆","♥"],"clues":[["adj","◆","★"],["between","■","★","●"],["notadj","★","▲"],["between","♥","★","■"],["notadj","■","▲"],["left","▲","★"],["adj","♥","◆"]],"start":["◆","♥","■","▲","★","●"],"target":["▲","●","■","♥","◆","★"],"min":10},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","◆","●","▲"],["left","◆","▲"],["between","★","■","◆"],["between","♥","★","●"],["left","◆","■"],["notadj","▲","■"],["adj","♥","★"]],"start":["■","◆","♥","★","▲","●"],"target":["●","◆","▲","♥","★","■"],"min":11}]},{"mech":"slide","puzzles":[{"cars":[[5,4,2,"H"],[3,1,3,"V"],[0,1,2,"V"],[2,0,2,"H"],[3,0,3,"V"],[3,5,2,"V"],[4,2,2,"V"],[2,2,2,"H"],[1,4,2,"V"],[4,3,2,"V"],[3,2,2,"H"]],"exit":"L","min":10},{"cars":[[0,0,2,"H"],[0,4,3,"V"],[4,4,2,"V"],[3,4,2,"H"],[0,5,2,"V"],[1,0,2,"V"],[0,3,2,"V"],[3,2,2,"H"],[3,1,2,"V"],[0,2,2,"V"],[2,2,2,"H"]],"exit":"R","min":10},{"cars":[[1,3,2,"V"],[2,1,2,"H"],[5,0,2,"H"],[5,2,2,"H"],[4,5,2,"V"],[3,3,3,"H"],[3,0,2,"V"],[3,2,2,"V"],[0,5,2,"V"],[1,0,2,"V"],[4,4,2,"V"]],"exit":"D","min":11},{"cars":[[2,3,2,"H"],[3,3,2,"V"],[4,0,2,"V"],[2,0,2,"V"],[0,0,2,"H"],[0,2,3,"V"],[5,1,2,"H"],[3,1,2,"H"],[5,3,2,"H"],[1,0,2,"H"]],"exit":"L","min":11},{"cars":[[4,0,2,"H"],[2,5,2,"V"],[2,3,2,"H"],[4,5,2,"V"],[0,2,3,"V"],[2,0,2,"H"],[3,4,2,"V"],[5,1,3,"H"],[3,3,2,"V"],[1,0,2,"H"]],"exit":"R","min":12}]},{"mech":"lights","puzzles":[{"n":5,"rows":["01111","00000","10100","00010","01010"],"min":8},{"n":5,"rows":["11110","00100","01110","10011","00001"],"min":8},{"n":5,"rows":["01000","00110","01000","01110","00111"],"min":9},{"n":5,"rows":["01111","10001","11011","11010","11010"],"min":10},{"n":5,"rows":["01000","01110","10001","00000","00001"],"min":11}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥"],"clues":[["adj","■","●"],["between","◆","●","♥"],["end","♥"],["between","▲","■","♥"],["left","●","■"],["between","●","■","♥"],["between","▲","★","■"],["notadj","◆","★"]],"start":["■","▲","●","◆","♥","★"],"target":["♥","★","▲","◆","●","■"],"min":12},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","▲","★","◆"],["notadj","◆","■"],["between","★","▲","♥"],["end","■"],["left","▲","●"],["between","●","■","♥"],["between","★","●","♥"]],"start":["●","■","▲","★","◆","♥"],"target":["♥","★","▲","◆","●","■"],"min":12},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","◆","●","▲"],["left","▲","♥"],["adj","■","♥"],["left","▲","●"],["between","♥","★","■"],["notadj","●","♥"],["notadj","▲","★"],["notadj","♥","★"],["notadj","●","◆"]],"start":["★","◆","●","♥","■","▲"],"target":["▲","■","♥","◆","★","●"],"min":13},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","♥","★"],["left","♥","●"],["notadj","●","★"],["adj","♥","▲"],["between","★","●","◆"],["left","◆","■"],["left","▲","♥"],["notadj","▲","★"],["notadj","♥","◆"]],"start":["●","♥","▲","★","■","◆"],"target":["◆","★","■","▲","♥","●"],"min":14},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["left","♥","◆"],["end","♣"],["notadj","●","■"],["between","●","▲","■"],["between","★","●","♥"],["left","♥","■"],["between","▲","◆","♣"],["between","●","▲","♣"]],"start":["■","♣","◆","♥","▲","●","★"],"target":["♣","♥","■","★","●","▲","◆"],"min":9}]},{"mech":"slide","puzzles":[{"cars":[[1,4,2,"V"],[5,2,2,"H"],[3,2,2,"V"],[5,4,2,"H"],[2,0,3,"H"],[0,2,3,"H"],[4,3,2,"H"],[1,5,3,"V"],[3,3,2,"H"],[1,0,2,"H"]],"exit":"D","min":12},{"cars":[[3,1,2,"V"],[0,3,2,"H"],[1,3,2,"V"],[0,0,2,"H"],[3,3,3,"H"],[4,3,2,"V"],[1,1,2,"H"],[2,0,3,"V"],[2,1,2,"H"]],"exit":"U","min":13},{"cars":[[4,3,2,"H"],[2,0,2,"V"],[2,1,2,"H"],[4,0,2,"V"],[0,3,3,"V"],[2,4,2,"H"],[3,1,2,"V"],[5,2,3,"H"],[3,2,2,"V"]],"exit":"L","min":13},{"cars":[[1,1,2,"V"],[5,2,2,"H"],[3,3,2,"V"],[5,0,2,"H"],[2,3,3,"H"],[0,3,2,"V"],[4,1,2,"H"],[1,0,3,"V"],[3,1,2,"H"],[0,2,2,"V"],[3,5,2,"V"]],"exit":"D","min":14},{"cars":[[1,3,2,"H"],[2,0,2,"V"],[3,1,2,"H"],[0,0,2,"V"],[3,3,3,"V"],[3,4,2,"H"],[1,1,2,"V"],[0,2,3,"H"],[1,2,2,"V"],[5,1,2,"H"]],"exit":"L","min":14}]},{"mech":"lights","puzzles":[{"n":6,"rows":["100110","101110","010110","010001","110001","001100"],"min":7},{"n":6,"rows":["000011","101101","101101","010010","100010","010000"],"min":8},{"n":6,"rows":["100000","101101","110001","100001","011001","010110"],"min":9},{"n":6,"rows":["011110","001000","101010","101101","111101","001101"],"min":10},{"n":6,"rows":["011000","010110","011101","010111","000011","011010"],"min":12}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["left","■","●"],["between","●","★","■"],["adj","♥","★"],["left","♣","★"],["left","♥","★"],["left","◆","▲"],["between","★","▲","■"],["notadj","♣","●"],["end","◆"]],"start":["★","♣","◆","▲","●","♥","■"],"target":["◆","♣","■","●","♥","★","▲"],"min":11},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["left","●","★"],["between","■","◆","♣"],["notadj","◆","★"],["between","★","●","▲"],["notadj","★","▲"],["left","♣","●"],["adj","♥","■"],["end","▲"],["notadj","♥","◆"]],"start":["◆","●","▲","♣","■","♥","★"],"target":["♣","●","★","♥","■","◆","▲"],"min":13},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","♣","▲","■"],["between","♣","◆","♥"],["left","★","♣"],["adj","▲","★"],["between","■","◆","♥"],["between","♣","▲","♥"],["left","▲","◆"],["left","▲","★"],["adj","●","♥"],["notadj","■","●"]],"start":["■","★","●","♥","♣","◆","▲"],"target":["▲","★","◆","♣","■","♥","●"],"min":15},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","■","♥","♣"],["between","★","■","◆"],["between","■","●","◆"],["left","♣","●"],["between","★","●","▲"],["between","◆","★","♥"],["left","◆","●"],["between","▲","◆","♣"]],"start":["♣","▲","■","●","★","◆","♥"],"target":["♥","◆","▲","★","■","♣","●"],"min":16},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","■","▲","♣"],["between","♥","◆","♣"],["between","♥","★","■"],["notadj","■","▲"],["notadj","■","●"],["left","▲","■"],["notadj","♥","★"],["between","●","◆","♣"],["adj","♣","●"]],"start":["★","●","♥","♣","◆","■","▲"],"target":["▲","◆","■","♥","●","♣","★"],"min":18}]},{"mech":"slide","puzzles":[{"cars":[[0,4,2,"V"],[0,2,2,"H"],[5,3,2,"H"],[5,0,2,"H"],[4,3,2,"H"],[3,3,3,"H"],[0,0,2,"H"],[1,2,2,"V"],[2,4,2,"H"],[3,1,2,"V"],[2,0,3,"V"]],"exit":"D","min":15},{"cars":[[0,1,2,"V"],[4,1,2,"H"],[5,1,2,"H"],[4,3,2,"H"],[2,0,2,"H"],[2,4,2,"V"],[1,2,2,"V"],[1,3,2,"V"],[0,4,2,"H"],[0,2,2,"H"],[3,0,2,"H"]],"exit":"D","min":16},{"cars":[[3,0,2,"V"],[2,4,3,"V"],[4,1,3,"H"],[5,2,2,"H"],[3,2,2,"H"],[0,2,3,"V"],[0,3,2,"H"],[3,5,2,"V"],[2,0,2,"H"],[5,0,2,"H"]],"exit":"U","min":17},{"cars":[[0,1,2,"H"],[4,1,3,"H"],[1,1,3,"V"],[2,0,2,"V"],[2,2,2,"V"],[5,3,2,"H"],[2,3,3,"H"],[3,5,2,"V"],[5,1,2,"H"],[0,3,2,"V"],[0,0,2,"V"]],"exit":"R","min":18},{"cars":[[0,0,2,"H"],[3,4,2,"H"],[2,2,2,"V"],[0,2,2,"V"],[4,5,2,"V"],[0,4,3,"V"],[1,3,3,"V"],[4,2,3,"H"],[5,2,2,"H"],[3,0,3,"V"],[0,5,2,"V"]],"exit":"R","min":19}]},{"mech":"lights","puzzles":[{"n":6,"rows":["011000","110101","011100","111011","011111","001100"],"min":13},{"n":7,"rows":["0011110","1000100","0010011","1000101","1001000","0000110","0000000"],"min":10},{"n":7,"rows":["0101001","0000101","0000000","0001100","0011101","0110100","0001011"],"min":12},{"n":7,"rows":["1000000","0010001","1001000","0111011","0001001","0000111","0001101"],"min":14},{"n":7,"rows":["0111011","1010010","1111000","0001001","0110000","0100001","1110001"],"min":16}]}],[{"mech":"gear","puzzles":[{"R":3,"N":8,"gates":[[2],[6],[2]],"link":[1,-1,1],"start":[3,2,7],"min":6},{"R":3,"N":8,"gates":[[1],[0],[5]],"link":[-1,0,1],"start":[7,6,2],"min":7},{"R":3,"N":8,"gates":[[0,6],[3],[1]],"link":[1,-1,1],"start":[3,5,1],"min":6},{"R":3,"N":8,"gates":[[2],[4],[2]],"link":[1,2,-1],"start":[0,5,0],"min":8},{"R":3,"N":8,"gates":[[7],[1],[7]],"link":[1,-1,1],"start":[4,6,4],"min":9}]},{"mech":"lights","puzzles":[{"n":6,"rows":["100010","100011","010110","011011","100111","101111"],"min":11},{"n":6,"rows":["110110","101011","111101","111111","100101","011111"],"min":13},{"n":6,"rows":["101010","011001","100010","100000","000001","111001"],"min":14},{"n":7,"rows":["0111010","0010010","1010101","0110010","1101110","0001111","1000100"],"min":12},{"n":7,"rows":["1100101","1111011","0000001","1001011","1001011","0000011","0000100"],"min":14}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥"],"clues":[["left","◆","●"],["between","★","●","▲"],["adj","■","●"],["notadj","★","◆"],["notadj","♥","★"],["between","■","●","◆"],["adj","▲","◆"],["left","♥","●"]],"start":["●","▲","◆","★","■","♥"],"target":["♥","◆","▲","★","■","●"],"min":10},{"syms":["★","●","▲","■","◆","♥"],"clues":[["between","★","●","▲"],["notadj","★","■"],["between","★","◆","♥"],["between","●","■","♥"],["notadj","■","▲"],["between","■","◆","♥"],["adj","▲","★"],["left","♥","■"]],"start":["■","●","◆","▲","★","♥"],"target":["♥","▲","★","●","■","◆"],"min":12},{"syms":["★","●","▲","■","◆","♥"],"clues":[["notadj","■","▲"],["between","●","◆","♥"],["between","■","★","♥"],["notadj","●","■"],["adj","♥","▲"],["left","●","▲"],["between","▲","★","♥"]],"start":["♥","◆","▲","●","■","★"],"target":["★","■","◆","●","▲","♥"],"min":13},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["adj","■","♥"],["left","♣","▲"],["between","▲","●","♣"],["between","♣","★","◆"],["between","▲","●","■"],["between","■","▲","♥"],["between","▲","◆","♥"],["end","●"],["notadj","♣","★"]],"start":["▲","■","♣","●","◆","★","♥"],"target":["★","♥","■","♣","▲","◆","●"],"min":13},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["notadj","♣","◆"],["between","●","◆","♥"],["left","▲","◆"],["left","▲","♥"],["between","★","▲","◆"],["between","■","★","▲"],["notadj","♥","♣"],["between","♣","★","●"],["notadj","■","♥"],["notadj","●","■"]],"start":["★","◆","▲","■","♥","♣","●"],"target":["▲","♥","●","♣","■","★","◆"],"min":14}]},{"mech":"slide","puzzles":[{"cars":[[5,0,2,"H"],[1,5,2,"V"],[0,3,2,"H"],[3,0,2,"V"],[4,4,2,"V"],[2,2,2,"V"],[1,1,2,"H"],[3,3,3,"H"],[4,3,2,"V"],[2,1,2,"V"]],"exit":"R","min":8},{"cars":[[1,0,2,"V"],[5,0,2,"H"],[3,5,2,"V"],[0,1,2,"H"],[4,0,2,"H"],[2,2,2,"H"],[1,4,3,"V"],[3,2,3,"V"],[3,0,2,"H"],[1,2,2,"H"]],"exit":"D","min":9},{"cars":[[4,0,2,"V"],[1,0,3,"H"],[1,4,2,"H"],[0,3,2,"V"],[0,0,2,"H"],[5,1,2,"H"],[2,0,2,"H"],[2,3,2,"V"],[3,5,3,"V"],[3,0,2,"H"],[2,2,2,"V"]],"exit":"U","min":10},{"cars":[[3,3,2,"V"],[3,1,2,"H"],[0,0,2,"H"],[0,2,2,"H"],[0,5,2,"V"],[2,3,3,"H"],[1,0,2,"V"],[1,2,2,"V"],[3,0,2,"V"],[0,4,2,"V"],[5,0,3,"H"]],"exit":"U","min":11},{"cars":[[0,4,2,"V"],[5,2,2,"H"],[3,2,2,"V"],[5,4,2,"H"],[2,0,3,"H"],[0,2,2,"V"],[4,3,2,"H"],[1,5,3,"V"],[3,3,2,"H"],[1,0,2,"H"]],"exit":"D","min":12}]},{"mech":"gear","puzzles":[{"R":4,"N":8,"gates":[[6],[4],[2],[0]],"link":[1,2,3,-1],"start":[1,4,6,4],"min":6},{"R":4,"N":8,"gates":[[7],[2],[7],[1]],"link":[3,0,1,-1],"start":[1,0,6,6],"min":7},{"R":4,"N":8,"gates":[[5,7],[6],[3],[0]],"link":[1,2,3,-1],"start":[5,4,0,0],"min":8},{"R":4,"N":8,"gates":[[5],[0],[1],[4]],"link":[2,3,0,-1],"start":[4,4,6,4],"min":9},{"R":4,"N":8,"gates":[[1],[7],[6],[7]],"link":[2,3,0,-1],"start":[1,5,0,1],"min":10}]},{"mech":"lights","puzzles":[{"n":7,"rows":["0110010","1000011","1000001","0011110","0111010","0110100","0000101"],"min":15},{"n":7,"rows":["1011001","0100010","0000111","0111011","1100010","1001001","0111110"],"min":16},{"n":7,"rows":["0100000","0101100","1000011","1010110","1001111","1000111","0101010"],"min":18},{"n":7,"rows":["1110111","0010101","1010000","0010011","1010110","1110000","1010101"],"min":19},{"n":7,"rows":["0101110","0001100","0100011","0110000","1100110","1111101","0000011"],"min":20}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["left","♣","◆"],["between","♣","★","♥"],["between","♣","★","◆"],["between","▲","■","♣"],["between","♥","●","■"],["adj","◆","♣"],["between","♥","●","▲"],["adj","♥","■"]],"start":["■","▲","●","♣","♥","◆","★"],"target":["★","♣","◆","▲","■","♥","●"],"min":15},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","●","▲","♥"],["left","●","■"],["left","●","♣"],["adj","●","♣"],["between","■","▲","◆"],["between","●","■","♥"],["left","●","◆"],["notadj","♣","◆"],["between","★","▲","♥"],["between","●","★","♣"]],"start":["◆","■","♣","♥","●","▲","★"],"target":["♥","★","●","♣","▲","■","◆"],"min":16},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","◆","●","■"],["between","◆","♥","♣"],["between","▲","★","♥"],["adj","▲","♥"],["left","▲","★"],["left","▲","●"],["adj","■","♥"],["left","♣","●"],["notadj","◆","▲"]],"start":["◆","★","●","♣","▲","♥","■"],"target":["■","♥","▲","★","◆","♣","●"],"min":17},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["adj","◆","♣"],["adj","●","★"],["left","■","●"],["notadj","★","♥"],["between","■","▲","♣"],["left","♥","●"],["notadj","♥","◆"],["adj","■","♣"],["notadj","■","♥"],["between","★","●","▲"]],"start":["●","◆","★","■","♣","♥","▲"],"target":["♥","▲","■","♣","◆","★","●"],"min":18},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["adj","▲","♥"],["between","▲","■","♥"],["left","♣","◆"],["between","▲","◆","♣"],["notadj","◆","♥"],["notadj","▲","♣"],["left","▲","♥"],["between","■","★","▲"],["adj","■","★"]],"start":["◆","▲","●","♥","■","★","♣"],"target":["♣","★","■","▲","♥","●","◆"],"min":19}]},{"mech":"slide","puzzles":[{"cars":[[3,1,2,"V"],[0,2,2,"H"],[1,3,2,"V"],[0,0,2,"H"],[3,3,3,"H"],[4,3,2,"V"],[1,1,2,"H"],[2,0,3,"V"],[2,1,2,"H"],[4,4,2,"V"]],"exit":"U","min":13},{"cars":[[1,1,2,"H"],[2,5,2,"V"],[3,3,2,"H"],[0,5,2,"V"],[3,2,3,"V"],[3,0,2,"H"],[1,4,2,"V"],[0,1,3,"H"],[1,3,2,"V"],[5,3,2,"H"],[4,0,2,"V"]],"exit":"R","min":14},{"cars":[[1,4,2,"V"],[5,2,2,"H"],[3,2,2,"V"],[5,4,2,"H"],[2,0,3,"H"],[0,2,2,"V"],[4,3,2,"H"],[1,5,3,"V"],[3,3,2,"H"],[1,3,2,"V"],[0,0,2,"H"]],"exit":"D","min":14},{"cars":[[4,1,2,"V"],[5,2,2,"H"],[0,0,2,"H"],[0,4,2,"H"],[1,1,2,"H"],[2,0,3,"H"],[5,4,2,"H"],[3,3,2,"V"],[3,0,2,"H"],[1,4,2,"V"],[1,5,3,"V"]],"exit":"U","min":15},{"cars":[[4,4,2,"H"],[3,1,2,"V"],[3,0,2,"V"],[1,1,2,"V"],[4,3,2,"V"],[1,2,2,"H"],[3,3,2,"H"],[2,3,2,"H"],[0,5,2,"V"],[2,5,2,"V"],[0,3,2,"H"]],"exit":"L","min":16}]},{"mech":"gear","puzzles":[{"R":3,"N":12,"gates":[[2],[6],[6]],"link":[1,-1,1],"start":[7,6,10],"min":8},{"R":4,"N":12,"gates":[[4],[0],[11],[11]],"link":[2,3,0,-1],"start":[6,3,3,2],"min":9},{"R":4,"N":12,"gates":[[1],[7],[8],[11]],"link":[1,2,3,-1],"start":[1,1,4,11],"min":10},{"R":4,"N":12,"gates":[[5],[4],[0],[9]],"link":[2,3,0,-1],"start":[5,11,2,6],"min":11},{"R":4,"N":12,"gates":[[2],[1],[9],[2]],"link":[1,2,-1,1],"start":[4,1,3,0],"min":12}]},{"mech":"slide","puzzles":[{"cars":[[0,3,2,"H"],[4,2,3,"H"],[1,4,3,"V"],[2,5,2,"V"],[2,3,2,"V"],[5,0,2,"H"],[2,0,3,"H"],[3,0,2,"V"],[5,3,2,"H"],[0,2,2,"V"],[0,5,2,"V"]],"exit":"L","min":17},{"cars":[[1,0,2,"V"],[1,4,3,"V"],[1,1,3,"H"],[0,2,3,"H"],[2,2,2,"H"],[3,5,2,"V"],[3,2,3,"V"],[5,3,2,"H"],[1,5,2,"V"],[3,0,2,"H"],[0,0,2,"H"]],"exit":"D","min":18},{"cars":[[0,0,2,"H"],[3,4,2,"H"],[2,2,2,"V"],[0,2,2,"V"],[4,5,2,"V"],[0,4,3,"V"],[1,3,3,"V"],[4,2,3,"H"],[5,1,2,"H"],[3,0,3,"V"],[0,5,2,"V"]],"exit":"R","min":19},{"cars":[[0,4,2,"H"],[3,0,2,"H"],[2,3,2,"V"],[0,3,2,"V"],[4,0,2,"V"],[0,1,2,"V"],[1,2,3,"V"],[4,1,3,"H"],[5,3,2,"H"],[3,5,3,"V"],[0,0,2,"V"]],"exit":"L","min":19},{"cars":[[2,5,2,"V"],[3,3,2,"H"],[3,1,2,"H"],[5,4,2,"H"],[2,2,2,"H"],[4,3,2,"V"],[0,3,2,"H"],[0,1,3,"V"],[4,4,2,"H"],[5,0,2,"H"]],"exit":"D","min":22}]}]],"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],[2],[2],[6]],"link":[2,3,0,-1],"start":[6,5,6,5],"min":15},{"R":4,"N":12,"gates":[[4],[9],[9],[10]],"link":[1,2,-1,1],"start":[0,4,1,5],"min":17},{"R":4,"N":12,"gates":[[11],[5],[2],[8]],"link":[1,2,-1,1],"start":[6,11,11,1],"min":19},{"R":4,"N":12,"gates":[[3],[1],[6],[10]],"link":[3,0,1,-1],"start":[8,1,10,3],"min":21},{"R":4,"N":12,"gates":[[1],[9],[8],[1]],"link":[1,2,-1,1],"start":[5,8,5,5],"min":23}]},{"mech":"lights","puzzles":[{"n":7,"rows":["0010111","1011011","1100010","1101001","0100101","0100000","1100010"],"min":21},{"n":7,"rows":["1101110","0001110","1110011","1110000","0100100","1101001","0001111"],"min":22},{"n":7,"rows":["1001001","0100001","1110000","0000001","1110011","1111000","1111111"],"min":23},{"n":7,"rows":["1101000","0111111","1011000","1110100","1000101","1001101","0110101"],"min":24},{"n":7,"rows":["0111111","0111110","0110101","1101100","1100010","1101001","1011001"],"min":25}]},{"mech":"slide","puzzles":[{"cars":[[4,3,2,"V"],[1,1,2,"V"],[1,0,2,"V"],[0,2,2,"V"],[2,2,3,"H"],[0,4,2,"V"],[4,1,2,"H"],[3,2,2,"H"],[0,0,2,"H"],[3,0,2,"H"],[3,5,3,"V"]],"exit":"U","min":16},{"cars":[[0,2,2,"V"],[3,4,2,"V"],[3,5,2,"V"],[4,3,2,"V"],[3,1,3,"H"],[4,1,2,"V"],[1,3,2,"H"],[5,4,2,"H"],[0,5,2,"V"],[3,0,3,"V"]],"exit":"D","min":18},{"cars":[[2,3,2,"H"],[4,1,2,"H"],[5,1,2,"H"],[3,0,2,"H"],[1,2,3,"V"],[1,0,2,"H"],[3,4,2,"V"],[0,1,2,"H"],[4,0,2,"V"],[5,3,2,"H"],[0,3,2,"H"]],"exit":"L","min":20},{"cars":[[4,2,2,"V"],[1,4,2,"V"],[1,5,2,"V"],[0,3,2,"V"],[2,1,3,"H"],[0,1,2,"V"],[4,3,2,"H"],[3,2,2,"H"],[0,4,2,"H"],[4,5,2,"V"],[0,0,3,"V"]],"exit":"U","min":22},{"cars":[[0,2,2,"H"],[0,5,3,"V"],[0,4,3,"V"],[2,0,2,"H"],[4,5,2,"V"],[0,1,2,"V"],[2,2,3,"V"],[3,4,2,"H"],[5,3,2,"H"],[5,1,2,"H"],[4,3,2,"H"]],"exit":"R","min":24}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","★","■","♥"],["adj","♥","●"],["left","◆","★"],["left","★","♥"],["between","■","●","▲"],["adj","★","■"],["adj","★","♣"],["end","▲"],["notadj","♣","●"]],"start":["●","★","■","♥","♣","▲","◆"],"target":["▲","◆","■","★","♣","♥","●"],"min":16},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","♥","★","◆"],["between","■","◆","♥"],["notadj","▲","◆"],["notadj","●","■"],["between","♣","★","♥"],["left","★","●"],["notadj","■","◆"]],"start":["◆","▲","■","●","★","♥","♣"],"target":["★","♣","♥","■","▲","●","◆"],"min":17},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","◆","●","♥"],["left","▲","■"],["adj","★","■"],["left","★","◆"],["between","▲","◆","♣"],["between","■","★","♣"],["between","●","★","▲"]],"start":["◆","♥","★","●","▲","■","♣"],"target":["♣","▲","●","■","★","◆","♥"],"min":18},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","▲","♥","♣"],["adj","♥","▲"],["between","▲","●","♣"],["between","◆","♥","♣"],["adj","◆","★"],["end","●"],["left","♣","■"],["notadj","■","♥"],["notadj","★","♣"],["left","▲","■"]],"start":["♣","■","★","◆","▲","♥","●"],"target":["●","♥","▲","★","◆","♣","■"],"min":19},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["adj","◆","♥"],["left","◆","★"],["left","■","♣"],["between","■","●","♥"],["between","▲","●","■"],["notadj","♣","●"],["between","★","●","◆"],["between","◆","★","♥"],["adj","■","▲"]],"start":["●","★","▲","♣","■","◆","♥"],"target":["♥","◆","■","▲","♣","★","●"],"min":20}]},{"mech":"gear","puzzles":[{"R":5,"N":10,"gates":[[6],[6],[9],[4],[1]],"link":[1,2,3,4,-1],"start":[7,6,7,3,8],"min":14},{"R":5,"N":10,"gates":[[3],[8],[8],[3],[5]],"link":[1,2,3,4,-1],"start":[2,1,1,0,9],"min":16},{"R":5,"N":10,"gates":[[4],[7],[6],[5],[3]],"link":[1,2,3,4,-1],"start":[9,5,8,0,8],"min":18},{"R":5,"N":10,"gates":[[0],[6],[1],[5],[5]],"link":[1,2,3,4,-1],"start":[6,3,7,7,7],"min":20},{"R":5,"N":10,"gates":[[1],[5],[3],[2],[1]],"link":[1,2,3,4,-1],"start":[5,4,8,7,0],"min":22}]},{"mech":"lights","puzzles":[{"n":8,"rows":["10001001","10010110","00100000","00111101","11100101","01010101","00100101","01111010"],"min":26},{"n":8,"rows":["11000100","01001011","11000111","00010000","01001001","11000001","10111000","11010101"],"min":28},{"n":8,"rows":["01010000","01110100","10101100","10101011","11011111","10010110","11001001","10011101"],"min":30},{"n":8,"rows":["10000011","11010010","11011110","01101000","11010100","01100111","11011000","01011110"],"min":32},{"n":8,"rows":["00110110","10001110","01011000","11001101","10101100","01011110","10110011","01101011"],"min":34}]},{"mech":"slide","puzzles":[{"cars":[[3,4,2,"H"],[1,1,2,"H"],[0,1,2,"H"],[2,0,2,"H"],[2,2,3,"V"],[4,0,2,"H"],[1,4,2,"V"],[4,3,2,"V"],[0,0,2,"V"],[0,4,2,"H"],[5,0,3,"H"]],"exit":"L","min":22},{"cars":[[5,2,2,"H"],[3,5,3,"V"],[3,4,3,"V"],[3,0,2,"H"],[0,5,2,"V"],[4,1,2,"V"],[1,2,3,"V"],[2,4,2,"H"],[0,3,2,"H"],[0,1,2,"H"]],"exit":"R","min":24},{"cars":[[2,0,2,"V"],[0,0,3,"H"],[1,0,3,"H"],[4,2,2,"V"],[0,4,2,"H"],[4,0,2,"H"],[3,2,3,"H"],[0,3,2,"V"],[1,5,2,"V"],[3,5,2,"V"],[4,4,2,"V"]],"exit":"U","min":26},{"cars":[[4,2,2,"V"],[1,4,2,"V"],[1,5,2,"V"],[0,3,2,"V"],[2,1,3,"H"],[0,1,2,"V"],[4,3,2,"H"],[3,1,3,"H"],[0,4,2,"H"],[4,5,2,"V"],[5,0,2,"H"]],"exit":"U","min":27},{"cars":[[0,1,2,"V"],[3,1,2,"H"],[2,3,2,"H"],[0,4,2,"V"],[1,2,2,"H"],[3,3,3,"V"],[0,0,3,"V"],[2,1,2,"H"],[5,0,2,"H"],[4,2,2,"V"]],"exit":"D","min":31}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","■","★","●"],["left","■","◆"],["adj","★","▲"],["between","●","■","◆"],["adj","■","♥"],["between","♣","●","■"],["notadj","★","♥"],["notadj","▲","♥"],["notadj","▲","■"]],"start":["●","◆","♣","♥","▲","★","■"],"target":["▲","★","■","♥","♣","●","◆"],"min":17},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["notadj","◆","♥"],["adj","◆","♣"],["adj","★","▲"],["left","★","♥"],["left","★","●"],["notadj","♥","★"],["between","★","▲","♥"],["between","◆","■","♣"],["between","♣","●","▲"],["notadj","♥","●"]],"start":["♥","●","♣","■","◆","★","▲"],"target":["▲","★","♣","◆","●","■","♥"],"min":18},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","●","▲","◆"],["adj","◆","★"],["adj","★","♥"],["between","◆","▲","♥"],["left","■","♣"],["left","♣","◆"],["adj","●","▲"],["adj","■","▲"]],"start":["♥","★","●","◆","♣","▲","■"],"target":["■","▲","●","♣","◆","★","♥"],"min":19},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["end","◆"],["left","■","★"],["between","■","★","●"],["between","■","●","◆"],["between","■","▲","♥"],["notadj","■","●"],["between","▲","●","♣"],["adj","★","■"],["between","■","◆","♣"]],"start":["◆","♥","★","■","▲","♣","●"],"target":["●","▲","♣","■","★","♥","◆"],"min":20},{"syms":["★","●","▲","■","◆","♥","♣"],"clues":[["between","♣","●","◆"],["notadj","▲","♥"],["left","▲","★"],["between","■","★","●"],["left","♥","★"],["between","♥","★","◆"],["notadj","◆","♣"],["notadj","■","●"],["left","■","▲"]],"start":["★","♥","◆","▲","■","♣","●"],"target":["●","♣","■","▲","◆","♥","★"],"min":21}]},{"mech":"gear","puzzles":[{"R":5,"N":12,"gates":[[5],[10],[0],[5],[4]],"link":[1,2,3,4,-1],"start":[10,3,2,2,1],"min":20},{"R":5,"N":12,"gates":[[6],[2],[7],[6],[4]],"link":[1,2,3,4,-1],"start":[0,2,1,7,10],"min":22},{"R":5,"N":12,"gates":[[4],[3],[9],[6],[6]],"link":[1,2,3,4,-1],"start":[0,10,4,8,5],"min":24},{"R":5,"N":12,"gates":[[3],[6],[9],[0],[8]],"link":[1,2,3,4,-1],"start":[4,3,5,1,3],"min":26},{"R":5,"N":12,"gates":[[2],[1],[0],[8],[10]],"link":[1,2,3,4,-1],"start":[4,10,1,3,3],"min":28}]},{"mech":"slide","puzzles":[{"cars":[[2,0,2,"H"],[4,3,2,"H"],[5,2,2,"H"],[3,4,2,"H"],[1,3,3,"V"],[1,4,2,"H"],[3,1,2,"V"],[1,2,3,"V"],[4,5,2,"V"],[5,0,2,"H"],[0,0,2,"V"]],"exit":"R","min":27},{"cars":[[4,0,2,"H"],[3,3,2,"V"],[1,2,2,"V"],[1,0,2,"H"],[2,0,2,"V"],[2,1,2,"V"],[2,3,3,"H"],[5,0,3,"H"],[3,2,2,"V"],[4,5,2,"V"],[3,4,2,"H"]],"exit":"R","min":32},{"cars":[[0,4,2,"V"],[3,4,2,"H"],[2,1,2,"H"],[0,1,2,"V"],[1,0,2,"V"],[1,2,2,"H"],[3,2,3,"V"],[0,5,3,"V"],[2,3,2,"H"],[5,4,2,"H"],[4,3,2,"V"]],"exit":"D","min":32},{"cars":[[0,1,2,"V"],[3,1,2,"H"],[2,3,2,"H"],[0,4,2,"V"],[2,5,2,"V"],[1,2,2,"H"],[3,3,3,"V"],[1,0,3,"V"],[2,1,2,"H"],[5,0,2,"H"],[4,2,2,"V"]],"exit":"D","min":34},{"cars":[[4,4,2,"V"],[2,3,2,"H"],[3,1,2,"H"],[4,1,2,"V"],[3,0,2,"V"],[4,2,2,"H"],[0,2,3,"V"],[2,5,3,"V"],[3,3,2,"H"],[0,4,2,"H"],[0,3,2,"V"]],"exit":"U","min":34}]}],"heaven":[{"mech":"gear","puzzles":[{"R":5,"N":14,"gates":[[3],[7],[0],[10],[13]],"link":[2,3,4,0,-1],"start":[13,12,9,6,5],"min":27},{"R":5,"N":14,"gates":[[12],[11],[5],[3],[1]],"link":[2,3,4,0,-1],"start":[5,8,6,12,0],"min":29},{"R":5,"N":14,"gates":[[0],[12],[13],[0],[9]],"link":[-1,0,1,2,3],"start":[13,5,11,2,12],"min":30},{"R":5,"N":14,"gates":[[7],[10],[5],[12],[11]],"link":[2,3,4,0,-1],"start":[8,12,7,0,5],"min":31},{"R":5,"N":14,"gates":[[1],[6],[10],[8],[4]],"link":[2,3,4,0,-1],"start":[12,0,5,7,11],"min":32}]},{"mech":"lights","puzzles":[{"n":8,"rows":["10000111","01001100","10101101","10001110","00101101","01101100","01101010","00111000"],"min":38},{"n":8,"rows":["11101111","11001010","11000101","11000110","00111010","11110001","01100001","01000001"],"min":40},{"n":8,"rows":["00111100","01010010","10110101","10111011","00100100","10111000","11011100","11010001"],"min":42},{"n":8,"rows":["00101110","01011000","00011000","01100100","11001101","00101000","11001110","01100010"],"min":44},{"n":8,"rows":["01011001","00011000","01100001","11111010","11110111","00000110","10101001","01100000"],"min":46}]},{"mech":"slide","puzzles":[{"cars":[[0,5,2,"V"],[2,0,2,"H"],[1,3,3,"V"],[4,3,2,"H"],[0,2,3,"H"],[5,4,2,"H"],[3,0,3,"V"],[3,4,2,"H"],[5,1,3,"H"],[0,0,2,"V"],[2,2,2,"V"]],"exit":"D","min":28},{"cars":[[4,2,2,"H"],[2,4,2,"H"],[3,0,2,"V"],[4,4,2,"V"],[1,3,3,"V"],[5,2,2,"H"],[1,0,3,"H"],[2,2,2,"V"],[0,1,3,"H"],[0,4,2,"V"],[3,4,2,"H"]],"exit":"R","min":30},{"cars":[[4,4,2,"H"],[3,2,2,"V"],[1,3,2,"V"],[1,4,2,"H"],[2,4,2,"V"],[2,0,3,"H"],[5,2,3,"H"],[3,3,2,"V"],[4,0,2,"V"],[3,0,2,"H"]],"exit":"L","min":32},{"cars":[[4,0,2,"H"],[3,3,2,"V"],[1,2,2,"V"],[1,0,2,"H"],[0,1,2,"H"],[2,0,2,"V"],[2,3,3,"H"],[5,1,3,"H"],[3,2,2,"V"],[4,5,2,"V"],[3,4,2,"H"]],"exit":"R","min":34},{"cars":[[4,2,2,"H"],[3,0,2,"H"],[0,3,3,"H"],[2,0,2,"H"],[0,2,2,"V"],[3,3,2,"H"],[4,1,2,"V"],[2,2,2,"V"],[3,5,3,"V"],[1,3,2,"V"],[0,0,2,"V"]],"exit":"L","min":36}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["between","◆","●","♣"],["notadj","▲","■"],["between","★","●","◇"],["between","◆","♥","◇"],["end","♥"],["notadj","◇","♣"],["left","◇","■"],["between","▲","◆","♣"],["between","★","▲","◆"],["between","◇","★","■"],["adj","◇","■"]],"start":["♣","◇","♥","■","◆","▲","★","●"],"target":["♥","●","◆","★","▲","◇","■","♣"],"min":20},{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["between","◆","■","♥"],["notadj","◇","■"],["notadj","★","●"],["between","■","★","♥"],["adj","◆","♥"],["left","♥","●"],["adj","♣","▲"],["notadj","◇","●"],["notadj","●","■"],["between","★","●","▲"],["notadj","◇","♣"],["between","♣","▲","♥"]],"start":["■","♥","●","★","▲","◆","♣","◇"],"target":["◇","▲","♣","★","■","◆","♥","●"],"min":21},{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["between","★","▲","♥"],["between","■","★","◆"],["between","◇","★","■"],["between","▲","♣","◇"],["notadj","★","♣"],["left","★","●"],["between","♥","★","●"],["between","♣","★","●"]],"start":["●","♣","★","♥","◆","■","▲","◇"],"target":["◆","■","◇","▲","★","♥","♣","●"],"min":22},{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["between","●","★","◆"],["left","◆","♥"],["notadj","■","◆"],["notadj","◆","▲"],["notadj","●","■"],["between","◆","♥","◇"],["between","■","★","♣"],["between","◆","■","◇"],["between","♥","▲","■"],["left","♣","▲"],["notadj","◇","◆"]],"start":["■","▲","★","♥","●","◇","◆","♣"],"target":["◇","♣","◆","●","▲","♥","■","★"],"min":23},{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["left","◆","●"],["between","▲","★","●"],["left","■","★"],["adj","♣","♥"],["between","●","♣","◇"],["between","■","★","●"],["adj","▲","★"],["between","★","◆","◇"],["adj","●","◆"],["notadj","◆","♥"]],"start":["★","▲","●","◇","■","◆","♣","♥"],"target":["♥","♣","◆","●","■","▲","★","◇"],"min":24}]},{"mech":"gear","puzzles":[{"R":5,"N":16,"gates":[[11],[9],[2],[10],[14]],"link":[1,2,3,4,-1],"start":[12,5,3,2,5],"min":31},{"R":5,"N":16,"gates":[[1],[12],[7],[3],[12]],"link":[2,3,4,0,-1],"start":[12,15,10,11,6],"min":32},{"R":5,"N":16,"gates":[[4],[12],[5],[4],[9]],"link":[-1,0,1,2,3],"start":[2,14,10,13,15],"min":33},{"R":5,"N":16,"gates":[[9],[6],[10],[9],[8]],"link":[1,2,3,4,-1],"start":[0,7,8,8,9],"min":34},{"R":5,"N":16,"gates":[[3],[6],[4],[11],[12]],"link":[2,3,4,0,-1],"start":[15,2,9,6,5],"min":35}]},{"mech":"lights","puzzles":[{"n":8,"rows":["11001000","01100100","11001001","00001101","11011001","00001010","11001100","10100011"],"min":44},{"n":8,"rows":["00000101","10111110","00011011","00110110","10010010","00001111","00011111","01100100"],"min":46},{"n":8,"rows":["11000010","11000111","10011010","01111111","00100000","01111111","01010111","10101001"],"min":48},{"n":8,"rows":["10010000","11001000","01011000","11010000","11001111","00001111","01110001","10110011"],"min":50},{"n":8,"rows":["01000110","01010100","11010010","11001010","01010110","10101110","01001110","01001101"],"min":52}]},{"mech":"slide","puzzles":[{"cars":[[2,4,2,"V"],[0,3,2,"V"],[3,0,3,"V"],[0,2,2,"V"],[2,0,2,"H"],[3,3,2,"V"],[1,4,2,"H"],[2,2,2,"H"],[5,3,3,"H"],[3,1,2,"H"]],"exit":"U","min":36},{"cars":[[1,4,2,"V"],[4,3,2,"V"],[0,0,3,"V"],[3,2,2,"V"],[3,0,2,"H"],[1,3,2,"V"],[4,4,2,"H"],[5,0,3,"H"],[0,2,3,"H"],[2,1,2,"H"]],"exit":"D","min":38},{"cars":[[1,3,2,"H"],[2,0,2,"H"],[5,3,3,"H"],[3,1,2,"H"],[4,2,2,"V"],[2,2,2,"H"],[0,1,2,"V"],[3,0,3,"V"],[1,5,3,"V"],[3,3,2,"V"],[0,3,2,"H"]],"exit":"L","min":40},{"cars":[[2,4,2,"H"],[3,0,2,"H"],[0,2,3,"H"],[1,3,2,"V"],[1,2,2,"V"],[3,2,2,"H"],[4,3,2,"V"],[3,4,2,"V"],[0,0,3,"V"],[4,0,2,"H"]],"exit":"L","min":42},{"cars":[[0,3,2,"V"],[4,2,2,"V"],[1,5,3,"V"],[2,3,2,"H"],[3,3,2,"H"],[3,0,2,"V"],[2,2,2,"V"],[2,0,2,"H"],[1,1,2,"H"],[5,3,3,"H"],[4,1,2,"V"]],"exit":"D","min":44}]},{"mech":"symbols","puzzles":[{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["left","■","▲"],["between","◇","■","♣"],["between","★","●","♥"],["left","◆","◇"],["adj","★","♥"],["between","♥","★","▲"],["adj","◆","■"],["between","◆","●","■"],["notadj","■","◇"],["between","■","★","◇"]],"start":["♣","◆","◇","▲","■","★","♥","●"],"target":["●","★","♥","◆","■","▲","◇","♣"],"min":24},{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["notadj","◆","■"],["between","♥","●","■"],["between","★","♥","◇"],["between","■","●","◇"],["left","●","♣"],["left","◆","★"],["between","▲","★","◆"],["end","♣"],["between","◆","●","♣"],["notadj","■","★"]],"start":["♣","◇","▲","♥","★","■","◆","●"],"target":["●","◆","♥","■","▲","★","◇","♣"],"min":25},{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["between","▲","●","♥"],["between","◇","●","■"],["adj","◇","●"],["between","★","▲","■"],["between","◇","■","◆"],["adj","♥","★"],["between","★","♥","◇"],["left","●","♣"],["adj","◆","♣"],["notadj","♣","●"]],"start":["♣","◆","●","◇","▲","■","★","♥"],"target":["■","♥","★","▲","◇","●","◆","♣"],"min":26},{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["between","♥","●","■"],["between","♣","■","♥"],["left","★","♥"],["adj","■","★"],["between","◇","●","◆"],["between","■","♣","◇"],["notadj","★","▲"],["between","▲","♣","◇"],["notadj","★","♣"]],"start":["♥","●","♣","▲","■","★","◇","◆"],"target":["◆","◇","★","■","▲","♣","♥","●"],"min":27},{"syms":["★","●","▲","■","◆","♥","♣","◇"],"clues":[["left","■","●"],["adj","◆","●"],["between","♥","★","◆"],["adj","♥","★"],["between","♥","●","■"],["between","◇","▲","♥"],["between","▲","♥","♣"],["between","▲","★","■"],["adj","♣","▲"],["end","●"]],"start":["●","◆","♥","★","◇","▲","♣","■"],"target":["■","♣","▲","◇","★","♥","◆","●"],"min":28}]},{"mech":"gear","puzzles":[{"R":5,"N":16,"gates":[[8],[15],[6],[8],[15]],"link":[-1,0,1,2,3],"start":[5,2,9,6,11],"min":34},{"R":5,"N":16,"gates":[[2],[14],[13],[3],[3]],"link":[2,3,4,0,-1],"start":[13,10,1,14,1],"min":35},{"R":5,"N":16,"gates":[[14],[15],[5],[5],[5]],"link":[-1,0,1,2,3],"start":[1,3,9,13,2],"min":36},{"R":5,"N":16,"gates":[[13],[9],[11],[4],[12]],"link":[2,3,4,0,-1],"start":[1,15,7,13,3],"min":37},{"R":5,"N":16,"gates":[[13],[1],[6],[15],[12]],"link":[-1,0,1,2,3],"start":[2,0,9,2,12],"min":38}]},{"mech":"slide","puzzles":[{"cars":[[4,2,2,"V"],[0,3,2,"V"],[3,0,3,"V"],[3,1,2,"H"],[2,1,2,"H"],[1,5,2,"V"],[2,3,2,"V"],[3,4,2,"H"],[4,3,2,"H"],[0,0,3,"H"],[1,4,2,"V"]],"exit":"U","min":45},{"cars":[[0,2,2,"V"],[3,3,2,"V"],[1,0,3,"V"],[2,1,2,"H"],[3,1,2,"H"],[0,3,2,"V"],[2,3,2,"H"],[1,4,2,"H"],[5,2,3,"H"],[3,4,2,"V"],[3,5,2,"V"]],"exit":"D","min":46},{"cars":[[2,4,2,"H"],[3,1,2,"H"],[0,0,3,"H"],[1,3,2,"V"],[1,2,2,"V"],[3,4,2,"H"],[3,3,2,"V"],[4,4,2,"V"],[1,0,3,"V"],[4,1,2,"H"],[5,1,2,"H"]],"exit":"L","min":47},{"cars":[[0,3,2,"V"],[3,2,2,"V"],[3,5,3,"V"],[2,4,2,"H"],[3,3,2,"H"],[0,2,2,"V"],[2,1,2,"H"],[1,0,2,"H"],[5,2,3,"H"],[3,1,2,"V"],[2,0,2,"V"]],"exit":"D","min":48},{"cars":[[2,1,2,"H"],[3,3,2,"H"],[0,3,3,"H"],[0,2,2,"V"],[1,3,2,"V"],[3,0,2,"H"],[3,2,2,"V"],[4,1,2,"V"],[1,5,3,"V"],[4,3,2,"H"],[5,2,2,"H"]],"exit":"R","min":49}]}]};
+</script>
+<script>
+(function(){
+  'use strict';
+  var GAME_URL = 'https://kanae-project.github.io/syomona-games/games/013-akazu-no-kinko-lab/';
+  // ==== 合言葉：note記事が未公開のため、値は未定のプレースホルダー。解放すると💡ヒントが使い放題になる ====
+  var PASSWORD = '＜合言葉は検討中＞';
+  // ==== 全ゲーム共通「金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
+  var MASTER_PASSWORD = '金ドブ全開放';
+  var STORAGE_KEY = 'akazu_lab_unlocked';
+  var PROG_KEY = 'akazu_lab_progress_v2';   // v1(ワールド制)の記録は使わない（リセットして作り直し）
+  var $ = function(id){ return document.getElementById(id); };
+  function safeGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function safeSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+
+  var ROUNDS = LEVEL_DATA.rounds.length, ANIMALS_N = 10, PER = 5;
+  // 動物ごとの色と一言解説。仕組みは問題データ側（pack.mech）で決まる
+  var ANIMALS = [
+    { em: '🐱', name: 'ねこ',     color: '#f0b429', text: '起こすと不機嫌。でも5分後にはまた寝ている。' },
+    { em: '🐶', name: 'いぬ',     color: '#ff9f6b', text: '起こされる前から起きていたフリをする。' },
+    { em: '🐰', name: 'うさぎ',   color: '#ff8fb3', text: '寝ている間も、耳だけは起きている（気がする）。' },
+    { em: '🐼', name: 'ぱんだ',   color: '#7bc67e', text: '起きても、とりあえず竹を食べる。' },
+    { em: '🐸', name: 'かえる',   color: '#9bd94f', text: '寝ているのか、じっとしているだけなのか分からない。' },
+    { em: '🐵', name: 'さる',     color: '#d2a56a', text: '起こされると、なぜか他のさるも起こしに行く。' },
+    { em: '🐧', name: 'ぺんぎん', color: '#5aa9e6', text: '立ったまま寝ていた。器用。' },
+    { em: '🦊', name: 'きつね',   color: '#ff7a45', text: '寝たフリだったかもしれない。' },
+    { em: '🐻', name: 'くま',     color: '#c98f60', text: '冬眠中。起こすには勇気がいる。' },
+    { em: '🦁', name: 'らいおん', color: '#ffc94d', text: '1日20時間くらい寝る。これが平常運転。' }
+  ];
+  // ===== 地獄コース（課金エリア＝ヒント無制限の解放で入れる）。周回番号 4 を割り当てる。天国コースは今後 5 で追加予定 =====
+  var HELL_R = 4;
+  var HELL = [
+    { em: '👻', name: 'ゆうれい',     color: '#d3c2ff', text: 'ふわっと出て、ふわっと消える。ドアは使わない。' },
+    { em: '🦇', name: 'こうもり',     color: '#b98aff', text: '逆さまで寝ている。起こすと逆さまのまま怒る。' },
+    { em: '💀', name: 'ガイコツ',     color: '#f0ead6', text: '骨身にしみるパズルを出してくる。' },
+    { em: '🧟', name: 'ゾンビ',       color: '#8ed36a', text: 'のろのろ歩くが、なぜか毎回先回りされる。' },
+    { em: '👿', name: 'こあくま',     color: '#ff6b8a', text: 'いたずらのつもりが、だいたい本気。' },
+    { em: '👺', name: 'てんぐ',       color: '#ff7a5a', text: '鼻が高い。パズルの難易度も高い。' },
+    { em: '👹', name: 'おに',         color: '#ff5a48', text: '豆をぶつけても効かない。錠にも効かない。' },
+    { em: '😈', name: 'あくま',       color: '#d06bff', text: 'にっこり笑って、いちばんイヤな錠を選んでくる。' },
+    { em: '🦹‍♀️', name: 'あくの女王', color: '#ff6fb5', text: '言うことを聞くのは、錠を開けた者だけ。' },
+    { em: '🦹‍♂️', name: 'まおう',     color: '#ffb547', text: '最後の錠。ここまで来たあなたは、もう人間ではない。' }
+  ];
+  var HELL_SYM = { '★': '👻', '●': '🦇', '▲': '💀', '■': '🧟', '◆': '👿', '♥': '👺', '♣': '👹' };
+  var HELL_WORLD = { key: 'hell', name: '地獄', icon: '🔥', strip: '🔥💀🔥👻🔥💀🔥' };
+  // ===== 天国コース（課金エリア・最高難易度）。周回番号 5。地獄コースを全パック制覇すると開く =====
+  var HEAVEN_R = 5;
+  var HEAVEN = [
+    { em: '☁️', name: 'くも',           color: '#d8ecff', text: 'ふわふわ。乗ると気持ちいいが、乗り物としては最悪。' },
+    { em: '🕊️', name: 'はと',           color: '#ffffff', text: '平和の象徴。パズルは全然平和じゃない。' },
+    { em: '🌈', name: 'にじ',           color: '#ffb0d8', text: '七色の錠。どの色から解くかで人生が変わる。' },
+    { em: '🦢', name: 'はくちょう',     color: '#e8f2ff', text: '優雅に浮かんで、水面下では必死に動いている。' },
+    { em: '🧚', name: 'ようせい',       color: '#e6b8ff', text: '粉をかけると錠が開く。開かなかった。' },
+    { em: '🦄', name: 'ユニコーン',     color: '#ffc4ea', text: '角の先に、最後の答えがある（かもしれない）。' },
+    { em: '🌟', name: 'ほし',           color: '#fff08a', text: '願いは叶う。ただし全問クリアしたら。' },
+    { em: '🌞', name: 'おひさま',       color: '#ffd27a', text: 'まぶしすぎて、盤面がよく見えない。' },
+    { em: '👼', name: 'てんし',         color: '#ffe0f0', text: '導いてくれるが、ヒントはくれない（ヒントボタンはある）。' },
+    { em: '😇', name: 'だいてんし',     color: '#ffe89a', text: '天国の最後の錠。ここを開けた人は、もう神。' }
+  ];
+  var HEAVEN_SYM = { '★': '☁️', '●': '🕊️', '▲': '🌈', '■': '🦢', '◆': '🧚', '♥': '🦄', '♣': '🌟', '◇': '🌞' };
+  var HEAVEN_WORLD = { key: 'heaven', name: '天国', icon: '👼', strip: '☁️✨🕊️✨🌈✨☁️' };
+  function hellDone(){ for (var a = 0; a < ANIMALS_N; a++) if (!packDone(HELL_R, a)) return false; return true; }
+  function animalOf(r, a){ return r === HELL_R ? HELL[a] : (r === HEAVEN_R ? HEAVEN[a] : ANIMALS[a]); }
+  function lvLabel(r){ return r === HELL_R ? '地獄' : (r === HEAVEN_R ? '天国' : 'Lv' + r); }
+  function ruleOf(r, mech){ var t = MECH[mech].rule; return r === HELL_R ? t.replace(/動物/g, '魔物') : (r === HEAVEN_R ? t.replace(/動物/g, '天使') : t); }
+  var MECH = {
+    lights:  { name: 'スイッチ錠', icon: '💡', rule: 'ねむっている動物（💤）を、全員起こそう！ マスをタップすると、そのマスと上下左右の動物が「起きる／ねむる」入れ替わります。全員起きると錠が開きます。' },
+    symbols: { name: '並び替え錠', icon: '🔀', rule: '動物たちを、ヒントをすべて満たす並びにしよう。動物を1匹タップして選び、となりの動物をタップすると入れ替わります。' },
+    gear:    { name: 'ルーレット錠', icon: '🎡', rule: 'まわる輪のルーレット。輪をタップして回そう（輪の左半分をタップで左回り、右半分をタップで右回り。1マス回して1手です）。すべての輪の「あき」を、真上の🔑のラインにそろえると、まん中の動物が外へ出られます。🔗がある面は、ある輪を回すと別の輪が逆向きに回ります。' },
+    slide:   { name: 'スライド錠', icon: '🚪', rule: 'ぎゅうぎゅうの動物の行列。動物をタップして選び、行き先の●をタップでスライド。鍵🔑をもった動物を、金色の出口の門まで連れ出そう（出口は面ごとに、上・下・左・右のどこか。出口以外の辺は壁です）。何マス動かしても1手です。' }
+  };
+  // 周回ごとの世界。周回が増えたら、この一覧を伸ばす（足りない分は先頭から繰り返す）
+  var WORLDS = [
+    { key: 'grass',   name: '草原',       icon: '🌱', strip: '🌼🌿🌷🌿🌼🌿🌷' },
+    { key: 'savanna', name: 'サバンナ',   icon: '🌾', strip: '🌾🌵🌾☀️🌾🌵🌾' },
+    { key: 'ice',     name: '氷の世界',   icon: '❄️', strip: '❄️🧊❄️⛄❄️🧊❄️' }
+  ];
+  function worldOf(r){ return r === HELL_R ? HELL_WORLD : (r === HEAVEN_R ? HEAVEN_WORLD : WORLDS[(r - 1) % WORLDS.length]); }
+  function setTheme(r){ document.body.setAttribute('data-theme', worldOf(r).key); }
+  (function buildSnow(){   // 雪の粒（氷の世界のときだけ表示）
+    var layer = document.getElementById('snowLayer'); if (!layer) return;
+    for (var i = 0; i < 16; i++) {
+      var f = document.createElement('i'); f.textContent = i % 3 ? '❄' : '❅';
+      f.style.left = (Math.random() * 100) + '%'; f.style.fontSize = (10 + Math.random() * 14) + 'px';
+      f.style.animationDuration = (7 + Math.random() * 8) + 's'; f.style.animationDelay = (-Math.random() * 12) + 's';
+      layer.appendChild(f);
+    }
+  })();
+  // お試しモード：URLに ?open=all を付けると全パックが開き、記録は保存されない（歯車錠など先の内容を見たい時用）
+  var OPEN_ALL = /[?&]open=all(&|$)/.test(location.search);
+  var COLLAR_NAME = { 1: '首輪なし', 2: '銀の首輪', 3: '金の首輪' };
+  var COLLAR_ICON = { 1: '', 2: '🥈 ', 3: '🏅 ' };
+  function hexToRgba(h, a){ var n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
+
+  // ================= 効果音（Web Audio APIで合成。音声ファイル・外部素材なし） =================
+  var SOUND_KEY = 'akazu_lab_sound_on';
+  function isSoundOn(){ return safeGet(SOUND_KEY) !== '0'; }
+  var actx = null;
+  function audio(){
+    if (!isSoundOn()) return null;
+    try {
+      if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; actx = new AC(); }
+      if (actx.state === 'suspended') actx.resume();     // スマホは最初のタップで音が出せる状態にする
+      return actx;
+    } catch (e) { return null; }
+  }
+  // 1音：type波形、開始周波数f0→終了周波数f1、長さdur秒、音量vol。tは開始の遅れ（秒）
+  function tone(type, f0, f1, dur, vol, t, atk){
+    var ac = audio(); if (!ac) return;
+    try {
+      var t0 = ac.currentTime + (t || 0);
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t0);
+      if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + (atk || 0.006));  // 立ち上がりは速く（ぷちっとしない程度に）
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);         // すっと消える
+      o.connect(g); g.connect(ac.destination);
+      o.start(t0); o.stop(t0 + dur + 0.02);
+    } catch (e) {}
+  }
+  function noiseTick(dur, vol, hp, t){   // 「カチッ」のもと：短いノイズ
+    var ac = audio(); if (!ac) return;
+    try {
+      var t0 = ac.currentTime + (t || 0), n = Math.max(1, Math.floor(ac.sampleRate * dur));
+      var buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      var src = ac.createBufferSource(); src.buffer = buf;
+      var f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp || 2500;
+      var g = ac.createGain(); g.gain.value = vol;
+      src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t0);
+    } catch (e) {}
+  }
+  // 帯域を絞った短いノイズ：centerHz付近だけが残るので「カッ」という硬い打撃の破裂になる
+  function noiseBand(dur, vol, centerHz, q, t){
+    var ac = audio(); if (!ac) return;
+    try {
+      var t0 = ac.currentTime + (t || 0), n = Math.max(1, Math.floor(ac.sampleRate * dur));
+      var buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.2);   // 急速に減衰
+      var src = ac.createBufferSource(); src.buffer = buf;
+      var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = centerHz; f.Q.value = q || 1.2;
+      var g = ac.createGain(); g.gain.value = vol;
+      src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t0);
+    } catch (e) {}
+  }
+  // 「カッ！」：短く乾いた硬い打撃音（将棋の駒・拍子木のイメージ）。k＝音の高さの倍率（1が標準。小さいほど重い）
+  function clack(k, t){
+    noiseBand(0.022, 0.62, 2800 * k, 1.3, t);                                      // 破裂（カ）
+    tone('triangle', 1750 * k, 760 * k, 0.05, 0.36, t, 0.002);                     // 硬い打面（ッ）
+    tone('sine', 3500 * k, 2100 * k, 0.022, 0.10, t, 0.002);                       // 上のきらめき（切れ味）
+  }
+  // 「スルッ」：帯域を絞ったノイズの中心周波数を低→高へ滑らせる（風を切って抜けていく音）
+  function noiseSweep(dur, vol, f0, f1, t){
+    var ac = audio(); if (!ac) return;
+    try {
+      var t0 = ac.currentTime + (t || 0), n = Math.max(1, Math.floor(ac.sampleRate * dur));
+      var buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var src = ac.createBufferSource(); src.buffer = buf;
+      var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2.2;
+      f.frequency.setValueAtTime(f0, t0); f.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+      var g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + dur * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t0);
+    } catch (e) {}
+  }
+  var tapStep = 0;   // 連打すると、音が少しずつ上がる（気持ちいい）。リセットで戻る
+  var SFX = {
+    tap: function(mech){
+      var k = 1 + (tapStep % 4) * 0.035; tapStep++;      // ほんの少しだけ高さを変えて、連打が機械的にならないように
+      if (mech === 'slide') { clack(0.62 * k); tone('sine', 190, 110, 0.07, 0.22, 0, 0.003); }           // カッ（重め・木の板を打つ）
+      else if (mech === 'gear') { clack(1.12 * k); clack(0.95 * k, 0.065); }                              // カカッ（歯車の2連打）
+      else if (mech === 'symbols') { clack(0.88 * k); }                                                   // カッ（やや低め）
+      else { clack(1.0 * k); }                                                                            // カッ！（標準）
+    },
+    select: function(){ tone('sine', 1250, 1250, 0.045, 0.16); },
+    check: function(k){   // 条件を1つ確認：ポン（条件が進むごとに音階が上がる）
+      var scale = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760], f = scale[Math.min(k, scale.length - 1)];
+      tone('triangle', f, f, 0.18, 0.26); tone('sine', f * 2, f * 2, 0.10, 0.09);
+    },
+    swStep: function(k){   // 光の波：斜めに1列進むごとに、ペンタトニックで音が上がっていく
+      var pent = [0, 2, 4, 7, 9], f = 523 * Math.pow(2, (pent[k % 5] + 12 * Math.floor(k / 5)) / 12);
+      tone('triangle', f, f, 0.16, 0.2); tone('sine', f * 2, f * 2, 0.08, 0.07);
+    },
+    swWin: function(){   // 盤面全体がぱぁっと光る：きらきらの和音
+      noiseSweep(0.3, 0.4, 1200, 6000);
+      [784, 1047, 1319, 1568, 2093].forEach(function(f, i){ tone('triangle', f, f, 0.9, 0.17, i * 0.03); tone('sine', f * 2, f * 2, 0.5, 0.06, i * 0.03); });
+    },
+    symWin: function(n){   // 全員そろった：動物が順に跳ねる音＋きらきら
+      for (var i = 0; i < n; i++) tone('triangle', 784 + i * 110, 784 + i * 110, 0.12, 0.2, i * 0.07);
+      [1047, 1319, 1568, 2093].forEach(function(f, i){ tone('sine', f, f, 0.7, 0.14, n * 0.07 + i * 0.02); });
+    },
+    join: function(){   // 仲間が増えた：キラキラ上昇＋ポン
+      noiseSweep(0.30, 0.5, 900, 5200);
+      [784, 988, 1319, 1568, 2093].forEach(function(f, i){ tone('triangle', f, f, 0.22, 0.26, 0.05 + i * 0.075); tone('sine', f * 2, f * 2, 0.12, 0.08, 0.05 + i * 0.075); });
+      tone('sine', 300, 160, 0.14, 0.4, 0, 0.004);
+    },
+    crown: function(){   // 王冠がのった：ファンファーレ風
+      noiseSweep(0.25, 0.45, 1200, 6000);
+      [659, 784, 988, 1319].forEach(function(f, i){ tone('square', f, f, 0.14, 0.09, i * 0.09); tone('triangle', f, f, 0.3, 0.26, i * 0.09); });
+      [1319, 1568, 2093].forEach(function(f, i){ tone('sine', f, f, 0.8, 0.16, 0.4 + i * 0.02); });
+      for (var k = 0; k < 5; k++) tone('sine', 3000 + k * 420, 3000 + k * 420, 0.08, 0.05, 0.5 + k * 0.06);
+    },
+    exit: function(kind){
+      if (kind === 'ring') { noiseSweep(0.36, 0.45, 500, 3600); tone('sine', 520, 1500, 0.30, 0.09, 0, 0.02); return; }          // スルッ（ルーレット錠）
+      noiseSweep(0.36, 1.0, 500, 3600); tone('sine', 520, 1500, 0.30, 0.22, 0, 0.02);                                             // スルッ…（スライド錠：大きめ）
+      tone('sine', 900, 300, 0.09, 0.5, 0.34, 0.004); noiseBand(0.03, 0.5, 1600, 1.0, 0.34);                                      // …ポッ（抜けた瞬間）
+    },
+    undo: function(){ tone('sine', 520, 330, 0.09, 0.2); },
+    hint: function(){ tone('sine', 988, 988, 0.22, 0.22); tone('sine', 1319, 1319, 0.30, 0.20, 0.11); },        // ポーン
+    lock: function(){ tone('sawtooth', 130, 95, 0.16, 0.16); },
+    coin: function(){ tone('square', 1568, 1568, 0.06, 0.09); tone('square', 2093, 2093, 0.16, 0.09, 0.06); },   // ヒントをもらった
+    clear: function(st){
+      // ファンファーレ：★が多いほど、音数が多く高く華やかに
+      var seq = st === 3 ? [523, 659, 784, 1047, 1319, 1568] : st === 2 ? [523, 659, 784, 1047] : [523, 659, 784];
+      var gap = st === 3 ? 0.085 : 0.10;
+      seq.forEach(function(f, i){ tone('triangle', f, f, 0.28 + (i === seq.length - 1 ? 0.5 : 0), 0.24, i * gap); tone('square', f * 2, f * 2, 0.10, 0.05, i * gap); });
+      var end = seq.length * gap;
+      if (st === 3) {   // 最後に、きらきらとした和音
+        [1047, 1319, 1568, 2093].forEach(function(f, i){ tone('sine', f, f, 0.9, 0.16, end + i * 0.02); });
+        for (var k = 0; k < 5; k++) tone('sine', 2600 + k * 380, 2600 + k * 380, 0.09, 0.05, end + 0.05 + k * 0.07);
+      } else if (st === 2) { [784, 1047, 1319].forEach(function(f){ tone('sine', f, f, 0.6, 0.15, end); }); }
+      else { tone('sine', 1047, 1047, 0.5, 0.14, end); }
+    },
+    packClear: function(){   // パックの全問クリア：長めの華やかな音（次の動物が目覚める）
+      var seq = [392, 523, 659, 784, 659, 784, 1047, 1319, 1047, 1568];
+      seq.forEach(function(f, i){ tone('triangle', f, f, 0.22, 0.24, i * 0.11); tone('square', f * 2, f * 2, 0.08, 0.05, i * 0.11); });
+      var end = seq.length * 0.11;
+      [523, 659, 784, 1047, 1568].forEach(function(f, i){ tone('sine', f, f, 1.2, 0.15, end + i * 0.02); });
+    }
+  };
+  function sfx(name, arg){ try { SFX[name](arg); } catch (e) {} }
+  function updateSoundBtn(){
+    var b = $('soundToggleBtn'); if (!b) return;
+    var on = isSoundOn(); b.classList.toggle('off', !on);
+    b.textContent = on ? '🔊 このゲームは音が出ます（タップでOFF）' : '🔇 音は OFF です（タップでON）';
+  }
+  $('soundToggleBtn').addEventListener('click', function(){
+    var on = isSoundOn(); safeSet(SOUND_KEY, on ? '0' : '1'); updateSoundBtn();
+    if (!on) sfx('select');       // ONにした時に、ひと鳴らしして確認できる
+  });
+  updateSoundBtn();
+
+  // ---------- 進捗・ヒント ----------
+  var prog = { p: {}, hints: 5, day: '', flags: {} };
+  try { var sv = JSON.parse(safeGet(PROG_KEY) || 'null'); if (sv && sv.p) prog = sv; } catch(e){}
+  if (!prog.flags) prog.flags = {};
+  // データのバージョン：問題を入れ替えたパックの古い記録（別の問題の星）が残らないよう、一度だけ消す
+  //   v2（歯車錠の前倒し）：周回1のぱんだ(3)・ぺんぎん(6)・らいおん(9)、周回3のねこ(0)・かえる(4)・くま(8)
+  var DATA_VER = 4;
+  var CHANGED_BY_VER = {
+    2: ['1-3', '1-6', '1-9', '3-0', '3-4', '3-8'],                               // 歯車錠の前倒し
+    3: ['1-2', '1-5', '1-8', '2-2', '2-5', '2-8', '3-3', '3-7', '3-9'],          // スライド錠の出口バリエーション（スライド錠の全パック）
+    4: ['1-6', '1-9', '3-0', '3-4', '3-8']                                       // 歯車錠 → 円形ルーレット錠（歯車錠の全パック）
+  };
+  (function(){
+    var dv = prog.dv || 1;
+    if (dv >= DATA_VER) { prog.dv = DATA_VER; return; }
+    Object.keys(CHANGED_BY_VER).forEach(function(v){
+      if (+v <= dv) return;
+      CHANGED_BY_VER[v].forEach(function(c){
+        for (var j = 0; j < 5; j++) delete prog.p[c + '-' + j];
+        var ra = c.split('-'); delete prog.flags['c' + ra[0] + '_' + ra[1]]; delete prog.flags['g' + ra[0] + '_' + ra[1]];
+      });
+    });
+    prog.dv = DATA_VER;
+    safeSet(PROG_KEY, JSON.stringify(prog));
+  })();
+  function saveProg(){ if (!OPEN_ALL) safeSet(PROG_KEY, JSON.stringify(prog)); }
+  function isUnlimited(){ return safeGet(STORAGE_KEY) === '1'; }
+  function pid(r, a, j){ return r + '-' + a + '-' + j; }
+  function starsOf(r, a, j){ var x = prog.p[pid(r, a, j)]; return x ? x.stars : 0; }
+  function packOf(r, a){ return r === HELL_R ? LEVEL_DATA.hell[a] : (r === HEAVEN_R ? LEVEL_DATA.heaven[a] : LEVEL_DATA.rounds[r - 1][a]); }
+  function packDone(r, a){ for (var j = 0; j < PER; j++) if (!starsOf(r, a, j)) return false; return true; }
+  function packStars(r, a){ var s = 0; for (var j = 0; j < PER; j++) s += starsOf(r, a, j); return s; }
+  function packClearedCount(r, a){ var n = 0; for (var j = 0; j < PER; j++) if (starsOf(r, a, j)) n++; return n; }
+  function packCollar(r, a){ if (!packDone(r, a)) return 0; var s = packStars(r, a); return s >= PER * 3 ? 3 : (s >= Math.ceil(PER * 2)) ? 2 : 1; }
+  function prevPack(r, a){ return a > 0 ? [r, a - 1] : (r > 1 && r < HELL_R ? [r - 1, ANIMALS_N - 1] : null); }
+  function packUnlocked(r, a){ if (r >= HELL_R && !isUnlimited()) return false; if (r === HEAVEN_R && !OPEN_ALL && !hellDone()) return false; if (OPEN_ALL) return true; var p = prevPack(r, a); return !p || packDone(p[0], p[1]); }
+  function totals(){
+    var s = 0, c = 0, max = ROUNDS * ANIMALS_N * PER * 3, r, a, j;
+    for (r = 1; r <= ROUNDS; r++) for (a = 0; a < ANIMALS_N; a++) for (j = 0; j < PER; j++) { var st = starsOf(r, a, j); s += st; if (st) c++; }
+    return { stars: s, cleared: c, max: max };
+  }
+  function stars(n){ return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+  function today(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  var dailyText = '';
+  (function(){   // 毎日1回、ヒントが3個未満なら3個まで補充（詰み防止）
+    var t = today();
+    if (prog.day !== t) {
+      prog.day = t;
+      if (prog.hints < 3) { dailyText = '🎁 きょうのヒント補充！ 💡が3個になりました'; prog.hints = 3; }
+      saveProg();
+    }
+  })();
+  function hintLabel(){ return isUnlimited() ? '∞' : String(prog.hints); }
+  function toast(msg, ms){
+    var old = document.querySelector('.toast'); if (old) old.remove();
+    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t);
+    setTimeout(function(){ if (t.parentNode) t.remove(); }, ms || 2600);
+  }
+
+  // ---------- 画面切り替え ----------
+  var SCREENS = ['screenMap', 'screenPack', 'screenZukan', 'screenPlay'];
+  function show(id){ SCREENS.forEach(function(s){ $(s).classList.toggle('hidden', s !== id); }); renderHero(); window.scrollTo(0, 0); }
+  // 表紙の仲間たち：Lv1を全問クリアした動物が、クリア順ではなく動物の番号順に並ぶ。Lv2を全問クリアで王冠👑、Lv3を全問クリアで金の王冠。新しく増えた・王冠がついた子だけポンと出る
+  var heroSeen = null;   // 直前に描いた状態（最初の描画では動かさない）
+  var heroCelebrated = false;   // 直前の描画で、仲間が増えた／王冠がついた演出をしたか
+  function heroBurst(host, gold){   // 動物・王冠のまわりに、きらきらを飛び散らせる
+    var box = document.createElement('span'); box.className = 'hero-spark';
+    var marks = gold ? ['✨', '⭐', '✨', '💛'] : ['✨', '⭐', '🎉', '💫', '✨'], n = gold ? 10 : 14;
+    for (var k = 0; k < n; k++) {
+      var i = document.createElement('i'), ang = (k / n) * Math.PI * 2 + Math.random() * .4, d = 34 + Math.random() * 40;
+      i.textContent = marks[k % marks.length];
+      i.style.setProperty('--dx', (Math.cos(ang) * d).toFixed(0) + 'px'); i.style.setProperty('--dy', (Math.sin(ang) * d - 8).toFixed(0) + 'px');
+      i.style.setProperty('--rt', ((Math.random() * 2 - 1) * 200).toFixed(0) + 'deg'); i.style.setProperty('--dl', (Math.random() * .5).toFixed(2) + 's');
+      box.appendChild(i);
+    }
+    host.appendChild(box);
+    setTimeout(function(){ if (box.parentNode) box.remove(); }, 2600);
+  }
+  function renderHero(){
+    var row = $('heroRow'); if (!row) return;
+    var now = {}, joined = [], crowned = [], mem = [], a, line = null;
+    for (a = 0; a < ANIMALS_N; a++) if (packDone(1, a)) mem.push({ key: 'a' + a, an: ANIMALS[a], crown: packDone(3, a) ? 3 : (packDone(2, a) ? 2 : 0), hell: false });
+    for (a = 0; a < ANIMALS_N; a++) if (packDone(HELL_R, a)) mem.push({ key: 'h' + a, an: HELL[a], crown: 0, hell: true });
+    for (a = 0; a < ANIMALS_N; a++) if (packDone(HEAVEN_R, a)) mem.push({ key: 'e' + a, an: HEAVEN[a], crown: 0, hell: false, heaven: true });
+    row.innerHTML = '';
+    mem.forEach(function(m){
+      now[m.key] = m.crown;
+      var isNew = heroSeen && heroSeen[m.key] === undefined, isUp = heroSeen && heroSeen[m.key] !== undefined && heroSeen[m.key] < m.crown;
+      var sp = document.createElement('span'); sp.className = 'hero-an' + (m.hell ? ' hell' : '') + (m.heaven ? ' heaven' : '') + (isNew ? ' pop' : '');
+      sp.textContent = m.an.em;
+      if (isNew) { joined.push(m.an); heroBurst(sp, false); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 1100); }
+      if (m.crown) {
+        var c = document.createElement('span'); c.className = 'crown' + (m.crown === 3 ? ' gold' : '') + (isUp ? ' pop' : '');
+        c.textContent = '👑'; sp.appendChild(c);
+        if (isUp) { crowned.push(m.an); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 380); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 1500); }
+      }
+      if (!line || line.children.length >= 5) { line = document.createElement('div'); line.className = 'hero-line'; row.appendChild(line); }   // 5匹ずつ段にする（2段・3段…と増える）
+      line.appendChild(sp);
+    });
+    if (!mem.length) { var e = document.createElement('span'); e.className = 'hero-empty'; e.textContent = '…まだ だれもいない'; row.appendChild(e); }
+    heroSeen = now;
+    heroCelebrated = !!(joined.length || crowned.length);
+    if (joined.length || crowned.length) {
+      var plate = document.querySelector('.top-plate'); plate.classList.remove('celebrate'); void plate.offsetWidth; plate.classList.add('celebrate');
+      if (crowned.length) { sfx('crown'); setTimeout(function(){ sfx('coin'); }, 1300); toast('👑 ' + crowned[0].name + ' に王冠がのった！', 4200); }
+      else { sfx('join'); setTimeout(function(){ sfx('coin'); }, 1100); toast('🎉 ' + joined[0].name + ' が仲間になった！', 4200); }
+    }
+  }
+  function currentRound(){   // マップの背景：いまの挑戦中（最初の未クリアのパック）の周回。全部クリア済みなら最後の周回
+    for (var r = 1; r <= ROUNDS; r++) for (var a = 0; a < ANIMALS_N; a++) if (packUnlocked(r, a) && !packDone(r, a)) return r;
+    return ROUNDS;
+  }
+  function crumbHtml(r, a, last){
+    var wd = worldOf(r), an = animalOf(r, a);
+    return '<button type="button" data-go="map">🗺 マップ</button><span class="sep">›</span><span>' + wd.icon + ' ' + wd.name + '</span><span class="sep">›</span>' +
+      (last ? '<span class="here">' + an.em + ' ' + an.name + ' ' + lvLabel(r) + last + '</span>' : '<span class="here">' + an.em + ' ' + an.name + ' ' + lvLabel(r) + '</span>');
+  }
+  function bindCrumb(el){ var b = el.querySelector('button[data-go=map]'); if (b) b.addEventListener('click', showMap); }
+  function setCrumbs(r, a, extra){
+    ['crumbPack', 'crumbPlay'].forEach(function(id){ var el = $(id); el.innerHTML = crumbHtml(r, a, id === 'crumbPlay' ? (extra || '') : ''); bindCrumb(el); });
+  }
+  // マップに戻る時は、トップではなく「いま遊んでいたコース（動物）」のところまで。focus＝{r,a}（その動物へ）／{top:true}（一番上へ）／省略（直前に開いたパックへ）
+  // その要素が画面の中央に来るまで、約0.6秒でなめらかに動く（ブラウザ標準のsmoothに頼らず、タイマーで動かす）
+  function glideTo(el){
+    var rc = el.getBoundingClientRect(), from = window.scrollY, to = Math.max(0, from + rc.top + rc.height / 2 - window.innerHeight / 2), t0 = Date.now();
+    var iv = setInterval(function(){
+      var k = Math.min(1, (Date.now() - t0) / 600), e = 1 - Math.pow(1 - k, 3);
+      window.scrollTo(0, from + (to - from) * e);
+      if (k >= 1) clearInterval(iv);
+    }, 16);
+  }
+  function showMap(focus){
+    document.body.setAttribute('data-mode', 'map'); $('screenPlay').style.borderTop = ''; setTheme(currentRound()); renderMap(); show('screenMap');
+    var f = (focus && (focus.top || typeof focus.r === 'number')) ? focus : (hasPlayed ? cur : { top: true });
+    if (f.top) return;
+    var row = document.querySelector('#mapList .node-row[data-r="' + f.r + '"][data-a="' + f.a + '"]');
+    if (!row) return;
+    if (heroCelebrated) {   // 仲間が増えた／王冠がついた時は、まずトップで演出を見せてから、コースの位置へ移る（その間に自分でスクロールしていたら移らない）
+      setTimeout(function(){ if (window.scrollY < 40 && !$('screenMap').classList.contains('hidden')) glideTo(row); }, 4600);
+      return;
+    }
+    row.scrollIntoView({ block: 'center' });
+  }
+  function showPack(r, a){ document.body.setAttribute('data-mode', 'stage'); setTheme(r); setCrumbs(r, a); renderPack(r, a); show('screenPack'); }
+  function showZukan(){ document.body.setAttribute('data-mode', 'stage'); $('crumbZukan').innerHTML = '<button type="button" data-go="map">🗺 マップ</button><span class="sep">›</span><span class="here">📖 どうぶつ図鑑</span>'; bindCrumb($('crumbZukan')); renderZukan(); show('screenZukan'); }
+
+  // ---------- マップ ----------
+  var cur = { r: 1, a: 0 }, hasPlayed = false;   // いま開いているパック／マップからパックを開いたことがあるか
+  function renderMap(){
+    var t = totals();
+    $('hintCount').textContent = hintLabel();
+    $('starCount').textContent = t.stars; $('starMax').textContent = t.max;
+    $('dailyMsg').textContent = dailyText;
+    $('openAllMsg').textContent = OPEN_ALL ? '🔓 お試しモード：ぜんぶ遊べます（この画面での記録は保存されません）' : '';
+    $('zukanCount').textContent = zukanOwned() + ' / ' + ANIMALS_N;
+    var list = $('mapList'); list.innerHTML = '';
+    var nowFound = false;
+    var sdeco = { grass: ['🌼', '🦋', '🌷', '🌿', '🌸'], savanna: ['🌵', '🌾', '🦓', '🌾', '🌵'], ice: ['❄', '🧊', '❄', '⛄', '❅'], hell: ['🔥', '💀', '🔥', '👻', '🦇'], heaven: ['☁️', '✨', '🕊️', '🌈', '⭐'] };
+    var rlist = []; for (var rr = 1; rr <= ROUNDS; rr++) rlist.push(rr);
+    if (isUnlimited()) { rlist.push(HELL_R); if (hellDone() || OPEN_ALL) rlist.push(HEAVEN_R); }
+    for (var ri = 0; ri < rlist.length; ri++) {
+      var r = rlist[ri];
+      var wd = worldOf(r);
+      var sec = document.createElement('div'); sec.className = 'map-sec sec-' + wd.key; sec.setAttribute('data-w', wd.key);
+      // 装飾（帯の背景に散らす。位置は周回番号から決めるので、開くたびに同じ）
+      var deco = document.createElement('div'); deco.className = 'sec-deco';
+      if (wd.key === 'savanna') { var sun = document.createElement('div'); sun.className = 'sec-sun'; deco.appendChild(sun); }
+      var glyphs = sdeco[wd.key];
+      for (var q = 0; q < 12; q++) {
+        var gi = document.createElement('i'); gi.textContent = glyphs[(q + r) % glyphs.length];
+        gi.style.left = ((q * 37 + r * 11) % 92 + 2) + '%'; gi.style.top = ((q * 53 + r * 23) % 84 + 4) + '%';
+        gi.style.fontSize = (12 + (q * 7 + r) % 10) + 'px';
+        deco.appendChild(gi);
+      }
+      sec.appendChild(deco);
+      var h = document.createElement('div'); h.className = 'map-round'; h.setAttribute('data-w', wd.key);
+      h.innerHTML = '<div class="mr-strip"></div><div class="mr-title"></div>';
+      h.querySelector('.mr-strip').textContent = wd.strip;
+      h.querySelector('.mr-title').textContent = r === HELL_R ? '🔥 地獄コース（激ムズ）　魔物の錠' : r === HEAVEN_R ? '👼 天国コース（最高難易度）　天の錠' : wd.icon + ' 周回' + r + '（Lv' + r + '）　' + wd.name;
+      sec.appendChild(h);
+      for (var a = 0; a < ANIMALS_N; a++) {
+        (function(r, a){
+          var an = animalOf(r, a), pk = packOf(r, a), ok = packUnlocked(r, a), done = packDone(r, a);
+          var isNow = ok && !done && !nowFound; if (isNow) nowFound = true;
+          var last = (a === ANIMALS_N - 1);
+          var row = document.createElement('div');
+          row.setAttribute('data-r', r); row.setAttribute('data-a', a);
+          row.className = 'node-row' + (a % 2 ? ' right' : '') + (ok ? '' : ' locked') + (last ? ' last' : '');
+          row.style.setProperty('--nc', an.color);
+          var badge = !ok ? '🔒' : (done ? ['', '✅', '🥈', '🏅'][packCollar(r, a)] : '');
+          row.innerHTML = '<div class="node' + (ok ? '' : ' locked') + (done ? ' done' : '') + (isNow ? ' now' : '') + '"><span class="em">' + an.em + '</span>' + (badge ? '<span class="badge">' + badge + '</span>' : '') + '</div>' +
+            '<div class="node-info"><div class="node-name"></div><div class="node-mech"></div><div class="node-prog"></div></div>';
+          row.querySelector('.node-name').textContent = ok ? an.name + ' ' + lvLabel(r) : '？？？';
+          row.querySelector('.node-mech').textContent = ok ? MECH[pk.mech].icon + ' ' + MECH[pk.mech].name : (r === HELL_R ? 'まだ ひそんでいる' : r === HEAVEN_R ? 'まだ 雲のむこう' : 'まだ ねむっている');
+          row.querySelector('.node-prog').textContent = ok ? packClearedCount(r, a) + '/' + PER + '問　★' + packStars(r, a) + '/' + PER * 3 : (r === HELL_R ? '前の魔物を倒すと開放' : r === HEAVEN_R ? '前の天使を救うと開放' : '前の動物を起こすと開放');
+          row.addEventListener('click', function(){
+            if (ok) { cur = { r: r, a: a }; hasPlayed = true; showPack(r, a); }
+            else { sfx('lock'); toast('🔒 前の動物のパズルを、ぜんぶ解くと会えるよ'); }
+          });
+          sec.appendChild(row);
+        })(r, a);
+      }
+      list.appendChild(sec);
+    }
+    // 課金エリアの門：課金前は鍵つきの「地獄の門」、課金後は地獄コースが上に開いて「天国の門」が準備中と出る
+    var gates = document.createElement('div'); gates.className = 'gate-zone';
+    if (!isUnlimited()) {
+      var gh = document.createElement('div'); gh.className = 'gate-card hell';
+      gh.innerHTML = '<div class="gt-em">👿🔒🔥</div><div class="gt-title">地獄の門</div><div class="gt-sub"></div>';
+      gh.querySelector('.gt-sub').textContent = '鬼・悪魔・お化けが待つ、激ムズの特別コース（課金エリア）。ページ下の「損しかない課金」の合言葉で開きます。';
+      gh.addEventListener('click', function(){ sfx('lock'); toast('🔒 ページ下の合言葉入力で、地獄の門が開きます'); });
+      gates.appendChild(gh);
+    }
+    if (!isUnlimited() || !hellDone()) {   // 天国の門：課金前＝課金エリアの案内／課金後＝地獄の制覇が条件
+      var gs = document.createElement('div'); gs.className = 'gate-card heaven';
+      gs.innerHTML = '<div class="gt-em">👼🔒🌞</div><div class="gt-title">天国の門</div><div class="gt-sub"></div>';
+      gs.querySelector('.gt-sub').textContent = isUnlimited() ? '地獄コースを全部クリアした人だけが入れる、最高難易度の天使たちの錠。' : '地獄を制覇した人だけが入れる、最高難易度の特別コース（課金エリア）。';
+      gs.addEventListener('click', function(){ sfx('lock'); toast(isUnlimited() ? '🔒 地獄コースを全部クリアすると、天国の門が開きます' : '🔒 ページ下の合言葉で課金すると、地獄→天国と挑めます'); });
+      gates.appendChild(gs);
+    }
+    if (gates.children.length) list.appendChild(gates);
+    var end = document.createElement('div'); end.className = 'map-end'; end.textContent = '🌱 つづく！ 新しい動物や周回をおたのしみに'; list.appendChild(end);
+  }
+
+  // ---------- パック ----------
+  function bonusText(r, a){
+    var c = packDone(r, a), g3 = packCollar(r, a) === 3;
+    return '🎁 ボーナス　全問クリアで <b>💡+3</b> ' + (prog.flags['c' + r + '_' + a] ? '<span class="got">（もらった）</span>' : '') +
+      '　／　全部★3で <b>💡+5</b> ' + (prog.flags['g' + r + '_' + a] ? '<span class="got">（もらった）</span>' : '') +
+      '<br>💡 パズルを初めてクリアすると、★の数だけヒントがもらえるよ（★を上げ直した分ももらえる）';
+  }
+  function renderPack(r, a){
+    var an = animalOf(r, a), pk = packOf(r, a);
+    $('packEm').textContent = an.em; $('packName').textContent = an.name + ' ' + lvLabel(r);
+    $('packMech').textContent = MECH[pk.mech].icon + ' ' + MECH[pk.mech].name + '　' + packClearedCount(r, a) + '/' + PER + '問クリア';
+    $('packRule').textContent = ruleOf(r, pk.mech);
+    var grid = $('packGrid'); grid.innerHTML = '';
+    for (var j = 0; j < PER; j++) {
+      (function(j){
+        var b = document.createElement('button'); b.type = 'button';
+        var st = starsOf(r, a, j), rec = prog.p[pid(r, a, j)];
+        b.className = 'lv' + (st ? ' cleared' : '');
+        b.innerHTML = '<span class="lv-em">' + an.em + '</span>' + (j + 1) + '<span class="st">' + (st ? '<b>' + stars(st) + '</b>' : '未クリア') + '</span>';
+        b.addEventListener('click', function(){ startPuzzle(r, a, j); });
+        grid.appendChild(b);
+      })(j);
+    }
+    $('packBonus').innerHTML = bonusText(r, a);
+    $('screenPack').style.borderTop = '5px solid ' + an.color;
+  }
+
+  // ---------- 図鑑 ----------
+  function zukanOwned(){ var n = 0; for (var a = 0; a < ANIMALS_N; a++) if (packDone(1, a)) n++; return n; }
+  function renderZukan(){
+    var grid = $('zukanGrid'); grid.innerHTML = '';
+    var owned = zukanOwned(), gold = 0;
+    ANIMALS.forEach(function(an, a){
+      var has = packDone(1, a), best = 0, lvHtml = '';
+      for (var r = 1; r <= ROUNDS; r++) { var c = packCollar(r, a); if (c > best) best = c; lvHtml += '<span>Lv' + r + ' ' + (c ? (COLLAR_ICON[c] || '✅') : '－') + '</span>'; }
+      if (best === 3) gold++;
+      var card = document.createElement('div');
+      card.className = 'zk-card ' + (has ? 'c' + Math.max(1, best) : 'lock');
+      if (has) {
+        card.innerHTML = '<div class="zk-em"><span>' + an.em + '</span></div><div class="zk-name"></div><div class="zk-lv">' + lvHtml + '</div><div class="zk-collar">' + COLLAR_ICON[best] + COLLAR_NAME[best] + '</div><div class="zk-flavor"></div>';
+        card.querySelector('.zk-name').textContent = an.name;
+        card.querySelector('.zk-flavor').textContent = an.text;
+      } else {
+        card.innerHTML = '<div class="zk-em"><span>' + an.em + '</span></div><div class="zk-name">？？？</div><div class="zk-collar">まだ会えていない</div><div class="zk-flavor">' + (a === 0 ? '最初の動物のLv1' : ANIMALS[a - 1].name + 'のLv1を解いて、次に進むと出会える') + '</div>';
+      }
+      grid.appendChild(card);
+    });
+    $('zukanTotal').textContent = owned + ' / ' + ANIMALS_N + '匹';
+    $('zukanBanner').textContent = gold === ANIMALS_N ? '🏆 全員が金の首輪！ 完全制覇！' : (owned === ANIMALS_N ? '🎉 10匹コンプリート！ 次は金の首輪をめざそう（金 ' + gold + '/10）' : '');
+  }
+
+  // ================= ゲームの型ごとの実装 =================
+  var TYPES = {};
+
+  // ---- 1) スイッチ錠 ----
+  // 盤面が大きくなる（最大7×7）ため、全探索(BFS)ではなくGF(2)の連立方程式で最短手数とヒントを求める。
+  // 状態は0/1の配列。押す操作は「そのマスと上下左右を反転」で、同じマスを2回押すと元に戻るので、
+  // 「どのマスを押すか（各マス0回か1回）」だけが解の形になる。解が複数ある盤（4×4・5×5）は最小の押す数を採用。
+  function lightsMasks(n){
+    var ms = [], r, c;
+    for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
+      var m = [], i; for (i = 0; i < n * n; i++) m.push(0);
+      [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+        var rr = r + d[0], cc = c + d[1];
+        if (rr >= 0 && rr < n && cc >= 0 && cc < n) m[rr * n + cc] = 1;
+      });
+      ms.push(m);
+    }
+    return ms;
+  }
+  // 最小の押すマス集合（配列）を返す。解なしならnull
+  function lightsSolve(ctx, s){
+    var N = ctx.n * ctx.n, rows = [], i, j;
+    for (i = 0; i < N; i++) { var row = []; for (j = 0; j < N; j++) row.push(ctx.ms[j][i]); row.push(s[i]); rows.push(row); }
+    var piv = [], r0 = 0, col, r, k;
+    for (col = 0; col < N; col++) {
+      var p = -1; for (r = r0; r < N; r++) if (rows[r][col]) { p = r; break; }
+      if (p < 0) continue;
+      var tmp = rows[r0]; rows[r0] = rows[p]; rows[p] = tmp;
+      for (r = 0; r < N; r++) if (r !== r0 && rows[r][col]) for (k = 0; k <= N; k++) rows[r][k] ^= rows[r0][k];
+      piv.push(col); r0++;
+    }
+    for (r = r0; r < N; r++) if (rows[r][N]) return null;
+    var free = [], isPiv = {}; piv.forEach(function(c){ isPiv[c] = true; });
+    for (col = 0; col < N; col++) if (!isPiv[col]) free.push(col);
+    var best = null, mask;
+    for (mask = 0; mask < (1 << free.length); mask++) {
+      var x = []; for (i = 0; i < N; i++) x.push(0);
+      free.forEach(function(c, idx){ if ((mask >> idx) & 1) x[c] = 1; });
+      for (k = 0; k < piv.length; k++) {
+        var rhs = rows[k][N];
+        free.forEach(function(c, idx){ if (((mask >> idx) & 1) && rows[k][c]) rhs ^= 1; });
+        x[piv[k]] = rhs;
+      }
+      var w = 0; for (i = 0; i < N; i++) w += x[i];
+      if (!best || w < best.w) best = { w: w, x: x };
+    }
+    return best;
+  }
+  TYPES.lights = {
+    init: function(lv){
+      var n = lv.n, s = [], r, c;
+      for (r = 0; r < n; r++) for (c = 0; c < n; c++) s.push(lv.rows[r].charAt(c) === '1' ? 1 : 0);
+      var ctx = { n: n, ms: lightsMasks(n) };
+      var sol = lightsSolve(ctx, s);
+      return { ctx: ctx, state: s, min: sol ? sol.w : 0 };
+    },
+    apply: function(ctx, s, mv){ var t = s.slice(), m = ctx.ms[mv]; for (var i = 0; i < t.length; i++) t[i] ^= m[i]; return t; },
+    solved: function(ctx, s){ for (var i = 0; i < s.length; i++) if (s[i]) return false; return true; },
+    hint: function(ctx, s){
+      var sol = lightsSolve(ctx, s);
+      if (!sol) return null;
+      for (var i = 0; i < sol.x.length; i++) if (sol.x[i]) return { cell: i };
+      return null;
+    },
+    render: function(g, box){
+      var n = g.ctx.n, th = g.theme, grid = document.createElement('div'); grid.className = 'sw-grid';
+      grid.style.gridTemplateColumns = 'repeat(' + n + ',1fr)';
+      grid.style.maxWidth = ({ 2: 220, 3: 300, 4: 340 }[n] || 360) + 'px';
+      grid.style.gap = (n <= 4 ? 10 : 6) + 'px';
+      grid.style.setProperty('--on', th.color); grid.style.setProperty('--glow', hexToRgba(th.color, .55));
+      var fs = ({ 2: 2.4, 3: 2.1, 4: 1.8, 5: 1.5, 6: 1.25, 7: 1.1 }[n] || 1.3);
+      for (var i = 0; i < n * n; i++) {
+        var b = document.createElement('button'); b.type = 'button';
+        var asleep = g.state[i];   // 状態1＝ねむっている、0＝起きている
+        b.className = 'sw ' + (asleep ? 'sleep' : 'awake') + (g.hint && g.hint.cell === i ? ' hint-pulse' : '');
+        b.style.fontSize = fs + 'rem'; b.style.borderRadius = (n <= 4 ? 16 : 10) + 'px';
+        b.innerHTML = '<span class="em">' + th.em + '</span>'; b.setAttribute('data-i', i);
+        b.addEventListener('click', function(e){ move(+e.currentTarget.getAttribute('data-i')); });
+        grid.appendChild(b);
+      }
+      box.appendChild(grid);
+    }
+  };
+
+  // ---- 2) 並び替え錠 ----
+  // 問題データの記号（★●▲■◆♥♣）を、表示のときだけ動物に差し替える（判定・最短手数は記号のまま検証済み）
+  var SYM_ANIMAL = { '★': '🐱', '●': '🐶', '▲': '🐰', '■': '🐼', '◆': '🐸', '♥': '🐵', '♣': '🐧' };
+  function sym(x){ var m = (g && g.r === HELL_R) ? HELL_SYM : ((g && g.r === HEAVEN_R) ? HEAVEN_SYM : SYM_ANIMAL); return m[x] || x; }
+  function clueText(c){
+    switch (c[0]) {
+      case 'left': return sym(c[1]) + 'は' + sym(c[2]) + 'より左';
+      case 'adj': return sym(c[1]) + 'と' + sym(c[2]) + 'は隣どうし';
+      case 'notadj': return sym(c[1]) + 'と' + sym(c[2]) + 'は隣ではない';
+      case 'pos': return sym(c[1]) + 'は左から' + (c[2] + 1) + '番目';
+      case 'end': return sym(c[1]) + 'は端（いちばん左かいちばん右）';
+      case 'between': return sym(c[1]) + 'は' + sym(c[2]) + 'と' + sym(c[3]) + 'のあいだ';
+    }
+    return '';
+  }
+  function clueOk(p, c){
+    var t = c[0];
+    if (t === 'end') { var e = p.indexOf(c[1]); return e === 0 || e === p.length - 1; }
+    if (t === 'pos') return p.indexOf(c[1]) === c[2];
+    if (t === 'between') { var a = p.indexOf(c[1]), b = p.indexOf(c[2]), d = p.indexOf(c[3]); return Math.min(b, d) < a && a < Math.max(b, d); }
+    var x = p.indexOf(c[1]), y = p.indexOf(c[2]);
+    if (t === 'left') return x < y;
+    if (t === 'adj') return Math.abs(x - y) === 1;
+    if (t === 'notadj') return Math.abs(x - y) !== 1;
+    return false;
+  }
+  TYPES.symbols = {
+    init: function(lv){
+      var inv = 0, i, j, st = lv.start;
+      for (i = 0; i < st.length; i++) for (j = i + 1; j < st.length; j++) if (lv.target.indexOf(st[i]) > lv.target.indexOf(st[j])) inv++;
+      return { ctx: { clues: lv.clues, target: lv.target, n: st.length }, state: st.slice(), min: inv, sel: -1 };
+    },
+    apply: function(ctx, s, mv){ var t = s.slice(); var x = t[mv]; t[mv] = t[mv + 1]; t[mv + 1] = x; return t; },
+    solved: function(ctx, s){ return ctx.clues.every(function(c){ return clueOk(s, c); }); },
+    hint: function(ctx, s){
+      for (var i = 0; i < s.length - 1; i++) if (ctx.target.indexOf(s[i]) > ctx.target.indexOf(s[i + 1])) return { a: i, b: i + 1 };
+      return null;
+    },
+    render: function(g, box){
+      var ul = document.createElement('ul'); ul.className = 'clues';
+      g.ctx.clues.forEach(function(c){ var li = document.createElement('li'); li.textContent = clueText(c); if (clueOk(g.state, c)) li.className = 'done'; ul.appendChild(li); });
+      var row = document.createElement('div'); row.className = 'sym-row' + (g.state.length >= 8 ? ' tight' : '');
+      g.state.forEach(function(s, i){
+        var b = document.createElement('button'); b.type = 'button';
+        var hi = g.hint && (g.hint.a === i || g.hint.b === i);
+        b.className = 'sym' + (i === g.sel ? ' sel' : '') + (hi ? ' hint-pulse' : '');
+        b.textContent = sym(s); b.setAttribute('data-i', i);
+        b.addEventListener('click', function(e){
+          if (g.done) return;                                // クリア演出中は触れない（演出が壊れないように）
+          var k = +e.currentTarget.getAttribute('data-i');
+          if (g.sel < 0) { g.sel = k; sfx('select'); refresh(); return; }
+          if (k === g.sel) { g.sel = -1; refresh(); return; }
+          if (Math.abs(k - g.sel) === 1) { var lo = Math.min(k, g.sel); g.sel = -1; move(lo); return; }
+          g.sel = k; sfx('select'); refresh();
+        });
+        row.appendChild(b);
+      });
+      var note = document.createElement('div'); note.className = 'sym-hint'; note.textContent = '左から1番目 ～ ' + g.ctx.n + '番目';
+      box.appendChild(ul); box.appendChild(row); box.appendChild(note);
+    }
+  };
+
+  // ---- 4) ルーレット錠（内部名は gear のまま） ----
+  // 同心円の輪が R 重（0＝いちばん内側）。各輪は N 個の扇形で、gates[i] の扇形が「あき」。
+  // 状態＝各輪の回転量 s[i]（時計回りに何マス回したか）。あきの位置＝(g + s[i]) mod N（0＝真上）。
+  // 目標＝すべての輪が、真上にあきを持つこと。link[i]=j（>=0）なら、輪iを d 回すと輪jが -d 回る。
+  // 操作は元に戻せる（d と -d）ので、目標の集合からの多点BFSで、全状態の最短手数が求まる。
+  function ringApply(ctx, st, mv){
+    var t = st.slice(), N = ctx.N, j = ctx.link[mv.ring];
+    t[mv.ring] = ((t[mv.ring] + mv.d) % N + N) % N;
+    if (j >= 0) t[j] = ((t[j] - mv.d) % N + N) % N;
+    return t;
+  }
+  function ringKey(st, N){ var k = 0; for (var i = 0; i < st.length; i++) k = k * N + st[i]; return k; }
+  function ringAligned(ctx, st, i){
+    var gs = ctx.gates[i];
+    for (var q = 0; q < gs.length; q++) if ((gs[q] + st[i]) % ctx.N === 0) return true;
+    return false;
+  }
+  TYPES.gear = {
+    init: function(lv){
+      var R = lv.R, N = lv.N, ctx = { R: R, N: N, gates: lv.gates, link: lv.link, dist: {} };
+      var goals = [[]];
+      lv.gates.forEach(function(gs){
+        var nx = [];
+        goals.forEach(function(pre){ gs.forEach(function(gt){ nx.push(pre.concat([(N - gt) % N])); }); });
+        goals = nx;
+      });
+      var q = [];
+      goals.forEach(function(gl){ ctx.dist[ringKey(gl, N)] = 0; q.push(gl); });
+      for (var qi = 0; qi < q.length; qi++) {
+        var st = q[qi], d0 = ctx.dist[ringKey(st, N)];
+        for (var r = 0; r < R; r++) [1, -1].forEach(function(dd){
+          var t = ringApply(ctx, st, { ring: r, d: dd }), kk = ringKey(t, N);
+          if (ctx.dist[kk] === undefined) { ctx.dist[kk] = d0 + 1; q.push(t); }
+        });
+      }
+      var start = lv.start.slice();
+      return { ctx: ctx, state: start, min: ctx.dist[ringKey(start, N)] };
+    },
+    apply: function(ctx, s, mv){ return ringApply(ctx, s, mv); },
+    solved: function(ctx, s){ for (var i = 0; i < ctx.R; i++) if (!ringAligned(ctx, s, i)) return false; return true; },
+    hint: function(ctx, s){
+      var d = ctx.dist[ringKey(s, ctx.N)];
+      for (var r = 0; r < ctx.R; r++) for (var k = 0; k < 2; k++) {
+        var dd = k === 0 ? -1 : 1;
+        if (ctx.dist[ringKey(ringApply(ctx, s, { ring: r, d: dd }), ctx.N)] === d - 1) return { ring: r, d: dd };
+      }
+      return null;
+    },
+    render: function(g, box){
+      var ctx = g.ctx, R = ctx.R, N = ctx.N, th = g.theme, step = 360 / N, NS = 'http://www.w3.org/2000/svg';
+      var RW = 27, GP = 4, R0 = 31, TOP = 26;
+      var outer = R0 + 8 + R * (RW + GP) - GP + 6, W = outer * 2, cx = outer, cy = outer + TOP;
+      g.ringGeo = { cx: cx, cy: cy };
+      function el(tag, attrs, parent){
+        var e = document.createElementNS(NS, tag);
+        for (var k in attrs) e.setAttribute(k, attrs[k]);
+        if (parent) parent.appendChild(e);
+        return e;
+      }
+      function pt(r, deg){ var a = deg * Math.PI / 180; return (cx + r * Math.sin(a)).toFixed(2) + ',' + (cy - r * Math.cos(a)).toFixed(2); }
+      function sec(r1, r2, a0, a1){
+        var lg = (a1 - a0) > 180 ? 1 : 0;
+        return 'M' + pt(r2, a0) + ' A' + r2 + ',' + r2 + ' 0 ' + lg + ' 1 ' + pt(r2, a1) + ' L' + pt(r1, a1) + ' A' + r1 + ',' + r1 + ' 0 ' + lg + ' 0 ' + pt(r1, a0) + ' Z';
+      }
+      var wrap = document.createElement('div'); wrap.className = 'ring-wrap';
+      var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + (W + TOP), 'class': 'ring-svg', role: 'group', 'aria-label': 'ルーレット錠' });
+      // 背景の円盤
+      el('circle', { cx: cx, cy: cy, r: outer - 2, fill: 'rgba(0,0,0,.28)' }, svg);
+      // 真上の金色のライン（あきがそろうと光が通る）
+      el('rect', { x: cx - 8, y: cy - outer + 3, width: 16, height: outer - 3, rx: 4, 'class': 'corridor' }, svg);
+      var key = el('text', { x: cx, y: 19, 'text-anchor': 'middle', 'font-size': 19, 'class': 'key-mark' }, svg); key.textContent = '🔑';
+      // 輪（回転する）
+      if (!g.ringAng) { g.ringAng = []; for (var q0 = 0; q0 < R; q0++) g.ringAng.push(g.state[q0] * step); }
+      var rots = [];
+      for (var i = 0; i < R; i++) {
+        var rin = R0 + 8 + i * (RW + GP), rout = rin + RW, mid = (rin + rout) / 2;
+        var target = g.state[i] * step, prev = g.ringAng[i];
+        var diff = (((target - prev) % 360) + 540) % 360 - 180, next = prev + diff;
+        var grp = el('g', { 'class': 'ring-rot' }, svg);
+        grp.style.transformOrigin = cx + 'px ' + cy + 'px';
+        grp.style.transform = 'rotate(' + prev + 'deg)';
+        for (var k = 0; k < N; k++) {
+          if (ctx.gates[i].indexOf(k) >= 0) continue;             // あき：何も描かない
+          el('path', { d: sec(rin, rout, k * step - step / 2 + 0.9, k * step + step / 2 - 0.9), fill: th.color, 'fill-opacity': (0.96 - i * 0.12).toFixed(2), stroke: 'rgba(255,255,255,.4)', 'stroke-width': 1.2 }, grp);
+          el('circle', { cx: pt(mid, k * step).split(',')[0], cy: pt(mid, k * step).split(',')[1], r: 2.3, fill: 'rgba(255,255,255,.6)' }, grp);
+        }
+        rots.push({ grp: grp, next: next });
+        g.ringAng[i] = next;
+      }
+      // 真ん中の動物
+      el('circle', { cx: cx, cy: cy, r: R0, fill: 'rgba(0,0,0,.4)', stroke: th.color, 'stroke-width': 2 }, svg);
+      var an = el('text', { x: cx, y: cy + 11, 'text-anchor': 'middle', 'font-size': 32, 'class': 'ring-animal' }, svg); an.textContent = th.em;
+      // ヒント：回す方向の半分をひからせる
+      if (g.hint) {
+        var hr = g.hint.ring, hin = R0 + 8 + hr * (RW + GP);
+        el('path', { d: g.hint.d < 0 ? sec(hin - 1, hin + RW + 1, 180, 360) : sec(hin - 1, hin + RW + 1, 0, 180), 'class': 'ring-hint' }, svg);
+      }
+      // 番号のバッジ（下）と回転の矢印（左右）。あきがそろった輪は、バッジが金色になる
+      var NUM = ['①', '②', '③', '④', '⑤'];
+      for (var i2 = 0; i2 < R; i2++) {
+        var mr = R0 + 8 + i2 * (RW + GP) + RW / 2, ok = ringAligned(ctx, g.state, i2);
+        var bp = pt(mr, 180).split(',');
+        el('circle', { cx: bp[0], cy: bp[1], r: 8.5, fill: ok ? '#f0b429' : 'rgba(0,0,0,.55)', stroke: '#fff', 'stroke-width': 1.2, 'pointer-events': 'none' }, svg);
+        var bt = el('text', { x: bp[0], y: (+bp[1] + 4.2), 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 900, fill: ok ? '#3a2a16' : '#fff', 'pointer-events': 'none' }, svg); bt.textContent = String(i2 + 1);
+        var lp = pt(mr, 270).split(','), rp = pt(mr, 90).split(',');
+        var la = el('text', { x: lp[0], y: (+lp[1] + 4), 'text-anchor': 'middle', 'font-size': 13, fill: 'rgba(255,255,255,.85)', 'font-weight': 900, 'pointer-events': 'none', stroke: 'rgba(0,0,0,.35)', 'stroke-width': .6 }, svg); la.textContent = '↺';
+        var ra = el('text', { x: rp[0], y: (+rp[1] + 4), 'text-anchor': 'middle', 'font-size': 13, fill: 'rgba(255,255,255,.85)', 'font-weight': 900, 'pointer-events': 'none', stroke: 'rgba(0,0,0,.35)', 'stroke-width': .6 }, svg); ra.textContent = '↻';
+      }
+      // タップの受け皿（回らない）：輪ごとに、左半分＝左回り／右半分＝右回り
+      (function(){
+        for (var i3 = 0; i3 < R; i3++) (function(i3){
+          var mr2 = R0 + 8 + i3 * (RW + GP) + RW / 2;
+          var hit = el('circle', { cx: cx, cy: cy, r: mr2, fill: 'none', stroke: 'rgba(0,0,0,0)', 'stroke-width': RW + GP, 'pointer-events': 'stroke', 'class': 'ring-hit', 'data-ring': i3 }, svg);
+          hit.addEventListener('click', function(ev){
+            var rc = svg.getBoundingClientRect(), mx = rc.left + rc.width * cx / W;
+            move({ ring: i3, d: ev.clientX < mx ? -1 : 1 });
+          });
+        })(i3);
+      })();
+      wrap.appendChild(svg);
+      // 連動の説明
+      var note = document.createElement('div'); note.className = 'ring-link';
+      var parts = [];
+      for (var i4 = 0; i4 < R; i4++) if (ctx.link[i4] >= 0) parts.push(NUM[i4] + 'を回すと' + NUM[ctx.link[i4]] + 'が逆に回る');
+      note.textContent = parts.length ? '🔗 ' + parts.join('　🔗 ') : '（この面は、輪はそれぞれ独立して回ります）';
+      wrap.appendChild(note);
+      box.appendChild(wrap);
+      void svg.getBoundingClientRect();                            // いったん描画してから、新しい角度へ（回る動きが見える）
+      rots.forEach(function(r){ r.grp.style.transform = 'rotate(' + r.next + 'deg)'; });
+    }
+  };
+
+  // ---- 3) スライド錠 ----
+  var SN = 6;
+  function slideOcc(ctx, pos){
+    var occ = []; for (var i = 0; i < SN * SN; i++) occ.push(-1);
+    ctx.cars.forEach(function(c, k){
+      for (var x = 0; x < c.L; x++) { var r = c.o === 'H' ? c.fixed : pos[k] + x, cc = c.o === 'H' ? pos[k] + x : c.fixed; occ[r * SN + cc] = k; }
+    });
+    return occ;
+  }
+  function slideMoves(ctx, pos){
+    var occ = slideOcc(ctx, pos), out = [];
+    ctx.cars.forEach(function(c, k){
+      [-1, 1].forEach(function(d){
+        var p = pos[k];
+        for (;;) {
+          p += d; if (p < 0 || p + c.L > SN) break;
+          var lead = p + (d === 1 ? c.L - 1 : 0);
+          var cell = c.o === 'H' ? c.fixed * SN + lead : lead * SN + c.fixed;
+          if (occ[cell] !== -1 && occ[cell] !== k) break;
+          out.push({ car: k, to: p });
+        }
+      });
+    });
+    return out;
+  }
+  // 最短手順をBFSで求める（返り値：手順の配列。各要素は {car, to}）。
+  // 高速化：状態を文字列ではなく「各車の位置を6進数で1つの整数にしたキー」で管理し、親ポインタは配列で持つ（旧方式の約7.6倍高速）
+  // 出口の向き（ctx.exit：R右／L左／D下／U上）に応じた「クリア」判定。鍵の棒は cars[0]
+  function slideGoal(ctx, s){
+    var ex = ctx.exit;
+    return (ex === 'R' || ex === 'D') ? (s[0] + ctx.cars[0].L === SN) : (s[0] === 0);
+  }
+  function slideBfs(ctx, start){
+    var cars = ctx.cars, n = cars.length, pw = [], m = 1, i;
+    for (i = 0; i < n; i++) { pw.push(m); m *= SN; }
+    var enc = function(p){ var k = 0; for (var i = 0; i < n; i++) k += p[i] * pw[i]; return k; };
+    var seen = {}; seen[enc(start)] = 1;
+    var states = [start], parent = [-1], mvCar = [-1], mvTo = [-1];
+    var occ = []; for (i = 0; i < SN * SN; i++) occ.push(-1);
+    for (var qi = 0; qi < states.length; qi++) {
+      var s = states[qi];
+      if (slideGoal(ctx, s)) {
+        var path = [], c = qi;
+        while (parent[c] >= 0) { path.push({ car: mvCar[c], to: mvTo[c] }); c = parent[c]; }
+        return path.reverse();
+      }
+      for (i = 0; i < occ.length; i++) occ[i] = -1;
+      var k, x;
+      for (k = 0; k < n; k++) { var cc = cars[k]; for (x = 0; x < cc.L; x++) occ[cc.o === 'H' ? cc.fixed * SN + s[k] + x : (s[k] + x) * SN + cc.fixed] = k; }
+      var base = enc(s);
+      for (k = 0; k < n; k++) {
+        var car = cars[k];
+        for (var d = -1; d <= 1; d += 2) {
+          var p = s[k];
+          for (;;) {
+            p += d; if (p < 0 || p + car.L > SN) break;
+            var lead = p + (d === 1 ? car.L - 1 : 0);
+            var cell = car.o === 'H' ? car.fixed * SN + lead : lead * SN + car.fixed;
+            if (occ[cell] !== -1 && occ[cell] !== k) break;
+            var key = base + (p - s[k]) * pw[k];
+            if (!seen[key]) {
+              seen[key] = 1;
+              var t = s.slice(); t[k] = p;
+              states.push(t); parent.push(qi); mvCar.push(k); mvTo.push(p);
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+  var CAR_COLORS = ['#f0b429', '#5aa9e6', '#e8788a', '#7bc67e', '#b58be0', '#e8a25a', '#5cc7c0', '#c9c26a', '#d98fd0', '#8aa0e8', '#e57f5b'];
+  // 棒の長さ分、同じ動物が並ぶ。長さ3の棒は体の長い動物、長さ2の棒は小さめの動物。鍵の棒は「この面の動物＋🔑」
+  var LONG_ANIMALS = ['🐍', '🐊', '🦒', '🐛', '🐘', '🦕', '🦎'];
+  var SHORT_ANIMALS = ['🐢', '🦔', '🐙', '🦆', '🐝', '🦉', '🐌', '🐭'];
+  // 地獄コースでは、行列の顔ぶれが魔物になる（棒の長さ2＝お化け・悪魔たち、長さ3＝体の長い怪物）
+  var LONG_HELL = ['🐍', '🐉', '🦂', '🐛', '🐲', '🐊', '🦎'];
+  var SHORT_HELL = ['👻', '🦇', '💀', '🧟', '👿', '👺', '👹', '😈', '🎃', '🤡', '👽', '👾'];
+  var LONG_HEAVEN = ['🦢', '🐎', '🦒', '🦩', '🐘', '🦌', '🐬'];
+  var SHORT_HEAVEN = ['👼', '🌞', '🕊️', '🌈', '🌟', '🧚', '🦄', '☁️', '😇', '🌸', '⭐', '🦋'];
+  function slideAnimals(ctx, keyEm, r){
+    var hell = r === HELL_R, heaven = r === HEAVEN_R;
+    var li = 0, si = 0, LONG = (hell ? LONG_HELL : heaven ? LONG_HEAVEN : LONG_ANIMALS).filter(function(e){ return e !== keyEm; }), SHORT = (hell ? SHORT_HELL : heaven ? SHORT_HEAVEN : SHORT_ANIMALS).filter(function(e){ return e !== keyEm; });   // 鍵の動物と同じ顔は使わない
+    return ctx.cars.map(function(c, k){
+      if (k === 0) return [keyEm, '🔑'];
+      var em = c.L >= 3 ? LONG[li++ % LONG.length] : SHORT[si++ % SHORT.length];
+      var cells = []; for (var x = 0; x < c.L; x++) cells.push(em);
+      return cells;
+    });
+  }
+  TYPES.slide = {
+    init: function(lv){
+      var cars = lv.cars.map(function(c){ return { L: c[2], o: c[3], fixed: c[3] === 'H' ? c[0] : c[1] }; });
+      var pos = lv.cars.map(function(c){ return c[3] === 'H' ? c[1] : c[0]; });
+      var ctx = { cars: cars, exit: lv.exit || 'R' };   // exit が無い古いデータは右出口として扱う
+      var path = slideBfs(ctx, pos);
+      return { ctx: ctx, state: pos, min: path ? path.length : 0, sel: -1 };
+    },
+    apply: function(ctx, s, mv){ var t = s.slice(); t[mv.car] = mv.to; return t; },
+    solved: function(ctx, s){ return slideGoal(ctx, s); },
+    hint: function(ctx, s){ var p = slideBfs(ctx, s); return p && p.length ? p[0] : null; },
+    render: function(g, box){
+      var ctx = g.ctx, wrap = document.createElement('div'); wrap.className = 'slide-wrap ex-' + ctx.exit;
+      var board = document.createElement('div'); board.className = 'slide-board';
+      var pct = 100 / SN;
+      var animals = slideAnimals(ctx, g.theme ? g.theme.em : '🐱', g.r);
+      function place(el, r, c, h, w){ el.style.left = (c * pct) + '%'; el.style.top = (r * pct) + '%'; el.style.width = (w * pct) + '%'; el.style.height = (h * pct) + '%'; }
+      ctx.cars.forEach(function(c, k){
+        var b = document.createElement('button'); b.type = 'button';
+        var r = c.o === 'H' ? c.fixed : g.state[k], cc = c.o === 'H' ? g.state[k] : c.fixed;
+        b.className = 'car' + (k === 0 ? ' key' : '') + (g.sel === k ? ' sel' : '') + (g.hint && g.hint.car === k ? ' hint-car' : '');
+        var sp = document.createElement('span'); sp.style.background = k === 0 ? '' : CAR_COLORS[k % CAR_COLORS.length];
+        var body = document.createElement('span'); body.className = 'cbody' + (c.o === 'V' ? ' v' : '');
+        animals[k].forEach(function(em){ var i = document.createElement('i'); i.textContent = em; body.appendChild(i); });
+        sp.appendChild(body);
+        b.appendChild(sp);
+        place(b, r, cc, c.o === 'V' ? c.L : 1, c.o === 'H' ? c.L : 1);
+        b.setAttribute('data-k', k);
+        b.addEventListener('click', function(e){ var kk = +e.currentTarget.getAttribute('data-k'); g.sel = (g.sel === kk ? -1 : kk); sfx('select'); refresh(); });
+        board.appendChild(b);
+      });
+      if (g.sel >= 0) {
+        var c0 = ctx.cars[g.sel];
+        slideMoves(ctx, g.state).filter(function(m){ return m.car === g.sel; }).forEach(function(m){
+          var d = document.createElement('button'); d.type = 'button';
+          var hint = g.hint && g.hint.car === m.car && g.hint.to === m.to;
+          d.className = 'dot' + (hint ? ' hint-dot' : '');
+          d.appendChild(document.createElement('span'));
+          var r = c0.o === 'H' ? c0.fixed : m.to, cc = c0.o === 'H' ? m.to : c0.fixed;
+          place(d, r, cc, c0.o === 'V' ? c0.L : 1, c0.o === 'H' ? c0.L : 1);
+          d.addEventListener('click', function(){ g.sel = -1; move({ car: m.car, to: m.to }); });
+          board.appendChild(d);
+        });
+      }
+      wrap.appendChild(board);
+      box.appendChild(wrap);
+      board.style.setProperty('--cell', (board.clientWidth / SN) + 'px');   // 絵文字の大きさをマスの大きさに合わせる
+      // 出口の門：鍵の棒がいる行（横）または列（縦）の、出口側の外周に金色の切れ目と矢印を置く
+      var cellPx = board.clientWidth / SN, line = ctx.cars[0].fixed;
+      var bl = board.offsetLeft, bt = board.offsetTop, bw = board.offsetWidth, bh = board.offsetHeight;
+      var bar = document.createElement('div'); bar.className = 'gate-bar';
+      var lab = document.createElement('div'); lab.className = 'gate-label';
+      var arrows = { R: '▶', L: '◀', U: '▲', D: '▼' };
+      function px(el, l, t, w, h){ el.style.left = l + 'px'; el.style.top = t + 'px'; if (w != null) el.style.width = w + 'px'; if (h != null) el.style.height = h + 'px'; }
+      if (ctx.exit === 'R') { px(bar, bl + bw, bt + line * cellPx + 3, 4, cellPx - 6); lab.innerHTML = '▶<br>出口'; px(lab, bl + bw + 5, bt + line * cellPx + cellPx / 2 - 15, 24, null); }
+      else if (ctx.exit === 'L') { px(bar, bl - 4, bt + line * cellPx + 3, 4, cellPx - 6); lab.innerHTML = '◀<br>出口'; px(lab, bl - 29, bt + line * cellPx + cellPx / 2 - 15, 24, null); }
+      else if (ctx.exit === 'D') { px(bar, bl + line * cellPx + 3, bt + bh, cellPx - 6, 4); lab.textContent = '▼ 出口'; px(lab, bl + line * cellPx + cellPx / 2 - 24, bt + bh + 6, 48, null); }
+      else { px(bar, bl + line * cellPx + 3, bt - 4, cellPx - 6, 4); lab.textContent = '▲ 出口'; px(lab, bl + line * cellPx + cellPx / 2 - 24, bt - 22, 48, null); }
+      wrap.appendChild(bar); wrap.appendChild(lab);
+    }
+  };
+
+  // ================= プレイ制御 =================
+  var g = null;   // 現在の問題 { r, a, j, T, ctx, state, min, moves, hist, hintUsed, hint, sel, done, theme }
+  function startPuzzle(r, a, j){
+    var pk = packOf(r, a), T = TYPES[pk.mech], lv = pk.puzzles[j];
+    var init = T.init(lv);
+    g = { r: r, a: a, j: j, mech: pk.mech, T: T, ctx: init.ctx, state: init.state, min: init.min, sel: init.sel === undefined ? -1 : init.sel,
+          moves: 0, hist: [], hintUsed: false, hint: null, done: false, start: null, theme: animalOf(r, a) };
+    g.start = (typeof init.state === 'object') ? init.state.slice() : init.state;
+    cur = { r: r, a: a }; tapStep = 0;
+    document.body.setAttribute('data-mode', 'stage'); setTheme(r);
+    setCrumbs(r, a, '　' + (j + 1) + '/' + PER + '問目');
+    $('playTitle').textContent = g.theme.em + ' ' + g.theme.name + ' ' + lvLabel(r) + '　' + (j + 1) + '/' + PER;
+    $('screenPlay').style.borderTop = '5px solid ' + g.theme.color;
+    $('playRule').textContent = ruleOf(r, pk.mech);
+    $('playMsg').textContent = '';
+    $('resultBox').classList.add('hidden'); $('toolRow').classList.remove('hidden');
+    updateHintBtn();
+    show('screenPlay'); refresh();
+  }
+  function updateHintBtn(){ $('hintBtn').textContent = '💡 ヒント (' + hintLabel() + ')'; }
+  function copyState(s){ return (typeof s === 'object') ? s.slice() : s; }
+  function refresh(){
+    var box = $('board'); box.innerHTML = '';
+    g.T.render(g, box);
+    $('playCount').textContent = g.moves + '手';
+  }
+  function move(mv){
+    if (g.done) return;
+    g.hist.push(copyState(g.state));
+    g.state = g.T.apply(g.ctx, g.state, mv); g.moves++; g.hint = null; $('playMsg').textContent = '';
+    sfx('tap', g.mech);
+    refresh();
+    if (g.T.solved(g.ctx, g.state)) {
+      g.done = true;                                    // 演出中は、これ以上操作できない
+      if (g.mech === 'slide') playSlideExit(finish); else if (g.mech === 'gear') playRingExit(finish); else if (g.mech === 'symbols') playSymbolsClear(finish); else if (g.mech === 'lights') playLightsClear(finish); else finish();
+    }
+  }
+  // スイッチ錠：全員が起きた瞬間、左上から右下へ光の波が走り（1マスずつ跳ねて白く光る）、最後に盤面全体がぱぁっと光る。動きを減らす設定の人には、演出なしで進む
+  function playLightsClear(done){
+    var grid = document.querySelector('#board .sw-grid'), cells = grid ? grid.querySelectorAll('.sw') : [], n = g.ctx.n;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!grid || reduce || cells.length !== n * n) { done(); return; }
+    var STEP = 110, i, maxD = 2 * (n - 1);
+    for (i = 0; i < cells.length; i++) {
+      var d = Math.floor(i / n) + (i % n);                                  // 左上からの斜めの距離
+      cells[i].style.setProperty('--d', (d * STEP) + 'ms'); cells[i].classList.add('wave');
+    }
+    for (var k = 0; k <= maxD; k++) setTimeout(function(kk){ return function(){ sfx('swStep', kk); }; }(k), k * STEP);
+    var tAll = maxD * STEP + 600;
+    setTimeout(function(){ grid.classList.add('allglow'); sfx('swWin'); }, tAll);
+    setTimeout(done, tAll + 1300);
+  }
+  // 並び替え錠：ヒント（条件）を上から1つずつ確認し、関わる動物を光らせて✓を付けていく。最後に全員がぴょんと跳ねる。動きを減らす設定の人には、演出なしで進む
+  function playSymbolsClear(done){
+    var box = document.getElementById('board');
+    var lis = box.querySelectorAll('.clues li'), btns = box.querySelectorAll('.sym');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var clues = g.ctx.clues, n = clues.length;
+    if (reduce || !lis.length || btns.length !== g.state.length) { done(); return; }
+    var step = Math.max(1200, Math.min(2080, Math.round(11200 / n)));    // 1条件ごとにじっくり（約4倍の遅さ）
+    var i;
+    for (i = 0; i < lis.length; i++) lis[i].classList.remove('done');      // いったん✓を外して、1つずつ付け直す
+    for (i = 0; i < btns.length; i++) btns[i].classList.remove('sel');
+    function lit(idx, on){ if (btns[idx]) { btns[idx].classList.toggle('lit', on); if (on) btns[idx].classList.add('glow'); } }
+    function involved(c){
+      var syms = (c[0] === 'pos' || c[0] === 'end') ? [c[1]] : c.slice(1);
+      return syms.map(function(s){ return g.state.indexOf(s); }).filter(function(x){ return x >= 0; });
+    }
+    clues.forEach(function(c, k){
+      setTimeout(function(){
+        if (k > 0) involved(clues[k - 1]).forEach(function(x){ lit(x, false); });
+        involved(c).forEach(function(x){ lit(x, true); });
+        if (lis[k]) { lis[k].classList.add('done'); lis[k].classList.add('flash'); }
+        sfx('check', k);
+      }, 250 + k * step);
+    });
+    var tEnd = 250 + n * step;
+    setTimeout(function(){
+      involved(clues[n - 1]).forEach(function(x){ lit(x, false); });
+      for (var q = 0; q < btns.length; q++) { btns[q].style.setProperty('--d', (q * 70) + 'ms'); btns[q].classList.add('hop'); }
+      sfx('symWin', btns.length);
+    }, tEnd);
+    setTimeout(done, tEnd + 700 + btns.length * 70);
+  }
+  // 鍵の棒が、出口の門をスルッと抜けて盤面の外へ消える（約0.6秒）。動きを減らす設定の人には、演出なしで進む
+  function playSlideExit(done){
+    var key = document.querySelector('#board .car.key'), board = document.querySelector('#board .slide-board');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!key || !board || reduce) { done(); return; }
+    var cell = board.clientWidth / SN, dist = (g.ctx.cars[0].L + 1.3) * cell, dx = 0, dy = 0;
+    if (g.ctx.exit === 'R') dx = dist; else if (g.ctx.exit === 'L') dx = -dist; else if (g.ctx.exit === 'D') dy = dist; else dy = -dist;
+    board.style.overflow = 'visible';                   // 盤面の外（門の向こう）まで見えるように
+    key.classList.add('exiting');
+    void key.offsetWidth;
+    key.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; key.style.opacity = '0';
+    sfx('exit');
+    setTimeout(done, 640);
+  }
+  // 真ん中の動物が、そろったあきの道を通って外へ出て、各国の言葉で「ありがとう」を言う（約1.9秒）
+  // [表示する言葉, 言語名, 読み上げの言語コード]
+  var THANKS = [['Thank you!', '英語', 'en-US'], ['谢谢!', '中国語', 'zh-CN'], ['Gracias!', 'スペイン語', 'es-ES'], ['Merci!', 'フランス語', 'fr-FR'], ['Danke!', 'ドイツ語', 'de-DE'], ['Grazie!', 'イタリア語', 'it-IT'],
+                ['Obrigado!', 'ポルトガル語', 'pt-BR'], ['고마워요!', '韓国語', 'ko-KR'], ['Спасибо!', 'ロシア語', 'ru-RU'], ['ขอบคุณ!', 'タイ語', 'th-TH'], ['Terima kasih!', 'インドネシア語', 'id-ID'],
+                ['Cảm ơn!', 'ベトナム語', 'vi-VN'], ['Dank je!', 'オランダ語', 'nl-NL'], ['Tack!', 'スウェーデン語', 'sv-SE'], ['धन्यवाद!', 'ヒンディー語', 'hi-IN'], ['Kiitos!', 'フィンランド語', 'fi-FI']];
+  // 端末に入っている音声から、その言語の声を探す（完全一致→言語の頭2文字が同じもの）。無ければnull（その場合は声なし＝文字だけ）
+  function pickVoice(lang){
+    var vs = (window.speechSynthesis && speechSynthesis.getVoices) ? speechSynthesis.getVoices() : [], i, p = lang.slice(0, 2).toLowerCase(), l = lang.toLowerCase().replace('_', '-');
+    for (i = 0; i < vs.length; i++) if (vs[i].lang.toLowerCase().replace('_', '-') === l) return vs[i];
+    for (i = 0; i < vs.length; i++) if (vs[i].lang.toLowerCase().slice(0, 2) === p) return vs[i];
+    return null;
+  }
+  // 「ありがとう」を、その国の言葉で読み上げる（声が無い言語は鳴らさない）。音ON/OFFボタンに連動。戻り値＝鳴らしたか
+  function speakThanks(ph, force){
+    if ((!force && !isSoundOn()) || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return false;
+    var v = pickVoice(ph[2]); if (!v) return false;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(ph[0].replace('!', '')); u.voice = v; u.lang = v.lang; u.rate = 0.95; u.pitch = 1.1;
+      speechSynthesis.speak(u);
+      return true;
+    } catch (e) { return false; }
+  }
+  // iOSなどは、最初の読み上げをタップ操作の中で始めておかないと、あとで鳴らない。最初のタップで無音の読み上げを1回だけ流して「解錠」する
+  document.addEventListener('pointerdown', function(){
+    try { if (window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } } catch (e) {}
+  }, { once: true });
+  // 声チェック：各言語の声が端末にあるかを一覧にし、タップで聞ける
+  function renderVoiceCheck(){
+    var box = $('voiceList'); if (!box) return;
+    box.innerHTML = '';
+    THANKS.forEach(function(ph){
+      var has = !!pickVoice(ph[2]);
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'vc-row' + (has ? ' ok' : ' no');
+      b.innerHTML = '<span class="vc-st"></span><span class="vc-w"></span><span class="vc-l"></span>';
+      b.children[0].textContent = has ? '🔊' : '－'; b.children[1].textContent = ph[0]; b.children[2].textContent = ph[1] + (has ? '' : '（声なし）');
+      b.addEventListener('click', function(){ if (has) speakThanks(ph, true); });
+      box.appendChild(b);
+    });
+  }
+  $('voiceCheckBtn').addEventListener('click', function(){
+    var p = $('voicePanel'), open = p.classList.contains('hidden');
+    p.classList.toggle('hidden', !open);
+    if (open) renderVoiceCheck();
+  });
+  if (window.speechSynthesis) speechSynthesis.onvoiceschanged = function(){ if (!$('voicePanel').classList.contains('hidden')) renderVoiceCheck(); };
+  function playRingExit(done){
+    var svg = document.querySelector('#board .ring-svg'), an = svg && svg.querySelector('.ring-animal'), geo = g.ringGeo;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!svg || !an || !geo || reduce) { done(); return; }
+    svg.classList.add('ring-open');                                  // 金色の道が光る
+    setTimeout(function(){
+      sfx('exit', 'ring');
+      an.style.transform = 'translateY(' + (-(geo.cy - 15)) + 'px) scale(1.25)';
+      setTimeout(function(){
+        var ph = THANKS[(g.r * 7 + g.a * 3 + g.j * 5) % THANKS.length];
+        var b = document.createElement('div'); b.className = 'ring-thanks';
+        b.innerHTML = '<span></span><small></small>'; b.firstChild.textContent = ph[0]; b.lastChild.textContent = ph[1];
+        svg.parentNode.appendChild(b);
+        sfx('coin'); speakThanks(ph);
+        setTimeout(done, 1600);
+      }, 620);
+    }, 320);
+  }
+  // ---------- クリア演出 ----------
+  var RED = '#e0344a';
+  function wobblyCircle(cx, cy, r, turns, wob){
+    // 手書き風に、少しずつ半径が変わる渦巻き状の円（始点と終点がずれる）
+    var pts = [], steps = Math.round(64 * turns), i;
+    for (i = 0; i <= steps; i++) {
+      var t = i / steps, a = -Math.PI / 2 + t * turns * 2 * Math.PI;
+      var rr = r * (1 + wob * (t - .5) + 0.012 * Math.sin(i * .9));
+      pts.push((cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1));
+    }
+    return 'M' + pts.join(' L');
+  }
+  function markSvg(st){
+    var svg = '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" fill="none">';
+    if (st === 3) {
+      // 花丸：ふちの花びら8枚＋二重の渦巻き
+      var petals = '';
+      for (var k = 0; k < 8; k++) {
+        var a = k * Math.PI / 4, px = 100 + 68 * Math.cos(a), py = 100 + 68 * Math.sin(a);
+        petals += '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="24" fill="#ffd9de" stroke="' + RED + '" stroke-width="5"/>';
+      }
+      svg += '<g class="mark-petals">' + petals + '<circle cx="100" cy="100" r="70" fill="#fff4f5"/></g>';
+      svg += '<path class="mark-draw" pathLength="1" d="' + wobblyCircle(100, 100, 60, 1.6, .05) + '" stroke="' + RED + '" stroke-width="7"/>';
+      svg += '<path class="mark-draw d2" pathLength="1" d="' + wobblyCircle(100, 100, 40, 1.5, .06) + '" stroke="' + RED + '" stroke-width="7"/>';
+      svg += '<path class="mark-draw d3" pathLength="1" d="' + wobblyCircle(100, 100, 20, 1.3, .08) + '" stroke="' + RED + '" stroke-width="7"/>';
+    } else if (st === 2) {
+      // 二重丸
+      svg += '<path class="mark-draw" pathLength="1" d="' + wobblyCircle(100, 100, 82, 1.15, .04) + '" stroke="' + RED + '" stroke-width="10"/>';
+      svg += '<path class="mark-draw d2" pathLength="1" d="' + wobblyCircle(100, 100, 52, 1.1, .05) + '" stroke="' + RED + '" stroke-width="10"/>';
+    } else {
+      // 丸
+      svg += '<path class="mark-draw" pathLength="1" d="' + wobblyCircle(100, 100, 80, 1.1, .04) + '" stroke="' + RED + '" stroke-width="11"/>';
+    }
+    return svg + '</svg>';
+  }
+  var CONFETTI_COLORS = ['#f0b429', '#e0344a', '#4cc38a', '#5aa9e6', '#e8788a', '#b58be0', '#ffffff'];
+  function confetti(n){
+    var box = $('resultBox'), i;
+    var old = box.querySelectorAll('.confetti'); for (i = 0; i < old.length; i++) old[i].remove();
+    for (i = 0; i < n; i++) {
+      var c = document.createElement('div'); c.className = 'confetti';
+      c.style.left = (Math.random() * 100) + '%';
+      c.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+      c.style.animationDuration = (2.2 + Math.random() * 2.2) + 's';
+      c.style.animationDelay = (Math.random() * 1.1) + 's';
+      c.style.width = (6 + Math.random() * 6) + 'px'; c.style.height = (9 + Math.random() * 8) + 'px';
+      box.appendChild(c);
+    }
+  }
+  var TITLES = { 3: '🌸 はなまる！ 完璧！', 2: '🎉 よくできました！', 1: '🔓 錠が開いた！' };
+  function starsHtml(st){
+    var h = '';
+    for (var i = 1; i <= 3; i++) h += '<span class="star' + (i <= st ? '' : ' off') + '" style="animation-delay:' + (0.7 + i * 0.22) + 's">' + (i <= st ? '★' : '☆') + '</span>';
+    return h;
+  }
+  function finish(){
+    g.done = true;
+    var extra = g.moves - g.min, tol = Math.max(2, Math.round(g.min * 0.4)), st;
+    if (extra <= 0 && !g.hintUsed) st = 3; else if (extra <= tol) st = 2; else st = 1;
+    if (g.hintUsed && st > 2) st = 2;
+    var id = pid(g.r, g.a, g.j), rec = prog.p[id] || { stars: 0, best: 9999 };
+    var prevStars = rec.stars, wasDone = packDone(g.r, g.a), wasGold = packCollar(g.r, g.a) === 3;
+    rec.stars = Math.max(rec.stars, st); rec.best = Math.min(rec.best, g.moves); prog.p[id] = rec;
+    // ヒント獲得：★が増えた分（初クリアは★の数、上げ直しは差分）
+    var gain = Math.max(0, st - prevStars), lines = [];
+    if (gain > 0) lines.push('💡 ヒント +' + gain + '（★が増えた分）');
+    var nowDone = packDone(g.r, g.a), nowGold = packCollar(g.r, g.a) === 3;
+    var nextAnimal = null, firstClear = false;
+    if (nowDone && !wasDone && !prog.flags['c' + g.r + '_' + g.a]) {
+      firstClear = true;
+      prog.flags['c' + g.r + '_' + g.a] = 1; gain += 3; lines.push('🎊 ' + g.theme.name + ' ' + lvLabel(g.r) + ' クリア！ 💡 ボーナス +3');
+      var np = (g.a < ANIMALS_N - 1) ? [g.r, g.a + 1] : (g.r < ROUNDS ? [g.r + 1, 0] : null);
+      if (np) nextAnimal = animalOf(np[0], np[1]);
+      if (nextAnimal) lines.push(nextAnimal.em + ' ' + nextAnimal.name + (np[0] === HELL_R ? ' が待ち構えている…！' : np[0] === HEAVEN_R ? ' が雲の上で待っている…！' : ' が目を覚ました！（Lv' + np[0] + '）'));
+      else lines.push(g.r === HELL_R ? '🔥 地獄を制覇した！ 👼 天国の門が開いた！（マップの下）' : g.r === HEAVEN_R ? '👼 天国を制覇した！ あなたが最高難易度の覇者です！' : '🌱 ここまで全部クリア！ 次の周回をおたのしみに！');
+      if (g.r === 1) lines.push('🆕 図鑑に ' + g.theme.em + ' ' + g.theme.name + ' が仲間入り！');
+    }
+    if (nowGold && !wasGold && !prog.flags['g' + g.r + '_' + g.a]) {
+      prog.flags['g' + g.r + '_' + g.a] = 1; gain += 5; lines.push('🏅 ' + g.theme.name + ' ' + lvLabel(g.r) + ' が全部★3！ 金の首輪＆💡 ボーナス +5');
+    }
+    if (!isUnlimited()) prog.hints += gain;
+    saveProg();
+    $('markBox').innerHTML = markSvg(st);
+    $('resultTitle').textContent = TITLES[st];
+    $('resultStars').innerHTML = starsHtml(st);
+    $('resultSub').innerHTML = g.moves + '手でクリア（最短 ' + g.min + '手）' + (g.hintUsed ? '<br>ヒントを使ったので最高★2です' : (extra <= 0 ? '<br>最短クリア！ 完璧！' : '<br>最短なら★3。あと' + extra + '手縮められる！'));
+    $('resultZukan').innerHTML = lines.join('<br>');
+    var packLast = (g.j >= PER - 1);
+    // パック最初のクリア：タイトルで演出が見られる。Lv1・地獄・天国＝仲間が増える、Lv2・Lv3＝王冠がのる
+    var joinLabel = (g.r === 1 || g.r === HELL_R || g.r === HEAVEN_R) ? '🎉 ' + g.theme.name + ' が仲間になった！' : '👑 ' + g.theme.name + ' に王冠がのる！';
+    $('nextBtn').textContent = packLast ? (firstClear ? joinLabel + '（タイトルへ）' : '🗺 マップへ') : '次のパズルへ →';
+    $('toolRow').classList.add('hidden'); $('resultBox').classList.remove('hidden');
+    confetti(st === 3 ? 70 : (st === 2 ? 36 : 14));
+    if (nowDone && !wasDone) sfx('packClear'); else sfx('clear', st);
+    if (gain > 0) setTimeout(function(){ sfx('coin'); }, nowDone && !wasDone ? 1500 : 1000);
+    updateHintBtn();
+  }
+  $('nextBtn').addEventListener('click', function(){
+    if (g.j < PER - 1) { startPuzzle(g.r, g.a, g.j + 1); return; }
+    var nx = (g.a < ANIMALS_N - 1) ? { r: g.r, a: g.a + 1 } : (g.r < ROUNDS ? { r: g.r + 1, a: 0 } : (g.r === HELL_R ? { r: HEAVEN_R, a: 0 } : { r: g.r, a: g.a }));   // 最後の問題の後は、次に会える動物のところへ
+    showMap(nx);
+  });
+  $('againBtn').addEventListener('click', function(){ startPuzzle(g.r, g.a, g.j); });
+  $('tocBtn').addEventListener('click', function(){ showPack(g.r, g.a); });
+  $('tocBtn2').addEventListener('click', function(){ showPack(g.r, g.a); });
+  $('packBackBtn').addEventListener('click', showMap);
+  $('zukanBtn').addEventListener('click', showZukan);
+  $('zukanBackBtn').addEventListener('click', function(){ showMap({ top: true }); });
+  $('retryBtn').addEventListener('click', function(){
+    if (g.done) return;
+    g.state = copyState(g.start); g.moves = 0; g.hist = []; g.hint = null; g.sel = -1; tapStep = 0; sfx('undo'); $('playMsg').textContent = ''; refresh();
+  });
+  $('undoBtn').addEventListener('click', function(){
+    if (g.done || !g.hist.length) return;
+    g.state = g.hist.pop(); g.moves--; g.hint = null; g.sel = -1; sfx('undo'); refresh();
+  });
+  $('hintBtn').addEventListener('click', function(){
+    if (g.done) return;
+    if (g.hint) { refresh(); return; }               // すでに表示中なら、追加で消費しない
+    if (!isUnlimited() && prog.hints <= 0) {
+      $('playMsg').textContent = '💡 ヒントが足りません。前のパズルを★3で遊び直すと貯まるよ／明日また3個までもらえるよ';
+      return;
+    }
+    var h = g.T.hint(g.ctx, g.state);
+    if (!h) return;
+    if (!isUnlimited()) { prog.hints--; saveProg(); }
+    g.hint = h; g.hintUsed = true; sfx('hint');
+    if (g.mech === 'slide') g.sel = h.car;
+    $('playMsg').textContent = '💡 光っているところが次の一手です（ヒントを使うと最高★2）';
+    updateHintBtn(); refresh();
+  });
+
+  // ================= Xシェア（window.open方式） =================
+  $('xShareBtn').addEventListener('click', function(){
+    var t = totals(), NL = String.fromCharCode(10);
+    var body = t.cleared ? '動物' + zukanOwned() + '匹が仲間に！ ★' + t.stars + '/' + t.max + '（' + t.cleared + '問クリア）' : 'タップで動かして動物たちの錠を開ける錠前パズル！';
+    var text = '「どうぶつまみれ」' + NL + body + NL + 'CMなしの0秒ブラウザゲーム！' + NL + '#しょーもなゲームズ';
+    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
+  });
+
+  // ================= グレードアップ（合言葉）まわり =================
+  var gradeForm = $('gradeForm'), gradeMsg = $('gradeMsg'), unlockedZone = $('unlockedZone');
+  function setUnlocked(){ gradeForm.classList.add('hidden'); gradeMsg.textContent = ''; unlockedZone.classList.remove('hidden'); }
+  if (safeGet(STORAGE_KEY) === '1') setUnlocked();
+  $('unlockBtn').addEventListener('click', function(){
+    var val = $('passwordInput').value.trim();
+    if (val === PASSWORD || val === MASTER_PASSWORD) { safeSet(STORAGE_KEY, '1'); setUnlocked(); renderMap(); updateHintBtn && (g ? updateHintBtn() : 0); }
+    else { gradeMsg.textContent = '違うようです、もう一度確認してください…'; }
+  });
+
+  document.body.setAttribute('data-mode', 'map');
+  renderHero();
+  setTheme(currentRound());   // 起動直後も、いまの挑戦中の周回の世界にする（開き直した時に草原へ戻らないように）
+  renderMap();
+})();
+</script>
+</body>
+</html>
