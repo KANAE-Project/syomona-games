@@ -1113,7 +1113,7 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
     if (z.getAttribute('data-k') === key) return;           // 仲間が変わっていなければ、作り直さない（動きを途切れさせない）
     z.setAttribute('data-k', key); z.innerHTML = '';
     z.classList.toggle('hidden', !mem.length);
-    var n = Math.min(mem.length, 36);
+    var n = Math.min(mem.length, 60);
     for (var i = 0; i < n; i++) (function(i){
       var m = mem[(i * 7) % mem.length], r = makeRoamer(m.an.em, i + 1, 52, false);
       r.addEventListener('click', function(){ roamTap(r, m.an, i); });
@@ -1123,9 +1123,9 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
   function renderHero(){
     var row = $('heroRow'); if (!row) return;
     var now = {}, joined = [], crowned = [], mem = [], a, line = null;
-    XWORLDS.forEach(function(w){ for (var b = 0; b < w.animals.length; b++) if (packDone(w.r, b)) mem.push({ key: 'x' + w.r + '_' + b, an: w.animals[b], crown: packCollar(w.r, b) === 3 ? 3 : 0, hell: false, sea: true }); });   // 王冠＝そのパックを全部★3（金の首輪）
-    for (a = 0; a < HELL.length; a++) if (packDone(HELL_R, a)) mem.push({ key: 'h' + a, an: HELL[a], crown: 0, hell: true });
-    for (a = 0; a < HEAVEN.length; a++) if (packDone(HEAVEN_R, a)) mem.push({ key: 'e' + a, an: HEAVEN[a], crown: 0, hell: false, heaven: true });
+    XWORLDS.forEach(function(w){ for (var b = 0; b < w.animals.length; b++) if (haveFriend(w.r, b)) mem.push({ key: 'x' + w.r + '_' + b, an: w.animals[b], crown: packCollar(w.r, b) === 3 ? 3 : 0, hell: false, sea: true }); });   // 王冠＝そのパックを全部★3（金の首輪）
+    for (a = 0; a < HELL.length; a++) if (haveFriend(HELL_R, a)) mem.push({ key: 'h' + a, an: HELL[a], crown: 0, hell: true });
+    for (a = 0; a < HEAVEN.length; a++) if (haveFriend(HEAVEN_R, a)) mem.push({ key: 'e' + a, an: HEAVEN[a], crown: 0, hell: false, heaven: true });
     row.innerHTML = '';
     var per = mem.length > 10 ? 8 : 5;   // 10匹まで＝5匹ずつ／それ以上＝小さく8匹ずつ（タイトルが押し下げられすぎないように）
     row.classList.toggle('dense', mem.length > 10);
@@ -1225,9 +1225,10 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
         deco.appendChild(gi);
       }
       sec.appendChild(deco);
-      if (xw(r)) {   // この世界で仲間になった動物が、帯の中をゴロゴロ転がる
+      {   // この世界で仲間になった動物が、帯の中をゴロゴロ転がる（地獄・天国は、仲間にした魔物・天使）
+        var bandAn = xw(r) ? xw(r).animals : (r === HELL_R ? HELL : (r === HEAVEN_R ? HEAVEN : []));
         var rl = document.createElement('div'); rl.className = 'sec-roam';
-        for (var ra = 0; ra < xw(r).animals.length; ra++) if (packDone(r, ra)) rl.appendChild(makeRoamer(xw(r).animals[ra].em, r * 10 + ra + 3, 0, true));
+        for (var ra = 0; ra < bandAn.length; ra++) if (haveFriend(r, ra)) rl.appendChild(makeRoamer(bandAn[ra].em, r * 10 + ra + 3, 0, true));
         if (rl.children.length) sec.appendChild(rl);
       }
       var h = document.createElement('div'); h.className = 'map-round'; h.setAttribute('data-w', wd.key);
@@ -1307,14 +1308,16 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
   }
 
   // ---------- 図鑑 ----------
+  // 仲間かどうか。お試しモード（?open=all）では、全員が仲間として表示される（広場・背景・一覧のごちゃごちゃを見る用）
+  function haveFriend(r, a){ return OPEN_ALL || packDone(r, a); }
   function zukanAll(){ var out = []; XWORLDS.forEach(function(w){ w.animals.forEach(function(an, a){ out.push({ w: w, r: w.r, a: a, an: an }); }); }); return out; }
-  function zukanOwned(){ var n = 0; zukanAll().forEach(function(x){ if (packDone(x.r, x.a)) n++; }); return n; }
+  function zukanOwned(){ var n = 0; zukanAll().forEach(function(x){ if (haveFriend(x.r, x.a)) n++; }); return n; }
   function renderZukan(){
     var grid = $('zukanGrid'); grid.innerHTML = '';
     var all = zukanAll(), owned = zukanOwned(), gold = 0, lastW = null;
     all.forEach(function(x){
       if (x.w !== lastW) { lastW = x.w; var hd = document.createElement('div'); hd.className = 'zk-world'; hd.textContent = x.w.icon + ' ' + x.w.name; grid.appendChild(hd); }
-      var has = packDone(x.r, x.a), best = packCollar(x.r, x.a), an = x.an;
+      var has = haveFriend(x.r, x.a), best = packCollar(x.r, x.a), an = x.an;
       if (best === 3) gold++;
       var card = document.createElement('div');
       card.className = 'zk-card ' + (has ? 'c' + Math.max(1, best) : 'lock');
