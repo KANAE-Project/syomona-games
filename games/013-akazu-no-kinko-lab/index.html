@@ -208,14 +208,22 @@
   .hero-an.sea{ filter:drop-shadow(0 0 5px #7fe6f5); }
   .hero-row .hero-an.sea.pop{ filter:none; }
   /* 仲間たちの広場：集めた動物が、ゴロゴロ転がりながら行ったり来たりする */
-  .roam-zone{ position:relative; height:74px; margin:6px -4px 0; overflow:hidden; border-radius:12px; background:linear-gradient(180deg, transparent, rgba(0,0,0,.18)); pointer-events:none; }
-  .roamer{ position:absolute; left:0; top:var(--top,0); animation:roamX var(--dur,12s) ease-in-out infinite alternate; animation-delay:var(--dl,0s); }
+  .roam-count{ text-align:center; font-size:.8rem; font-weight:900; color:var(--accent); margin:2px 0 4px; }
+  .roam-zone{ position:relative; height:86px; margin:6px -4px 0; overflow:hidden; border-radius:12px; background:linear-gradient(180deg, transparent, rgba(0,0,0,.18)); pointer-events:none; }
+  .roamer{ pointer-events:auto; cursor:pointer; position:absolute; left:0; top:var(--top,0); animation:roamX var(--dur,12s) ease-in-out infinite alternate; animation-delay:var(--dl,0s); }
   .roamer .hp{ display:block; animation:roamHop var(--hd,.9s) ease-in-out infinite; animation-delay:var(--hdl,0s); }
   .roamer .rl{ display:block; font-size:var(--fs,1.5rem); line-height:1; animation:roamRoll var(--rd,3s) linear infinite; animation-direction:var(--rdir,normal); }
+  .roamer.tapped .rl{ animation:roamTapPop .6s ease !important; }
+  @keyframes roamTapPop{ 0%{ transform:scale(1) rotate(0); } 40%{ transform:scale(1.7) rotate(-14deg); } 100%{ transform:scale(1) rotate(0); } }
+  .roam-pop{ position:absolute; left:50%; top:-1.5em; transform:translateX(-50%); white-space:nowrap; font-size:.72rem; font-weight:900; color:#fff; background:rgba(214,60,110,.92); border-radius:999px; padding:2px 8px; animation:roamPopUp 1.2s ease forwards; z-index:3; }
+  .roam-pop.low{ top:1.9em; }
+  @keyframes roamPopUp{ 0%{ opacity:0; transform:translate(-50%,6px) scale(.6); } 20%{ opacity:1; transform:translate(-50%,0) scale(1.05); } 80%{ opacity:1; } 100%{ opacity:0; transform:translate(-50%,-8px) scale(1); } }
+  .map-sec > .sec-roam{ position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none; border-radius:inherit; }
+  .sec-roam .roamer{ pointer-events:none; cursor:default; opacity:.92; }
   @keyframes roamX{ from{ left:0; } to{ left:calc(100% - 1.8em); } }
   @keyframes roamHop{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-9px); } }
   @keyframes roamRoll{ from{ transform:rotate(0); } to{ transform:rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce){ .roamer, .roamer .hp, .roamer .rl{ animation:none !important; } .roamer{ left:var(--sx,10%); } }
+  @media (prefers-reduced-motion: reduce){ .roamer, .roamer .hp, .roamer .rl{ animation:none !important; } .roamer{ left:var(--sx,10%); } .roam-pop{ animation:none; opacity:1; } }
   /* 課金エリアの門（地獄・天国） */
   .gate-zone{ display:grid; gap:12px; margin:6px 0 18px; }
   .gate-card{ text-align:center; padding:16px 14px; border-radius:18px; cursor:pointer; border:2px solid rgba(255,255,255,.28); box-shadow:0 6px 18px rgba(0,0,0,.3); }
@@ -530,7 +538,8 @@
   <div class="top-plate">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
   <div class="hero-row" id="heroRow" aria-live="polite"></div>
-  <div class="roam-zone hidden" id="roamZone" aria-hidden="true"></div>
+  <div class="roam-zone hidden" id="roamZone" aria-label="仲間たち（タップで反応します）"></div>
+  <div class="roam-count" id="roamCount"></div>
   <h1>どうぶつまみれ <small style="font-size:.5em;color:#ffd54a">🧪ラボ版</small></h1>
   <div class="tagline">タップで動かして、どうぶつたちにまみれよう！</div>
   <button type="button" id="soundToggleBtn" class="sound-notice">🔊 このゲームは音が出ます（タップでOFF）</button>
@@ -908,6 +917,10 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
       else { clack(1.0 * k); }                                                                            // カッ！（標準）
     },
     select: function(){ tone('sine', 1250, 1250, 0.045, 0.16); },
+    pop: function(k){   // 広場の動物をタップ：ぽよん（動物ごとに高さが違う）
+      var f = 520 + ((k || 0) % 7) * 95;
+      tone('triangle', f, f * 1.6, 0.13, 0.24); tone('sine', f * 2, f * 2.6, 0.09, 0.08, 0.05);
+    },
     check: function(k){   // 条件を1つ確認：ポン（条件が進むごとに音階が上がる）
       var scale = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760], f = scale[Math.min(k, scale.length - 1)];
       tone('triangle', f, f, 0.18, 0.26); tone('sine', f * 2, f * 2, 0.10, 0.09);
@@ -1058,7 +1071,40 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
     host.appendChild(box);
     setTimeout(function(){ if (box.parentNode) box.remove(); }, 2600);
   }
-  // 仲間たちの広場：仲間の数だけ（最大36匹）、バラバラの速さ・高さ・転がり方で行ったり来たり。位置は動物の番号から決める（開くたびに同じ並び）
+  // 仲間たちの広場：集めた仲間が、バラバラの速さ・高さ・転がり方で行ったり来たり。位置は動物の番号から決める（開くたびに同じ並び）
+  // 広場（タイトルの上）の動物はタップで反応する。マップの各世界の帯にも、その世界の仲間が転がる（こちらはタップ不可）
+  function makeRoamer(em, seed, topMax, inMap){
+    var h = (seed * 2654435761) >>> 0;
+    function rnd(k){ return ((h >>> (k * 3)) & 255) / 255; }
+    var r = document.createElement('span'); r.className = 'roamer';
+    r.style.setProperty('--top', inMap ? (8 + rnd(0) * 70).toFixed(0) + '%' : (rnd(0) * topMax).toFixed(0) + 'px');
+    r.style.setProperty('--dur', (9 + rnd(1) * 13).toFixed(1) + 's');
+    r.style.setProperty('--dl', (-rnd(2) * 20).toFixed(1) + 's');
+    r.style.setProperty('--sx', (rnd(2) * 85).toFixed(0) + '%');
+    r.style.setProperty('--hd', (0.6 + rnd(3) * 0.8).toFixed(2) + 's');
+    r.style.setProperty('--hdl', (-rnd(4)).toFixed(2) + 's');
+    r.style.setProperty('--rd', (1.6 + rnd(5) * 3).toFixed(1) + 's');
+    r.style.setProperty('--rdir', rnd(1) > .5 ? 'normal' : 'reverse');
+    r.style.setProperty('--fs', ((inMap ? 1.5 : 1.15) + rnd(0) * 0.7).toFixed(2) + 'rem');
+    r.innerHTML = '<span class="hp"><span class="rl"></span></span>'; r.querySelector('.rl').textContent = em;
+    r.setAttribute('data-low', (!inMap && rnd(0) * topMax < 24) ? '1' : '');   // 上すぎる時は、吹き出しを下に出す
+    return r;
+  }
+  var lastNameSpeak = 0;
+  function speakName(name){   // 動物の名前を、かわいい声で（日本語の声がある端末だけ）
+    if (!isSoundOn() || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+    var v = pickVoice('ja-JP'); if (!v || Date.now() - lastNameSpeak < 700) return;
+    lastNameSpeak = Date.now();
+    try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(name); u.voice = v; u.lang = v.lang; u.rate = 1.1; u.pitch = 1.5; speechSynthesis.speak(u); } catch (e) {}
+  }
+  function roamTap(r, an, idx){
+    if (r.getAttribute('data-busy')) return;
+    r.setAttribute('data-busy', '1'); r.classList.add('tapped');
+    var pop = document.createElement('span'); pop.className = 'roam-pop' + (r.getAttribute('data-low') ? ' low' : '');
+    pop.textContent = '♥ ' + an.name; r.appendChild(pop);
+    sfx('pop', idx); speakName(an.name);
+    setTimeout(function(){ if (pop.parentNode) pop.remove(); r.classList.remove('tapped'); r.removeAttribute('data-busy'); }, 1300);
+  }
   function renderRoamers(mem){
     var z = $('roamZone'); if (!z) return;
     var key = mem.map(function(m){ return m.key; }).join(',');
@@ -1066,22 +1112,11 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
     z.setAttribute('data-k', key); z.innerHTML = '';
     z.classList.toggle('hidden', !mem.length);
     var n = Math.min(mem.length, 36);
-    for (var i = 0; i < n; i++) {
-      var m = mem[(i * 7) % mem.length], h = ((i + 1) * 2654435761) >>> 0;
-      function rnd(k){ return ((h >>> (k * 3)) & 255) / 255; }
-      var r = document.createElement('span'); r.className = 'roamer';
-      r.style.setProperty('--top', (rnd(0) * 46).toFixed(0) + 'px');
-      r.style.setProperty('--dur', (9 + rnd(1) * 13).toFixed(1) + 's');
-      r.style.setProperty('--dl', (-rnd(2) * 20).toFixed(1) + 's');
-      r.style.setProperty('--sx', (rnd(2) * 85).toFixed(0) + '%');
-      r.style.setProperty('--hd', (0.6 + rnd(3) * 0.8).toFixed(2) + 's');
-      r.style.setProperty('--hdl', (-rnd(4)).toFixed(2) + 's');
-      r.style.setProperty('--rd', (1.6 + rnd(5) * 3).toFixed(1) + 's');
-      r.style.setProperty('--rdir', rnd(1) > .5 ? 'normal' : 'reverse');
-      r.style.setProperty('--fs', (1.15 + rnd(0) * 0.7).toFixed(2) + 'rem');
-      r.innerHTML = '<span class="hp"><span class="rl"></span></span>'; r.querySelector('.rl').textContent = m.an.em;
+    for (var i = 0; i < n; i++) (function(i){
+      var m = mem[(i * 7) % mem.length], r = makeRoamer(m.an.em, i + 1, 52, false);
+      r.addEventListener('click', function(){ roamTap(r, m.an, i); });
       z.appendChild(r);
-    }
+    })(i);
   }
   function renderHero(){
     var row = $('heroRow'); if (!row) return;
@@ -1108,6 +1143,7 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
     });
     if (!mem.length) { var e = document.createElement('span'); e.className = 'hero-empty'; e.textContent = '…まだ だれもいない'; row.appendChild(e); }
     renderRoamers(mem);
+    var rc = $('roamCount'); if (rc) rc.textContent = '🐾 仲間 ' + zukanOwned() + ' / ' + zukanAll().length + (zukanOwned() ? '' : '　パズルを解いて仲間を集めよう！');
     heroSeen = now;
     heroCelebrated = !!(joined.length || crowned.length);
     if (joined.length || crowned.length) {
@@ -1185,6 +1221,11 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
         deco.appendChild(gi);
       }
       sec.appendChild(deco);
+      if (xw(r)) {   // この世界で仲間になった動物が、帯の中をゴロゴロ転がる
+        var rl = document.createElement('div'); rl.className = 'sec-roam';
+        for (var ra = 0; ra < xw(r).animals.length; ra++) if (packDone(r, ra)) rl.appendChild(makeRoamer(xw(r).animals[ra].em, r * 10 + ra + 3, 0, true));
+        if (rl.children.length) sec.appendChild(rl);
+      }
       var h = document.createElement('div'); h.className = 'map-round'; h.setAttribute('data-w', wd.key);
       h.innerHTML = '<div class="mr-strip"></div><div class="mr-title"></div>';
       h.querySelector('.mr-strip').textContent = wd.strip;
