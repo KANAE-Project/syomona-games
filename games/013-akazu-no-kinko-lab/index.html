@@ -217,6 +217,8 @@
   @keyframes roamTapPop{ 0%{ transform:scale(1) rotate(0); } 40%{ transform:scale(1.7) rotate(-14deg); } 100%{ transform:scale(1) rotate(0); } }
   .roam-pop{ position:absolute; left:50%; top:-1.5em; transform:translateX(-50%); white-space:nowrap; font-size:.72rem; font-weight:900; color:#fff; background:rgba(214,60,110,.92); border-radius:999px; padding:2px 8px; animation:roamPopUp 1.2s ease forwards; z-index:3; }
   .roam-pop.low{ top:1.9em; }
+  .hero-an.tapped{ animation:roamTapPop .6s ease !important; }
+  .hero-an .roam-pop{ font-size:.7rem; z-index:6; }
   @keyframes roamPopUp{ 0%{ opacity:0; transform:translate(-50%,6px) scale(.6); } 20%{ opacity:1; transform:translate(-50%,0) scale(1.05); } 80%{ opacity:1; } 100%{ opacity:0; transform:translate(-50%,-8px) scale(1); } }
   .map-sec > .sec-roam{ position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none; border-radius:inherit; }
   .sec-roam .roamer{ pointer-events:none; cursor:default; opacity:.92; }
@@ -1127,7 +1129,7 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
     row.innerHTML = '';
     var per = mem.length > 10 ? 8 : 5;   // 10匹まで＝5匹ずつ／それ以上＝小さく8匹ずつ（タイトルが押し下げられすぎないように）
     row.classList.toggle('dense', mem.length > 10);
-    mem.forEach(function(m){
+    mem.forEach(function(m, mi){
       now[m.key] = m.crown;
       var isNew = heroSeen && heroSeen[m.key] === undefined, isUp = heroSeen && heroSeen[m.key] !== undefined && heroSeen[m.key] < m.crown;
       var sp = document.createElement('span'); sp.className = 'hero-an' + (m.hell ? ' hell' : '') + (m.heaven ? ' heaven' : '') + (m.sea ? ' sea' : '') + (isNew ? ' pop' : '');
@@ -1139,6 +1141,8 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
         if (isUp) { crowned.push(m.an); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 380); setTimeout(function(host){ return function(){ heroBurst(host, true); }; }(sp), 1500); }
       }
       if (!line || line.children.length >= per) { line = document.createElement('div'); line.className = 'hero-line'; row.appendChild(line); }   // 5匹ずつ段にする（2段・3段…と増える）
+      sp.style.cursor = 'pointer'; if (row.children.length === 1) sp.setAttribute('data-low', '1');
+      sp.addEventListener('click', function(){ roamTap(sp, m.an, mi); });   // 一覧の仲間も、タップで反応（広場の動物と同じ）
       line.appendChild(sp);
     });
     if (!mem.length) { var e = document.createElement('span'); e.className = 'hero-empty'; e.textContent = '…まだ だれもいない'; row.appendChild(e); }
