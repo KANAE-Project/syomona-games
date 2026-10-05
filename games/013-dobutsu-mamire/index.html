@@ -544,6 +544,8 @@
   .grade-msg{ font-size:.8rem; margin-top:8px; }
   .unlocked-badge{ display:inline-block; background:var(--accent); color:#2a2208; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; font-weight:900; }
   .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
+  .grade-toggle-btn{ display:block; margin:12px auto 0; padding:9px 18px; font:inherit; font-size:.85rem; font-weight:900; color:var(--ink); background:transparent; border:2px solid var(--accent); border-radius:999px; cursor:pointer; }
+  .grade-toggle-btn:active{ transform:scale(.97); }
   .x-share-zone{ margin-top:22px; padding-top:14px; border-top:1px dashed rgba(244,239,226,.25); text-align:center; }
   .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:12px; }
   .x-link-btn{ display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center; padding:14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer; font-family:inherit; }
@@ -715,8 +717,9 @@
     </div>
     <div id="gradeMsg" class="grade-msg"></div>
     <div id="unlockedZone" class="hidden">
-      <span class="unlocked-badge">グレードアップ解放済み</span>
-      <div class="unlocked-note">💡ヒントが使い放題になりました。マップの下に「🔥地獄コース」が開いています（全部クリアすると「👼天国コース」が開きます）。</div>
+      <span class="unlocked-badge" id="gradeBadge">グレードアップ解放済み</span>
+      <div class="unlocked-note" id="gradeNote">💡ヒントが使い放題になりました。マップの下に「🔥地獄コース」が開いています（全部クリアすると「👼天国コース」が開きます）。</div>
+      <button type="button" class="grade-toggle-btn" id="gradeToggleBtn"></button>
     </div>
   </div>
 
@@ -1153,7 +1156,10 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
     safeSet(PROG_KEY, JSON.stringify(prog));
   })();
   function saveProg(){ if (!OPEN_ALL) safeSet(PROG_KEY, JSON.stringify(prog)); }
-  function isUnlimited(){ return safeGet(STORAGE_KEY) === '1'; }
+  // 解放済み（合言葉を入れた）かどうかと、いまグレードアップをONにしているかは別。OFFにしても進捗・ヒントの手持ちは残る
+  var GRADE_OFF_KEY = 'akazu_kinko_grade_off';
+  function isPurchased(){ return safeGet(STORAGE_KEY) === '1'; }
+  function isUnlimited(){ return isPurchased() && safeGet(GRADE_OFF_KEY) !== '1'; }
   function pid(r, a, j){ return r + '-' + a + '-' + j; }
   function starsOf(r, a, j){ var x = prog.p[pid(r, a, j)]; return x ? x.stars : 0; }
   function packOf(r, a){ var w = xw(r); return r === HELL_R ? LEVEL_DATA.hell[a] : (r === HEAVEN_R ? LEVEL_DATA.heaven[a] : (w ? LEVEL_DATA[w.data][a] : LEVEL_DATA.rounds[r - 1][a])); }
@@ -1418,15 +1424,15 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
     if (!isUnlimited()) {
       var gh = document.createElement('div'); gh.className = 'gate-card hell';
       gh.innerHTML = '<div class="gt-em">👿🔒🔥</div><div class="gt-title">地獄の門</div><div class="gt-sub"></div>';
-      gh.querySelector('.gt-sub').textContent = '鬼・悪魔・お化けが待つ、激ムズの特別コース（課金エリア）。ページ下の「損しかない課金」の合言葉で開きます。';
-      gh.addEventListener('click', function(){ sfx('lock'); toast('🔒 ページ下の合言葉入力で、地獄の門が開きます'); });
+      gh.querySelector('.gt-sub').textContent = isPurchased() ? '鬼・悪魔・お化けが待つ、激ムズの特別コース。ページ下の「グレードアップ」をONにすると開きます。' : '鬼・悪魔・お化けが待つ、激ムズの特別コース（課金エリア）。ページ下の「損しかない課金」の合言葉で開きます。';
+      gh.addEventListener('click', function(){ sfx('lock'); toast(isPurchased() ? '🔒 ページ下の「グレードアップ」をONにすると、地獄の門が開きます' : '🔒 ページ下の合言葉入力で、地獄の門が開きます'); });
       gates.appendChild(gh);
     }
     if (!isUnlimited() || !hellDone()) {   // 天国の門：課金前＝課金エリアの案内／課金後＝地獄の制覇が条件
       var gs = document.createElement('div'); gs.className = 'gate-card heaven';
       gs.innerHTML = '<div class="gt-em">👼🔒🌞</div><div class="gt-title">天国の門</div><div class="gt-sub"></div>';
       gs.querySelector('.gt-sub').textContent = isUnlimited() ? '地獄コースを全部クリアした人だけが入れる、最高難易度の天使たちの錠。' : '地獄を制覇した人だけが入れる、最高難易度の特別コース（課金エリア）。';
-      gs.addEventListener('click', function(){ sfx('lock'); toast(isUnlimited() ? '🔒 地獄コースを全部クリアすると、天国の門が開きます' : '🔒 ページ下の合言葉で課金すると、地獄→天国と挑めます'); });
+      gs.addEventListener('click', function(){ sfx('lock'); toast(isUnlimited() ? '🔒 地獄コースを全部クリアすると、天国の門が開きます' : (isPurchased() ? '🔒 ページ下の「グレードアップ」をONにして、地獄→天国と挑もう' : '🔒 ページ下の合言葉で課金すると、地獄→天国と挑めます')); });
       gates.appendChild(gs);
     }
     if (gates.children.length) list.appendChild(gates);
@@ -2524,10 +2530,24 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
   // ================= グレードアップ（合言葉）まわり =================
   var gradeForm = $('gradeForm'), gradeMsg = $('gradeMsg'), unlockedZone = $('unlockedZone');
   function setUnlocked(){ gradeForm.classList.add('hidden'); gradeMsg.textContent = ''; unlockedZone.classList.remove('hidden'); }
-  if (safeGet(STORAGE_KEY) === '1') setUnlocked();
+  // 解放後は、グレードアップのON/OFFを自由に切り替えられる（合言葉の入れ直しは不要）
+  function refreshGrade(){
+    var on = isUnlimited();
+    $('gradeBadge').textContent = on ? 'グレードアップ ON' : 'グレードアップ OFF（解放済み）';
+    $('gradeNote').textContent = on
+      ? '💡ヒントが使い放題になりました。マップの下に「🔥地獄コース」が開いています（全部クリアすると「👼天国コース」が開きます）。'
+      : '💡いまは通常のヒント（貯める式）で遊んでいます。地獄・天国は閉じていますが、進捗は残っています。';
+    $('gradeToggleBtn').textContent = on ? '🔁 グレードアップをOFFにする' : '🔁 グレードアップをONにする';
+  }
+  if (isPurchased()) { setUnlocked(); refreshGrade(); }
+  $('gradeToggleBtn').addEventListener('click', function(){
+    safeSet(GRADE_OFF_KEY, isUnlimited() ? '1' : '0');
+    refreshGrade(); renderMap(); if (g) updateHintBtn(); sfx('select');
+    toast(isUnlimited() ? '✨ グレードアップをONにしました' : '💤 グレードアップをOFFにしました');
+  });
   $('unlockBtn').addEventListener('click', function(){
     var val = $('passwordInput').value.trim();
-    if (val === PASSWORD || val === MASTER_PASSWORD) { safeSet(STORAGE_KEY, '1'); setUnlocked(); renderMap(); updateHintBtn && (g ? updateHintBtn() : 0); }
+    if (val === PASSWORD || val === MASTER_PASSWORD) { safeSet(STORAGE_KEY, '1'); safeSet(GRADE_OFF_KEY, '0'); setUnlocked(); refreshGrade(); renderMap(); updateHintBtn && (g ? updateHintBtn() : 0); }
     else { gradeMsg.textContent = '違うようです、もう一度確認してください…'; }
   });
 
