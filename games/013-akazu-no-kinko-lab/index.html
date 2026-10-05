@@ -127,6 +127,14 @@
   .tube{ position:relative; }
   .tube.hint-from::before{ content:'👆'; position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:1rem; }
   .tube.hint-to::before{ content:'⬇️'; position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:1rem; }
+  .intro-modal{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,.55); }
+  .intro-card{ width:100%; max-width:340px; text-align:center; background:var(--card); color:var(--ink); border:3px solid var(--accent); border-radius:20px; padding:18px 18px 16px; box-shadow:0 10px 30px rgba(0,0,0,.5); animation:introPop .35s cubic-bezier(.3,1.5,.5,1) both; }
+  .intro-tag{ display:inline-block; background:#ff5a6a; color:#fff; font-weight:900; font-size:.95rem; border-radius:999px; padding:4px 14px; letter-spacing:.05em; }
+  .intro-em{ font-size:3.4rem; line-height:1.2; margin-top:6px; }
+  .intro-name{ font-size:1.25rem; font-weight:900; color:var(--accent); margin-top:2px; }
+  .intro-text{ font-size:.95rem; line-height:1.7; margin:8px 0 4px; }
+  @keyframes introPop{ from{ transform:scale(.6); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  @media (prefers-reduced-motion: reduce){ .intro-card{ animation:none; } }
   .tube.trash{ width:46px; border-color:#ff8a8a; border-style:dashed; background:rgba(255,90,90,.14); }
   .tube.trash.done{ border-color:var(--ok); background:rgba(120,255,160,.16); }
   .tube .slot.hid{ opacity:.9; }
@@ -606,6 +614,15 @@
 </head>
 <body data-theme="grass">
 <div id="bgDeco" aria-hidden="true"><div class="sky"></div><div class="hills"></div><div class="tree"></div><div class="blades back"></div><div class="blades front"></div><div class="snow" id="snowLayer"></div></div>
+<div class="intro-modal hidden" id="introModal" role="dialog" aria-modal="true">
+      <div class="intro-card">
+        <div class="intro-tag" id="introTag">おじゃま登場！</div>
+        <div class="intro-em" id="introEm"></div>
+        <div class="intro-name" id="introName"></div>
+        <div class="intro-text" id="introText"></div>
+        <button type="button" class="primary-btn" id="introOk">わかった！</button>
+      </div>
+    </div>
 <div class="wrap">
   <div class="top-plate">
   <a href="../../" class="back-link">← ゲーム一覧に戻る</a>
@@ -926,9 +943,9 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
   var MECH = {
     lights:  { name: 'スイッチ錠', icon: '💡', rule: 'ねむっている動物（💤）を、全員起こそう！ マスをタップすると、そのマスと上下左右の動物が「起きる／ねむる」入れ替わります。全員起きると錠が開きます。' },
     symbols: { name: '並び替え錠', icon: '🔀', rule: '動物たちを、ヒントをすべて満たす並びにしよう。動物を1匹タップして選び、となりの動物をタップすると入れ替わります。' },
-    gear:    { name: 'ルーレット錠', icon: '🎡', rule: 'まわる輪のルーレット。輪をタップして回そう（輪の左半分をタップで左回り、右半分をタップで右回り。1マス回して1手です）。すべての輪の「あき」を、🔑のラインにそろえると、まん中の動物が外へ出られます（🔑の向きは、面ごとに上・右・下・左のどこか。❌の出口がある面は、先に❌へそろえると「残念！」で1つ前にもどされます）。🔗がある面は、ある輪を回すと別の輪が逆向きに回ります。' },
+    gear:    { name: 'ルーレット錠', icon: '🎡', rule: 'まわる輪のルーレット。輪をタップして回そう（輪の左半分をタップで左回り、右半分をタップで右回り。1マス回して1手です）。すべての輪の「あき」を、🔑のラインにそろえると、まん中の動物が外へ出られます（🔑の向きは、面ごとに変わります）。🔗がある面は、ある輪を回すと別の輪が逆向きに回ります。' },
     slide:   { name: 'スライド錠', icon: '🚪', rule: 'ぎゅうぎゅうの動物の行列。動物をタップして選び、行き先の●をタップでスライド。鍵🔑をもった動物を、金色の出口の門まで連れ出そう（出口は面ごとに、上・下・左・右のどこか。出口以外の辺は壁です）。何マス動かしても1手です。' },
-    sort:    { name: '仕分け錠', icon: '🧺', rule: '新しいゲーム！ ごちゃまぜに入った動物たちを、同じ動物ごとのカゴに仕分けよう。カゴをタップして選び、行き先のカゴをタップすると、いちばん上の同じ動物たちがお引っ越し（行き先は、空か、同じ動物が上にいて空きのあるカゴ）。どのカゴも「同じ動物だけで満タン（または空）」になると錠が開きます。（面によっては、❓＝上の動物をどかすと正体が分かる／💤＝眠っていて動かせない／赤いカゴ＝「いたずらっ子」専用、のおじゃまが混ざります）' },
+    sort:    { name: '仕分け錠', icon: '🧺', rule: '新しいゲーム！ ごちゃまぜに入った動物たちを、同じ動物ごとのカゴに仕分けよう。カゴをタップして選び、行き先のカゴをタップすると、いちばん上の同じ動物たちがお引っ越し（行き先は、空か、同じ動物が上にいて空きのあるカゴ）。どのカゴも「同じ動物だけで満タン（または空）」になると錠が開きます。' },
     maze:    { name: '迷路錠', icon: '🧭', rule: '新しいゲーム！ 動物が迷路に迷いこんでいます。となりのマスをタップして進み、行き止まりに気をつけながら、🔑のマスまで連れて行こう。1マス進むごとに1手です（戻ってもOK）。' },
     memory:  { name: '記憶錠', icon: '🃏', rule: '新しいゲーム！ ねむっている動物のカードが、裏返しで並んでいます。2枚タップして、同じ動物のペアを当てよう。全部のペアが見つかると錠が開きます。' }
   };
@@ -1718,7 +1735,7 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
         wrap.appendChild(b);
       });
       var tips = []; if (feat.h) tips.push('❓＝上をどかすと正体が分かる'); if (feat.s) tips.push('💤＝眠っていて動かせない'); if (feat.p) tips.push('赤いカゴ＝いたずらっ子専用');
-      var note = document.createElement('div'); note.className = 'mem-note'; note.textContent = tips.length ? tips.join('／') : '同じ動物だけで満タンにしよう';
+      var note = document.createElement('div'); note.className = 'mem-note'; note.textContent = '同じ動物だけで満タンにしよう';
       box.appendChild(wrap); box.appendChild(note);
     }
   };
@@ -1968,7 +1985,7 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
       var note = document.createElement('div'); note.className = 'ring-link';
       var parts = [];
       for (var i4 = 0; i4 < R; i4++) if (ctx.link[i4] >= 0) parts.push(NUM[i4] + 'を回すと' + NUM[ctx.link[i4]] + 'が逆に回る');
-      note.textContent = (parts.length ? '🔗 ' + parts.join('　🔗 ') : '（この面は、輪はそれぞれ独立して回ります）') + (ctx.decoys && ctx.decoys.length ? '　❌の方向にあきをそろえると「残念！」（1つ前にもどされます）' : '');
+      note.textContent = (parts.length ? '🔗 ' + parts.join('　🔗 ') : '（この面は、輪はそれぞれ独立して回ります）');
       wrap.appendChild(note);
       box.appendChild(wrap);
       void svg.getBoundingClientRect();                            // いったん描画してから、新しい角度へ（回る動きが見える）
@@ -2130,6 +2147,33 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
 
   // ================= プレイ制御 =================
   var g = null;   // 現在の問題 { r, a, j, T, ctx, state, min, moves, hist, hintUsed, hint, sel, done, theme }
+  // 初めて出る「おじゃま」は、その面に来た時に1回だけ「おじゃま登場！」で説明する（以後は出ない。お試しモードは、その回だけ）
+  var introQueue = [];
+  function introsOf(r, lv){
+    var out = [], w = xw(r);
+    if (lv && lv.tubes) {
+      var hid = false, slp = false;
+      lv.tubes.forEach(function(t){ t.forEach(function(v){ if (v >= 10 && v < 20) hid = true; if (v >= 20) slp = true; }); });
+      if (hid) out.push({ key: 'hid', em: '❓', name: 'かくれんぼ', text: 'かくれている動物がいるよ。上の動物をどかすと、正体がわかるよ！' });
+      if (slp) out.push({ key: 'slp', em: '💤', name: 'ねぼすけ', text: 'ぐっすり眠っていて、動かせない動物がいるよ。そのカゴは、この動物のカゴになるよ。' });
+      if (lv.only && lv.only.indexOf(7) >= 0) out.push({ key: 'pest', em: (w && w.pest) || '🦝', name: 'いたずらっ子', text: '仲間はずれの動物が混ざってるよ。赤い点線のカゴにだけ入れられるよ。' });
+    }
+    if (lv && lv.decoys && lv.decoys.length) out.push({ key: 'decoy', em: '❌', name: 'はずれ出口', text: '❌の出口に、あきをそろえちゃうと「残念！」。ひとつ前にもどされるよ。先に🔑へ！' });
+    return out;
+  }
+  function showNextIntro(){
+    var it = introQueue.shift(); if (!it) { $('introModal').classList.add('hidden'); return; }
+    $('introEm').textContent = it.em; $('introName').textContent = it.name; $('introText').textContent = it.text;
+    $('introModal').classList.remove('hidden'); sfx('coin');
+  }
+  function maybeIntro(r, lv){
+    var fresh = introsOf(r, lv).filter(function(x){ return !prog.flags['intro_' + x.key]; });
+    if (!fresh.length) return;
+    fresh.forEach(function(x){ prog.flags['intro_' + x.key] = 1; });
+    saveProg();
+    introQueue = fresh; showNextIntro();
+  }
+  $('introOk').addEventListener('click', showNextIntro);
   function startPuzzle(r, a, j){
     var pk = packOf(r, a), T = TYPES[pk.mech], lv = pk.puzzles[j];
     var init = T.init(lv);
@@ -2146,6 +2190,7 @@ var LEVEL_DATA = {"hell":[{"mech":"gear","puzzles":[{"R":4,"N":12,"gates":[[10],
     $('resultBox').classList.add('hidden'); $('toolRow').classList.remove('hidden');
     updateHintBtn();
     show('screenPlay'); refresh();
+    maybeIntro(r, lv);
   }
   function updateHintBtn(){ $('hintBtn').textContent = '💡 ヒント (' + hintLabel() + ')'; }
   function copyState(s){ return (typeof s === 'object') ? s.slice() : s; }
