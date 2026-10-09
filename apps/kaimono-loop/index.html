@@ -427,6 +427,16 @@
   }
   .store-frame-label{ display:flex; align-items:center; font-size:.78rem; font-weight:900; opacity:.8; }
   .store-frame-label.muted{ opacity:.5; }
+  .dept-frame{
+    border:2px dashed rgba(31,58,52,.25);
+    border-radius:12px;
+    padding:8px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    background:rgba(255,255,255,.55);
+  }
+  .dept-frame-label{ font-size:.72rem; font-weight:900; opacity:.75; padding-left:2px; }
   .today-row{
     display:flex;
     align-items:center;
@@ -1693,7 +1703,29 @@
         label.textContent = "未割り当て";
       }
       frame.appendChild(label);
-      groupItems.forEach(function(it){ frame.appendChild(makeTodayRow(it, inCart)); });
+      if(store && store.departments.length > 0){
+        // 売り場ごとの小さな枠で区切る（売り場未設定の品目は末尾の「その他」枠）
+        const deptGroups = store.departments.concat([null]); // null = 売り場未割り当て
+        deptGroups.forEach(function(dept){
+          const deptId = dept ? dept.id : null;
+          const deptItems = groupItems.filter(function(it){
+            const known = store.departments.some(function(d){ return d.id === it.departmentId; });
+            return deptId === null ? !known : it.departmentId === deptId;
+          });
+          if(deptItems.length === 0) return;
+          const deptFrame = document.createElement("div");
+          deptFrame.className = "dept-frame";
+          deptFrame.style.borderColor = hexToRgba(store.color || "#ff8a65", 0.55);
+          const deptLabel = document.createElement("div");
+          deptLabel.className = "dept-frame-label";
+          deptLabel.textContent = dept ? dept.name : "その他";
+          deptFrame.appendChild(deptLabel);
+          deptItems.forEach(function(it){ deptFrame.appendChild(makeTodayRow(it, inCart)); });
+          frame.appendChild(deptFrame);
+        });
+      } else {
+        groupItems.forEach(function(it){ frame.appendChild(makeTodayRow(it, inCart)); });
+      }
       container.appendChild(frame);
     });
   }
