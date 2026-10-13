@@ -95,6 +95,33 @@
     opacity:.65;
     margin:0 2px 8px;
   }
+  .unassigned-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 8px; }
+  .unassigned-head .section-label{ margin:0 2px; }
+  .assign-open-mini{
+    font-family:inherit;
+    font-size:.74rem;
+    font-weight:900;
+    color:var(--accent2-dark);
+    background:rgba(255,138,101,.12);
+    border:2px solid var(--accent2);
+    border-radius:999px;
+    padding:4px 12px;
+    cursor:pointer;
+  }
+  .assign-open-mini:active{ transform:scale(.97); }
+  .assign-focus-note{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:.78rem; font-weight:700;
+    background:rgba(255,138,101,.1);
+    border:2px dashed rgba(255,138,101,.45);
+    border-radius:12px;
+    padding:8px 12px;
+    margin-bottom:12px;
+  }
+  .assign-focus-note button{
+    font-family:inherit; font-size:.74rem; font-weight:900; cursor:pointer;
+    background:#fff; border:2px solid rgba(31,58,52,.2); border-radius:999px; padding:4px 10px; white-space:nowrap;
+  }
   .section-sublabel{
     font-size:.72rem;
     font-weight:700;
@@ -905,6 +932,10 @@
       <button type="button" id="addStoreBtn" class="bucket-add-btn">＋ お店を追加</button>
 
       <div class="section-label" style="margin-top:6px;">アイテムを割り当てる</div>
+      <div id="assignFocusNote" class="assign-focus-note hidden">
+        <span id="assignFocusText"></span>
+        <button type="button" id="assignShowAllBtn">全部表示する</button>
+      </div>
       <div id="assignList"></div>
       <div id="assignEmptyNote" class="empty-note hidden">まだアイテムが登録されていません</div>
 
@@ -1463,7 +1494,21 @@
           label.appendChild(dot);
         }
         label.appendChild(document.createTextNode(store ? store.name : "未割り当て"));
-        itemGrid.appendChild(label);
+        if(store){
+          itemGrid.appendChild(label);
+        } else {
+          // 「未割り当て」の見出しには、売り場整理画面（未割り当てだけ表示）へのボタンを添える
+          const head = document.createElement("div");
+          head.className = "unassigned-head";
+          head.appendChild(label);
+          const assignBtn = document.createElement("button");
+          assignBtn.type = "button";
+          assignBtn.className = "assign-open-mini";
+          assignBtn.textContent = "🗂 割り当てる";
+          assignBtn.addEventListener("click", function(){ openOrganizeScreen(true); });
+          head.appendChild(assignBtn);
+          itemGrid.appendChild(head);
+        }
 
         const deptGroups = (store ? store.departments : []).concat([null]); // null = 売り場未割り当て
         deptGroups.forEach(function(dept){
@@ -1947,11 +1992,34 @@
   });
 
   // ---- アイテムごとに、お店→売り場をボタンで選ぶ ----
+  // 「未割り当て」見出しのボタンから開いた時は、開いた時点で未割り当てだったアイテムだけを表示する。
+  // お店（売り場があるお店は売り場まで）を選び終えたアイテムは、その場でリストから消える
+  // （一覧画面では選んだお店・売り場のグループに移動している）。null＝全アイテム表示
+  let assignFocusIds = null;
+  function isFullyAssigned(it){
+    const store = stores.find(function(s){ return s.id === it.storeId; });
+    if(!store) return false;
+    return store.departments.length === 0 || !!it.departmentId;
+  }
+
   function renderAssignList(){
     assignList.innerHTML = "";
-    assignEmptyNote.classList.toggle("hidden", items.length > 0);
+    const focusNote = document.getElementById("assignFocusNote");
+    focusNote.classList.toggle("hidden", assignFocusIds === null);
+    const list = assignFocusIds === null
+      ? items
+      : items.filter(function(it){ return assignFocusIds.indexOf(it.id) !== -1 && !isFullyAssigned(it); });
+    if(assignFocusIds === null){
+      assignEmptyNote.textContent = "まだアイテムが登録されていません";
+      assignEmptyNote.classList.toggle("hidden", items.length > 0);
+    } else {
+      document.getElementById("assignFocusText").textContent =
+        list.length > 0 ? "未割り当てのものだけ表示中（あと" + list.length + "件）" : "未割り当てのものは全部割り当てました";
+      assignEmptyNote.textContent = "🎉 全部割り当て済みです。「全部表示する」で見直せます";
+      assignEmptyNote.classList.toggle("hidden", list.length > 0);
+    }
 
-    items.forEach(function(it){
+    list.forEach(function(it){
       const row = document.createElement("div");
       row.className = "assign-row";
 
@@ -2056,12 +2124,22 @@
     return false;
   }
 
-  document.getElementById("openOrganizeBtn").addEventListener("click", function(){
+  // focusUnassigned=true：未割り当てのアイテムだけを表示して開く（一覧画面の「未割り当て」見出しのボタンから）
+  function openOrganizeScreen(focusUnassigned){
     if(!requireGrade()) return;
+    assignFocusIds = focusUnassigned
+      ? items.filter(function(it){ return !it.storeId; }).map(function(it){ return it.id; })
+      : null;
     renderStoreManage();
     renderAssignList();
     mainScreen.classList.add("hidden");
     organizeScreen.classList.remove("hidden");
+    window.scrollTo(0, 0);
+  }
+  document.getElementById("openOrganizeBtn").addEventListener("click", function(){ openOrganizeScreen(false); });
+  document.getElementById("assignShowAllBtn").addEventListener("click", function(){
+    assignFocusIds = null;
+    renderAssignList();
   });
   function backFromOrganize(){
     organizeScreen.classList.add("hidden");
