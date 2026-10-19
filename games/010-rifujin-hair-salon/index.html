@@ -278,6 +278,11 @@
     font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px;
   }
   .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
+  .grade-toggle-btn{
+    font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:bold;
+    margin-top:12px; font-size:.8rem; padding:8px 14px; background:var(--accent); color:#fff;
+  }
+  .grade-toggle-btn.grade-off{ background:rgba(128,128,128,.4); color:inherit; }
 
   .x-share-zone{
     margin-top:26px; padding-top:16px;
@@ -435,8 +440,11 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">グレードアップ解放済み</span>
-        <div class="unlocked-note">（完成画像に「パーマ屋公認」スタンプが合成されるようになりました。それだけです）</div>
+        <div id="gradeEffects">
+          <span class="unlocked-badge">グレードアップ解放済み</span>
+          <div class="unlocked-note">（完成画像に「パーマ屋公認」スタンプが合成されるようになりました。それだけです）</div>
+        </div>
+        <button type="button" class="grade-toggle-btn" id="gradeToggleBtn"></button>
       </div>
     </div>
 
@@ -465,6 +473,7 @@
   // ==== 全ゲーム共通「ブルジョワ改め金ドブ全開放」の合言葉（全ゲーム共通、変更時は全ゲームに反映すること） ====
   const MASTER_PASSWORD = "金ドブ全開放";
   const STORAGE_KEY = "hair_salon_unlocked";
+  const GRADE_OFF_KEY = "hair_salon_grade_off"; // OFFにしても解放の記録（STORAGE_KEY）は残る
   const SOUND_KEY = "hair_salon_sound_on";
 
   function safeGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
@@ -624,6 +633,15 @@
     renderHairLayer();
   });
 
+  // 写真の枠（photoStage）は結果画面では非表示で大きさが0になるため、表示中に測った最後の大きさを覚えて使う
+  // （結果画面での「違う髪型にする」やグレードアップ切り替え時の再合成で、写真・髪が消えるのを防ぐ）
+  let lastStageRect = { width: 0, height: 0 };
+  function getStageRect(){
+    const r = photoStage.getBoundingClientRect();
+    if(r.width > 0){ lastStageRect = { width: r.width, height: r.height }; }
+    return lastStageRect;
+  }
+
   // ==== 画面1：写真セット ====
   const photoInput = document.getElementById("photoInput");
   photoInput.addEventListener("change", function(e){
@@ -633,7 +651,7 @@
     currentPhotoUrl = URL.createObjectURL(file);
 
     photoImg.onload = function(){
-      const rect = photoStage.getBoundingClientRect();
+      const rect = getStageRect();
       photo.baseScale = Math.max(rect.width / photoImg.naturalWidth, rect.height / photoImg.naturalHeight);
       photo.x = 0; photo.y = 0; photo.zoom = 1;
       photoZoomInput.value = 1;
@@ -668,7 +686,7 @@
     chosenStyle = next;
     hairImg.classList.remove("hidden");
     hairImg.onload = function(){
-      const rect = photoStage.getBoundingClientRect();
+      const rect = getStageRect();
       hair.baseScale = (rect.width * chosenStyle.widthFrac) / hairImg.naturalWidth;
       hair.x = 0; hair.y = rect.height * chosenStyle.yOffsetFrac; hair.zoom = 1;
       hairZoomInput.value = 1;
@@ -701,7 +719,7 @@
     // 表示状態にしてからサイズを測る（非表示のままだとgetBoundingClientRectが0になり、拡大率が壊れるため）
     showScreen("screenEdit");
 
-    const rect = photoStage.getBoundingClientRect();
+    const rect = getStageRect();
     photo.baseScale = Math.max(rect.width / photoImg.naturalWidth, rect.height / photoImg.naturalHeight);
     photo.x = 0; photo.y = 0; photo.zoom = 1;
     photoZoomInput.value = 1;
@@ -737,7 +755,7 @@
     ctx.fillStyle = "#eee2da";
     ctx.fillRect(0, 0, RES, RES);
 
-    const rect = photoStage.getBoundingClientRect();
+    const rect = getStageRect();
     const scaleFactor = RES / rect.width;
 
     if(photoImg.naturalWidth){
@@ -761,8 +779,9 @@
 
   // ==== グレードアップ（課金）の中身：完成画像に謎の「パーマ屋公認」スタンプを合成する ====
   // 2026年9月27日決定：実用性が下がる（=損しかない課金）方向で、あえて目立つ位置に大きく焼き込む
+  function isGradeOn(){ return safeGet(STORAGE_KEY) === "1" && safeGet(GRADE_OFF_KEY) !== "1"; }
   function drawGradeStamp(ctx, RES){
-    if(safeGet(STORAGE_KEY) !== "1") return;
+    if(!isGradeOn()) return;
     ctx.save();
     ctx.translate(RES * 0.76, RES * 0.80);
     ctx.rotate(-18 * Math.PI / 180);
@@ -827,21 +846,41 @@
   const gradeMsg = document.getElementById("gradeMsg");
   const unlockedZone = document.getElementById("unlockedZone");
 
-  function setUnlocked(){
-    gradeForm.classList.add("hidden");
-    gradeMsg.textContent = "";
-    unlockedZone.classList.remove("hidden");
-    // 結果画面を見ている最中に解放した場合は、その場でスタンプを焼き直す
+  const gradeToggleBtn = document.getElementById("gradeToggleBtn");
+  const gradeEffects = document.getElementById("gradeEffects");
+
+  // 結果画面を見ている最中に解放・切り替えした場合は、その場でスタンプを焼き直す
+  function rebakeIfResultVisible(){
     if(resultCanvas.width && !document.getElementById("screenResult").classList.contains("hidden")){
       bakeResult();
     }
   }
+  function refreshGrade(){
+    const on = isGradeOn();
+    gradeEffects.classList.toggle("hidden", !on);
+    gradeToggleBtn.textContent = on ? "グレードアップ：ON（タップでOFF）" : "グレードアップ：OFF（タップでON）";
+    gradeToggleBtn.classList.toggle("grade-off", !on);
+  }
+  function setUnlocked(){
+    gradeForm.classList.add("hidden");
+    gradeMsg.textContent = "";
+    unlockedZone.classList.remove("hidden");
+    refreshGrade();
+    rebakeIfResultVisible();
+  }
   if(safeGet(STORAGE_KEY) === "1"){ setUnlocked(); }
+
+  gradeToggleBtn.addEventListener("click", function(){
+    safeSet(GRADE_OFF_KEY, safeGet(GRADE_OFF_KEY) === "1" ? "0" : "1");
+    refreshGrade();
+    rebakeIfResultVisible();
+  });
 
   unlockBtn.addEventListener("click", function(){
     const val = document.getElementById("passwordInput").value.trim();
     if(val === PASSWORD || val === MASTER_PASSWORD){
       safeSet(STORAGE_KEY, "1");
+      safeSet(GRADE_OFF_KEY, "0");
       setUnlocked();
     } else {
       gradeMsg.textContent = "違います、もう一度確認してください。";

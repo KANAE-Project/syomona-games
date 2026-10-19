@@ -520,6 +520,11 @@
     font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px;
   }
   .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; margin-bottom:12px; }
+  .grade-toggle-btn{
+    margin-top:12px; font-size:.8rem; padding:8px 14px; background:var(--accent); color:#fff;
+    font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:bold;
+  }
+  .grade-toggle-btn.grade-off{ background:rgba(128,128,128,.4); color:inherit; }
 
   /* ==== 仲間図鑑（グレードアップ限定） ==== */
   #codexZone{
@@ -732,9 +737,12 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">グレードアップ解放済み</span>
-        <div class="unlocked-note">「仲間図鑑」が解放されました。ターンエンドを引くたびに新しい姿が記録されていきます。</div>
-        <button type="button" class="secondary" id="openCodexBtn">📖 仲間図鑑を見る</button>
+        <div id="gradeEffects">
+          <span class="unlocked-badge">グレードアップ解放済み</span>
+          <div class="unlocked-note">「仲間図鑑」が解放されました。ターンエンドを引くたびに新しい姿が記録されていきます。</div>
+          <button type="button" class="secondary" id="openCodexBtn">📖 仲間図鑑を見る</button>
+        </div>
+        <button type="button" class="grade-toggle-btn" id="gradeToggleBtn"></button>
       </div>
     </div>
 
@@ -1555,18 +1563,41 @@
   function safeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
   function safeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
 
+  // 解放の記録（STORAGE_KEY）とは別に、グレードアップのON/OFFを保存する（OFFにしても解放の記録と図鑑データは残る）
+  const GRADE_OFF_KEY = "card_battler_ken_grade_off";
+  const gradeToggleBtn = document.getElementById("gradeToggleBtn");
+  const gradeEffects = document.getElementById("gradeEffects");
+  let gradeOff = safeGet(GRADE_OFF_KEY) === "1";
+
+  function refreshGrade(){
+    const on = !gradeOff;
+    gradeEffects.classList.toggle("hidden", !on);
+    if(!on){ document.getElementById("codexZone").classList.add("hidden"); }
+    gradeToggleBtn.textContent = on ? "グレードアップ：ON（タップでOFF）" : "グレードアップ：OFF（タップでON）";
+    gradeToggleBtn.classList.toggle("grade-off", !on);
+  }
+
   function setUnlocked(){
     gradeForm.classList.add("hidden");
     gradeMsg.textContent = "";
     unlockedZone.classList.remove("hidden");
+    refreshGrade();
   }
 
   if(safeGet(STORAGE_KEY) === "1"){ setUnlocked(); }
+
+  gradeToggleBtn.addEventListener("click", function(){
+    gradeOff = !gradeOff;
+    safeSet(GRADE_OFF_KEY, gradeOff ? "1" : "0");
+    refreshGrade();
+  });
 
   unlockBtn.addEventListener("click", function(){
     const val = document.getElementById("passwordInput").value.trim();
     if(val === PASSWORD || val === MASTER_PASSWORD){
       safeSet(STORAGE_KEY, "1");
+      gradeOff = false;
+      safeSet(GRADE_OFF_KEY, "0");
       setUnlocked();
     } else {
       gradeMsg.textContent = "違うようです、もう一度確認してください…";
