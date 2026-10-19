@@ -186,6 +186,10 @@
   .grade-form input[type=text]::placeholder{ color:var(--ink-dim); }
   .grade-form #unlockBtn{ font-size:1.05rem; padding:13px 16px; background:var(--danger); color:#fff; box-shadow:0 4px 0 #7a231a; }
   .grade-msg{ font-size:.8rem; margin-top:8px; color:#ff9d9d; }
+  .grade-toggle-btn{
+    margin-top:10px; font-size:.8rem; padding:8px 14px; background:#e0a72e; color:#211705;
+  }
+  .grade-toggle-btn.grade-off{ background:rgba(255,255,255,.15); color:var(--ink); }
   .unlocked-badge{
     display:inline-block; background:#e0a72e; color:#211705; font-size:.75rem; font-weight:900;
     padding:4px 12px; border-radius:999px; margin-top:8px;
@@ -367,7 +371,8 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">🔥 爆弾ボタン解放済み（確率は変わりません）</span>
+        <span class="unlocked-badge" id="unlockedBadge">🔥 爆弾ボタン解放済み（確率は変わりません）</span><br>
+        <button type="button" id="gradeToggleBtn" class="grade-toggle-btn"></button>
       </div>
     </div>
 
@@ -607,7 +612,11 @@
   let breaking = false;
   let running = false;
   let pendingEnd = false; // タイマーが0になった瞬間、ちょうど破壊演出の途中だった場合に立てるフラグ
-  let unlocked = safeGet(STORAGE_KEY) === '1';
+  // purchased=合言葉で解放済みか／unlocked=いまグレードアップ効果が有効か（OFFにしても解放の記録は残る）
+  const GRADE_OFF_KEY = "kaihou_no_gi_grade_off";
+  let purchased = safeGet(STORAGE_KEY) === '1';
+  let gradeOff = safeGet(GRADE_OFF_KEY) === '1';
+  let unlocked = purchased && !gradeOff;
   let boardsCleared = 0;
   let lastTier = null;
   let timerHandle = null;
@@ -921,19 +930,37 @@
   const gradeMsg = document.getElementById('gradeMsg');
   const unlockedZone = document.getElementById('unlockedZone');
 
+  const gradeToggleBtn = document.getElementById('gradeToggleBtn');
+  const unlockedBadge = document.getElementById('unlockedBadge');
+
+  function refreshGrade(){
+    unlocked = purchased && !gradeOff;
+    bombBtn.classList.toggle('hidden', !unlocked);
+    unlockedBadge.classList.toggle('hidden', !unlocked);
+    gradeToggleBtn.textContent = unlocked ? 'グレードアップ：ON（タップでOFF）' : 'グレードアップ：OFF（タップでON）';
+    gradeToggleBtn.classList.toggle('grade-off', !unlocked);
+  }
   function setUnlocked(){
     gradeForm.classList.add('hidden');
     gradeMsg.textContent = '';
     unlockedZone.classList.remove('hidden');
-    unlocked = true;
-    bombBtn.classList.remove('hidden');
+    purchased = true;
+    refreshGrade();
   }
-  if(unlocked){ setUnlocked(); }
+  if(purchased){ setUnlocked(); }
+
+  gradeToggleBtn.addEventListener('click', function(){
+    gradeOff = !gradeOff;
+    safeSet(GRADE_OFF_KEY, gradeOff ? '1' : '0');
+    refreshGrade();
+  });
 
   unlockBtn.addEventListener('click', function(){
     const val = document.getElementById('passwordInput').value.trim();
     if(val === PASSWORD || val === MASTER_PASSWORD){
       safeSet(STORAGE_KEY, '1');
+      gradeOff = false;
+      safeSet(GRADE_OFF_KEY, '0');
       setUnlocked();
     } else {
       gradeMsg.textContent = '違います、もう一度確認してください。';

@@ -288,6 +288,8 @@
   .grade-form input[type=text]{ text-align:center; padding:10px 12px; border-radius:12px; border:2px solid #d8bd8c; font-size:1rem; }
   .grade-form #unlockBtn{ font-size:1.05rem; padding:13px 16px; background:var(--accent2); }
   .grade-msg{ font-size:.8rem; margin-top:8px; }
+  .grade-toggle-btn{ margin-top:10px; font-size:.8rem; padding:8px 14px; background:#06C755; color:#fff; }
+  .grade-toggle-btn.grade-off{ background:#bbb; color:#555; }
   .unlocked-badge{
     display:inline-block; background:#06C755; color:#fff; font-size:.7rem;
     padding:3px 10px; border-radius:999px; margin-top:8px;
@@ -428,7 +430,8 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">🔥 スコア100倍 解放済み</span>
+        <span class="unlocked-badge" id="unlockedBadge">🔥 スコア100倍 解放済み</span><br>
+        <button type="button" id="gradeToggleBtn" class="grade-toggle-btn"></button>
       </div>
     </div>
 
@@ -902,21 +905,44 @@
   const gradeMsg = document.getElementById('gradeMsg');
   const unlockedZone = document.getElementById('unlockedZone');
 
+  // 解放の記録（STORAGE_KEY）とは別に、グレードアップのON/OFFを保存する（OFFにしても解放の記録は残る）
+  const GRADE_OFF_KEY = "yondasoubou_grade_off";
+  const gradeToggleBtn = document.getElementById('gradeToggleBtn');
+  const unlockedBadge = document.getElementById('unlockedBadge');
+  let purchased = false;
+  let gradeOff = safeGet(GRADE_OFF_KEY) === '1';
+
+  function refreshGrade(){
+    const on = purchased && !gradeOff;
+    scoreMultiplier = on ? 100 : 1;
+    unlockedBadge.classList.toggle('hidden', !on);
+    gradeToggleBtn.textContent = on ? 'グレードアップ：ON（タップでOFF）' : 'グレードアップ：OFF（タップでON）';
+    gradeToggleBtn.classList.toggle('grade-off', !on);
+  }
   function setUnlocked(){
     gradeForm.classList.add('hidden');
     gradeMsg.textContent = '';
     unlockedZone.classList.remove('hidden');
-    scoreMultiplier = 100;
+    purchased = true;
+    refreshGrade();
   }
 
   if(safeGet(STORAGE_KEY) === '1'){
     setUnlocked(); // 前回すでに課金済みの場合は、警告メッセージなしで静かに復元する
   }
 
+  gradeToggleBtn.addEventListener('click', function(){
+    gradeOff = !gradeOff;
+    safeSet(GRADE_OFF_KEY, gradeOff ? '1' : '0');
+    refreshGrade();
+  });
+
   unlockBtn.addEventListener('click', function(){
     const val = document.getElementById('passwordInput').value.trim();
     if(val === PASSWORD || val === MASTER_PASSWORD){
       safeSet(STORAGE_KEY, '1');
+      gradeOff = false;
+      safeSet(GRADE_OFF_KEY, '0');
       setUnlocked();
       // 今まさに課金した時だけ、念押しの警告を見せる
       showBubbleText(bragConfirmLine, true, 'yellow');
