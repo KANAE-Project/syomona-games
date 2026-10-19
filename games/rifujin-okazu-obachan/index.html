@@ -270,6 +270,14 @@
     gap:6px;
     margin-top:12px;
   }
+  .grade-toggle-btn{
+    margin-top:12px;
+    font-size:.8rem;
+    padding:8px 14px;
+    background:#06C755;
+    color:#fff;
+  }
+  .grade-toggle-btn.grade-off{ background:#bbb; color:#555; }
   .unlocked-badge{
     display:inline-block;
     background:#06C755;
@@ -506,8 +514,11 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">グレードアップ解放済み</span><br>
-        <button type="button" class="line-btn" id="lineBtn">LINEでおばちゃんを送りつける</button>
+        <div id="gradeEffects">
+          <span class="unlocked-badge">グレードアップ解放済み</span><br>
+          <button type="button" class="line-btn" id="lineBtn">LINEでおばちゃんを送りつける</button>
+        </div>
+        <button type="button" class="grade-toggle-btn" id="gradeToggleBtn"></button>
       </div>
     </div>
 
@@ -769,20 +780,42 @@
     try { localStorage.setItem(key, val); } catch(e){ /* 保存できなくても解放処理自体は続行する */ }
   }
 
+  // 解放の記録（STORAGE_KEY）とは別に、グレードアップのON/OFFを保存する（OFFにしても解放の記録は残る）
+  const GRADE_OFF_KEY = "rifujin_okazu_grade_off";
+  const gradeToggleBtn = document.getElementById("gradeToggleBtn");
+  const gradeEffects = document.getElementById("gradeEffects");
+  let gradeOff = safeGet(GRADE_OFF_KEY) === "1";
+
+  function refreshGrade(){
+    const on = !gradeOff;
+    gradeEffects.classList.toggle("hidden", !on);
+    gradeToggleBtn.textContent = on ? "グレードアップ：ON（タップでOFF）" : "グレードアップ：OFF（タップでON）";
+    gradeToggleBtn.classList.toggle("grade-off", !on);
+  }
+
   function setUnlocked(){
     gradeForm.classList.add("hidden");
     gradeMsg.textContent = "";
     unlockedZone.classList.remove("hidden");
+    refreshGrade();
   }
 
   if(safeGet(STORAGE_KEY) === "1"){
     setUnlocked();
   }
 
+  gradeToggleBtn.addEventListener("click", function(){
+    gradeOff = !gradeOff;
+    safeSet(GRADE_OFF_KEY, gradeOff ? "1" : "0");
+    refreshGrade();
+  });
+
   unlockBtn.addEventListener("click", function(){
     const val = document.getElementById("passwordInput").value.trim();
     if(val === PASSWORD || val === MASTER_PASSWORD){
       safeSet(STORAGE_KEY, "1");
+      gradeOff = false;
+      safeSet(GRADE_OFF_KEY, "0");
       setUnlocked();
     } else {
       gradeMsg.textContent = "違うで、もう一回確認してみ。";

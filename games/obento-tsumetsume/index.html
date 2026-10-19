@@ -78,6 +78,20 @@
   }
   .sound-badge.sound-off{ opacity:.55; }
   .center{ text-align:center; }
+  .grade-toggle-btn{
+    display:inline-block;
+    margin:8px 0;
+    background:#eafaf1;
+    border:2px solid var(--good);
+    color:#1f7a4d;
+    font-weight:bold;
+    font-size:13px;
+    padding:8px 14px;
+    border-radius:999px;
+    cursor:pointer; font-family:inherit; -webkit-appearance:none; appearance:none;
+  }
+  .grade-toggle-btn.grade-off{ background:#f0f0f0; border-color:#bbb; color:#777; }
+  .grade-toggle-btn[hidden]{ display:none; }
   .unlock-badge{
     display:inline-block;
     background:#eafaf1;
@@ -381,6 +395,7 @@
       <button id="unlockBtn">解放する</button>
     </div>
     <p id="unlockMsg" class="unlock-msg" hidden></p>
+    <div class="center"><button type="button" id="gradeToggleBtn" class="grade-toggle-btn" hidden></button></div>
     <a class="note-link-btn" id="noteLinkBtn" href="https://note.com/kanae_project/n/n54023f723cb6" target="_blank" rel="noopener">📝 noteで合言葉をゲットする</a>
   </div>
 
@@ -464,6 +479,10 @@
   let gameActive = false;
   let busy = false;
   let pendingEnd = false;
+  // purchased=合言葉で解放済みか／unlocked=いまグレードアップ効果が有効か（OFFにしても解放の記録は残る）
+  const GRADE_OFF_KEY = "obento_tsumetsume_grade_off";
+  let purchased = false;
+  let gradeOff = false;
   let unlocked = false;
 
   let currentShape = null;
@@ -490,10 +509,24 @@
   noteLinkBtn.href = "https://note.com/kanae_project/n/n54023f723cb6";
 
   // ===== 初期化：解放状態の復元 =====
-  if(localStorage.getItem(STORAGE_KEY) === "true"){
-    unlocked = true;
-    unlockBadgeStart.hidden = false;
+  const gradeToggleBtn = $("gradeToggleBtn");
+  function refreshGrade(){
+    unlocked = purchased && !gradeOff;
+    unlockBadgeStart.hidden = !unlocked;
+    gradeToggleBtn.hidden = !purchased;
+    gradeToggleBtn.textContent = unlocked ? "グレードアップ：ON（タップでOFF）" : "グレードアップ：OFF（タップでON）";
+    gradeToggleBtn.classList.toggle("grade-off", !unlocked);
   }
+  try{
+    purchased = localStorage.getItem(STORAGE_KEY) === "true";
+    gradeOff = localStorage.getItem(GRADE_OFF_KEY) === "1";
+  }catch(e){}
+  refreshGrade();
+  gradeToggleBtn.addEventListener("click", function(){
+    gradeOff = !gradeOff;
+    try{ localStorage.setItem(GRADE_OFF_KEY, gradeOff ? "1" : "0"); }catch(e){}
+    refreshGrade();
+  });
 
   // ===== 音声・効果音 =====
   let audioCtx = null;
@@ -884,8 +917,10 @@
     if(val === PASSWORD || val === MASTER_PASSWORD){
       const already = localStorage.getItem(STORAGE_KEY) === "true";
       localStorage.setItem(STORAGE_KEY, "true");
-      unlocked = true;
-      unlockBadgeStart.hidden = false;
+      localStorage.setItem(GRADE_OFF_KEY, "0");
+      purchased = true;
+      gradeOff = false;
+      refreshGrade();
       unlockMsg.style.color = "var(--good)";
       unlockMsg.textContent = "🔓 豪華おかず解放！これで詰めにくさも爆上がりです…";
       if(!already){
