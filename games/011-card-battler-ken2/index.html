@@ -195,6 +195,8 @@
   .grade-msg{ font-size:.8rem; margin-top:8px; }
   .unlocked-badge{ display:inline-block; background:var(--accent); color:#fff; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; }
   .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; margin-bottom:12px; }
+  .grade-toggle-btn{ font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:bold; margin-top:12px; font-size:.8rem; padding:8px 14px; background:var(--accent); color:#fff; }
+  .grade-toggle-btn.grade-off{ background:rgba(128,128,128,.4); color:inherit; }
   .x-share-zone{ margin-top:22px; padding-top:14px; border-top:1px dashed rgba(255,255,255,.25); text-align:center; }
   .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent2); margin-bottom:12px; }
   .x-link-btn{ display:block; background:#000; color:#fff; font-size:1rem; font-weight:900; text-align:center; padding:14px; border-radius:14px; box-shadow:0 4px 0 #444; border:none; width:100%; max-width:320px; margin:0 auto; cursor:pointer; font-family:inherit; }
@@ -319,8 +321,11 @@
     </div>
     <div id="gradeMsg" class="grade-msg"></div>
     <div id="unlockedZone" class="hidden">
-      <span class="unlocked-badge">グレードアップ解放済み</span>
-      <div class="unlocked-note">「涅槃降臨！」の演出が豪華になりました。それだけです。</div>
+      <div id="gradeEffects">
+        <span class="unlocked-badge">グレードアップ解放済み</span>
+        <div class="unlocked-note">「涅槃降臨！」の演出が豪華になりました。それだけです。</div>
+      </div>
+      <button type="button" class="grade-toggle-btn" id="gradeToggleBtn"></button>
     </div>
   </div>
 
@@ -355,7 +360,9 @@
   var STORAGE_KEY = 'card_battler_ken2_unlocked';
   function safeGet(key){ try { return localStorage.getItem(key); } catch(e){ return null; } }
   function safeSet(key, val){ try { localStorage.setItem(key, val); } catch(e){} }
-  function isGraded(){ return safeGet(STORAGE_KEY) === '1'; }
+  var GRADE_OFF_KEY = 'card_battler_ken2_grade_off'; // OFFにしても解放の記録（STORAGE_KEY）は残る
+  function isPurchased(){ return safeGet(STORAGE_KEY) === '1'; }
+  function isGraded(){ return isPurchased() && safeGet(GRADE_OFF_KEY) !== '1'; }
   var match = { round: 1, total: [0, 0] };
   var R = null, ultraChar = 0, state = 'idle', selected = null, newIdx = null, stealUsed = false, handOrder = [], reachAnnounced = false;
   var logLines = [], resolveHuman = null, resolveRon = null;
@@ -850,16 +857,29 @@
   // ==== グレードアップ（合言葉）まわり ====
   (function(){
     var gradeForm = $('gradeForm'), gradeMsg = $('gradeMsg'), unlockedZone = $('unlockedZone');
+    var gradeToggleBtn = $('gradeToggleBtn'), gradeEffects = $('gradeEffects');
+    function refreshGrade(){
+      var on = isGraded();
+      gradeEffects.classList.toggle('hidden', !on);
+      gradeToggleBtn.textContent = on ? 'グレードアップ：ON（タップでOFF）' : 'グレードアップ：OFF（タップでON）';
+      gradeToggleBtn.classList.toggle('grade-off', !on);
+    }
     function setUnlocked(){
       gradeForm.classList.add('hidden');
       gradeMsg.textContent = '';
       unlockedZone.classList.remove('hidden');
+      refreshGrade();
     }
-    if (isGraded()) { setUnlocked(); }
+    if (isPurchased()) { setUnlocked(); }
+    gradeToggleBtn.addEventListener('click', function(){
+      safeSet(GRADE_OFF_KEY, safeGet(GRADE_OFF_KEY) === '1' ? '0' : '1');
+      refreshGrade();
+    });
     $('unlockBtn').addEventListener('click', function(){
       var val = $('passwordInput').value.trim();
       if (val === PASSWORD || val === MASTER_PASSWORD) {
         safeSet(STORAGE_KEY, '1');
+        safeSet(GRADE_OFF_KEY, '0');
         setUnlocked();
       } else {
         gradeMsg.textContent = '違うようです、もう一度確認してください…';

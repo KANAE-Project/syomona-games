@@ -212,6 +212,8 @@
   .grade-msg{ font-size:.8rem; margin-top:8px; }
   .unlocked-badge{ display:inline-block; background:var(--accent); color:#fff; font-size:.7rem; padding:3px 10px; border-radius:999px; margin-top:8px; }
   .unlocked-note{ font-size:.8rem; opacity:.8; margin-top:10px; }
+  .grade-toggle-btn{ font-family:inherit; cursor:pointer; border:none; border-radius:12px; font-weight:bold; margin-top:12px; font-size:.8rem; padding:8px 14px; background:var(--accent); color:#fff; }
+  .grade-toggle-btn.grade-off{ background:rgba(128,128,128,.4); color:inherit; }
 
   .x-share-zone{ margin-top:26px; padding-top:16px; border-top:1px dashed #a9cdb6; text-align:center; }
   .x-share-title{ font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:12px; }
@@ -314,8 +316,11 @@
       </div>
       <div id="gradeMsg" class="grade-msg"></div>
       <div id="unlockedZone" class="hidden">
-        <span class="unlocked-badge">グレードアップ解放済み</span>
-        <div class="unlocked-note">（読み上げ声がおばちゃん風になりました。それだけです）</div>
+        <div id="gradeEffects">
+          <span class="unlocked-badge">グレードアップ解放済み</span>
+          <div class="unlocked-note">（読み上げ声がおばちゃん風になりました。それだけです）</div>
+        </div>
+        <button type="button" class="grade-toggle-btn" id="gradeToggleBtn"></button>
       </div>
     </div>
 
@@ -355,7 +360,9 @@
 
   function safeGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
   function safeSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
-  function isGraded(){ return safeGet(STORAGE_KEY) === "1"; }
+  const GRADE_OFF_KEY = "mj_yomiage_grade_off"; // OFFにしても解放の記録（STORAGE_KEY）は残る
+  function isPurchased(){ return safeGet(STORAGE_KEY) === "1"; }
+  function isGraded(){ return isPurchased() && safeGet(GRADE_OFF_KEY) !== "1"; }
   function $(id){ return document.getElementById(id); }
 
   // ==== ルール表（導入画面と出題画面で共用） ====
@@ -707,16 +714,30 @@
   const gradeForm = $("gradeForm");
   const gradeMsg = $("gradeMsg");
   const unlockedZone = $("unlockedZone");
+  const gradeToggleBtn = $("gradeToggleBtn");
+  const gradeEffects = $("gradeEffects");
+  function refreshGrade(){
+    const on = isGraded();
+    gradeEffects.classList.toggle("hidden", !on);
+    gradeToggleBtn.textContent = on ? "グレードアップ：ON（タップでOFF）" : "グレードアップ：OFF（タップでON）";
+    gradeToggleBtn.classList.toggle("grade-off", !on);
+  }
   function setUnlocked(){
     gradeForm.classList.add("hidden");
     gradeMsg.textContent = "";
     unlockedZone.classList.remove("hidden");
+    refreshGrade();
   }
-  if(safeGet(STORAGE_KEY) === "1"){ setUnlocked(); }
+  if(isPurchased()){ setUnlocked(); }
+  gradeToggleBtn.addEventListener("click", function(){
+    safeSet(GRADE_OFF_KEY, safeGet(GRADE_OFF_KEY) === "1" ? "0" : "1");
+    refreshGrade();
+  });
   $("unlockBtn").addEventListener("click", function(){
     const val = $("passwordInput").value.trim();
     if(val === PASSWORD || val === MASTER_PASSWORD){
       safeSet(STORAGE_KEY, "1");
+      safeSet(GRADE_OFF_KEY, "0");
       setUnlocked();
     } else {
       gradeMsg.textContent = "違います、もう一度確認してください。";
