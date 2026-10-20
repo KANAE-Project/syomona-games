@@ -465,6 +465,19 @@
 
   .chart-wrap { position: relative; }
   canvas#trendChart { width: 100%; height: 220px; display: block; }
+  .chart-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 16px 0 10px; }
+  .chart-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+  button.chart-tab {
+    background: transparent;
+    color: var(--ink-soft);
+    border: none;
+    border-radius: 0;
+    padding: 7px 16px;
+    font-size: 13px;
+  }
+  button.chart-tab + button.chart-tab { border-left: 1px solid var(--border); }
+  button.chart-tab.active { background: var(--felt); color: var(--surface); }
+  #chartDaySelect { width: auto; max-width: 100%; flex: 1 1 180px; }
   .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; margin-top: 8px; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); }
 
@@ -500,13 +513,34 @@
     border-left: 3px solid var(--suit);
   }
 
-  .history-day-group { display: flex; flex-direction: column; gap: 10px; }
+  .history-day-group {
+    display: block;
+    padding: 10px;
+    border-radius: 12px;
+    background: var(--tone-bg, var(--surface-2));
+    border: 1px solid var(--tone-line, var(--border));
+  }
+  .history-day-group.tone-0 { --tone-bg: #fbf0c6; --tone-line: #e6d28a; }
+  .history-day-group.tone-1 { --tone-bg: #dcecf5; --tone-line: #a9cde0; }
+  .history-day-group.tone-2 { --tone-bg: #f8e1de; --tone-line: #e2b4ae; }
+  .history-day-group.tone-3 { --tone-bg: #e8e1f3; --tone-line: #c4b6de; }
+  .history-day-group.tone-4 { --tone-bg: #fde6cf; --tone-line: #eac197; }
   .history-day-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    list-style: none;
     font-size: 14px;
     font-weight: 700;
-    color: var(--felt);
-    padding-left: 2px;
+    color: var(--ink);
+    padding: 4px 2px;
   }
+  .history-day-head::-webkit-details-marker { display: none; }
+  .day-toggle { color: var(--ink-soft); transition: transform .15s ease; flex-shrink: 0; }
+  .history-day-group[open] .day-toggle { transform: rotate(180deg); }
+  .history-day-body { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
   .day-summary { border: 1px solid var(--felt-soft); }
   .day-summary-title { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 8px; font-weight: 700; }
   .day-summary-rows {
@@ -772,6 +806,13 @@
         </table>
       </div>
       <div class="chart-wrap" id="chartWrap" style="display:none">
+        <div class="chart-controls">
+          <div class="chart-tabs" role="group" aria-label="グラフの表示切り替え">
+            <button type="button" class="chart-tab active" data-mode="total">累計</button>
+            <button type="button" class="chart-tab" data-mode="day">日別</button>
+          </div>
+          <select id="chartDaySelect" aria-label="表示する日" style="display:none"></select>
+        </div>
         <canvas id="trendChart"></canvas>
         <div class="legend" id="chartLegend"></div>
       </div>
@@ -789,6 +830,13 @@
       <span class="note" id="historyCount"></span>
     </div>
     <div class="history-list" id="historyList"></div>
+    <div class="confirm-inline" id="historyDeleteConfirm" style="margin-top:10px;">
+      <span>この対局記録を削除します。元に戻せません。よろしいですか?</span>
+      <div class="confirm-inline-actions">
+        <button class="danger" id="historyDeleteConfirmYes" type="button" style="border-color:var(--bad); color:var(--bad);">削除する</button>
+        <button class="ghost" id="historyDeleteConfirmNo" type="button">キャンセル</button>
+      </div>
+    </div>
     <div class="locked-placeholder" id="historyLocked">
       <span class="lock-icon">🔒</span>
       グレードアップすると、対局履歴の記録・確認ができます。
@@ -947,6 +995,8 @@
   var resetAllBtn = document.getElementById("resetAllBtn");
   var chartWrap = document.getElementById("chartWrap");
   var chartLegend = document.getElementById("chartLegend");
+  var chartDaySelect = document.getElementById("chartDaySelect");
+  var chartTabs = Array.prototype.slice.call(document.querySelectorAll("button.chart-tab"));
   var trendChart = document.getElementById("trendChart");
   var upgradeSection = document.getElementById("upgradeSection");
   var upgradeKeywordEl = document.getElementById("upgradeKeyword");
@@ -1608,13 +1658,42 @@
     return div.innerHTML;
   }
 
+  var chartMode = "total";
+  var chartDayKey = null;
+
+  function syncChartDayControls(groups) {
+    var found = groups.some(function (g) { return g.key === chartDayKey; });
+    if (!found) chartDayKey = groups[0].key;
+    chartDaySelect.innerHTML = groups.map(function (g) {
+      return '<option value="' + escapeHtml(g.key) + '">' + escapeHtml(g.label) + '(' + g.records.length + '半荘)</option>';
+    }).join("");
+    chartDaySelect.value = chartDayKey;
+    chartDaySelect.style.display = chartMode === "day" ? "" : "none";
+    chartTabs.forEach(function (b) {
+      b.className = "chart-tab" + (b.getAttribute("data-mode") === chartMode ? " active" : "");
+    });
+  }
+
   function renderChart(stats) {
     if (state.history.length < 2) { chartWrap.style.display = "none"; return; }
     chartWrap.style.display = "block";
 
+    var groups = groupHistoryByDate(state.history);
+    syncChartDayControls(groups);
+
     // build cumulative series in chronological order (history is newest-first)
-    var chrono = state.history.slice().reverse();
-    var names = stats.map(function (s) { return s.name; });
+    var records = state.history;
+    if (chartMode === "day") {
+      records = groups.filter(function (g) { return g.key === chartDayKey; })[0].records;
+    }
+    var chrono = records.slice().reverse();
+    var allNames = stats.map(function (s) { return s.name; });
+    // keep each member's colour index stable across both modes; day mode only draws that day's members
+    var names = allNames.filter(function (n) {
+      return chartMode !== "day" || chrono.some(function (rec) {
+        return rec.players.some(function (p) { return p.name === n; });
+      });
+    });
     var series = {};
     names.forEach(function (n) { series[n] = [0]; });
 
@@ -1672,7 +1751,15 @@
     ctx.fillText(minV.toFixed(0), pad.l - 6, yAt(minV) + 4);
     ctx.fillText("0", pad.l - 6, yAt(0) + 4);
 
-    names.forEach(function (n, idx) {
+    if (chartMode === "day") {
+      ctx.textAlign = "center";
+      for (var gi = 1; gi < pointCount; gi++) {
+        ctx.fillText(String(gi), xAt(gi), h - 6);
+      }
+    }
+
+    names.forEach(function (n) {
+      var idx = allNames.indexOf(n);
       var color = styles.getPropertyValue("--" + SUITS[idx % SUITS.length]).trim();
       var pts = series[n];
       ctx.strokeStyle = color;
@@ -1691,8 +1778,8 @@
       ctx.fill();
     });
 
-    chartLegend.innerHTML = names.map(function (n, idx) {
-      var color = "var(--" + SUITS[idx % SUITS.length] + ")";
+    chartLegend.innerHTML = names.map(function (n) {
+      var color = "var(--" + SUITS[allNames.indexOf(n) % SUITS.length] + ")";
       return '<span><span class="swatch" style="background:' + color + '"></span>' + escapeHtml(n) + '</span>';
     }).join("");
   }
@@ -1728,7 +1815,19 @@
     return order.map(function (n) { return byName[n]; });
   }
 
+  var historyOpen = {};
+
+  function dayToneIndex(key) {
+    var m = /^(\d+)-(\d+)-(\d+)$/.exec(key);
+    if (!m) return 0;
+    var days = Math.floor(new Date(+m[1], +m[2] - 1, +m[3], 12).getTime() / 86400000);
+    return ((days % 5) + 5) % 5;
+  }
+
   function renderHistory() {
+    // the delete-confirm box lives inside historyList while shown; park it before the list is rebuilt
+    historyDeleteConfirm.className = "confirm-inline";
+    historyLockedEl.parentNode.insertBefore(historyDeleteConfirm, historyLockedEl);
     historyList.innerHTML = "";
     historyCount.textContent = state.history.length ? (state.history.length + "件") : "";
     if (state.history.length === 0) {
@@ -1741,14 +1840,21 @@
 
     var groups = groupHistoryByDate(state.history);
 
-    groups.forEach(function (group) {
-      var groupEl = document.createElement("div");
-      groupEl.className = "history-day-group";
+    groups.forEach(function (group, gi) {
+      var groupEl = document.createElement("details");
+      groupEl.className = "history-day-group tone-" + dayToneIndex(group.key);
+      // newest day starts open, older days closed; a day the user toggled keeps its state across re-renders
+      groupEl.open = historyOpen.hasOwnProperty(group.key) ? historyOpen[group.key] : gi === 0;
+      groupEl.addEventListener("toggle", function () { historyOpen[group.key] = groupEl.open; });
 
-      var headEl = document.createElement("div");
+      var headEl = document.createElement("summary");
       headEl.className = "history-day-head";
-      headEl.textContent = group.label + "(" + group.records.length + "半荘)";
+      headEl.innerHTML = '<span>' + escapeHtml(group.label) + '(' + group.records.length + '半荘)</span><span class="day-toggle" aria-hidden="true">▾</span>';
       groupEl.appendChild(headEl);
+
+      var bodyEl = document.createElement("div");
+      bodyEl.className = "history-day-body";
+      groupEl.appendChild(bodyEl);
 
       group.records.forEach(function (rec) {
         var item = document.createElement("div");
@@ -1767,7 +1873,7 @@
         item.innerHTML =
           '<div class="hi-top"><span class="hi-date">' + timeStr + '</span><button class="small" data-id="' + rec.id + '">削除</button></div>' +
           '<div class="hi-rows">' + rowsHtml + '</div>';
-        groupEl.appendChild(item);
+        bodyEl.appendChild(item);
       });
 
       if (group.records.length >= 2) {
@@ -1782,7 +1888,7 @@
         summaryEl.innerHTML =
           '<div class="day-summary-title">この日の合計(' + group.records.length + '半荘)</div>' +
           '<div class="day-summary-rows">' + summaryRowsHtml + '</div>';
-        groupEl.appendChild(summaryEl);
+        bodyEl.appendChild(summaryEl);
       }
 
       historyList.appendChild(groupEl);
@@ -1791,15 +1897,28 @@
     historyList.querySelectorAll("button[data-id]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var id = btn.getAttribute("data-id");
-        if (!window.confirm("この対局記録を削除します。元に戻せません。よろしいですか?")) return;
-        state.history = state.history.filter(function (r) { return r.id !== id; });
-        saveData();
-        renderTodayTotal();
-        renderStats();
-        renderHistory();
+        var itemEl = btn.closest(".history-item");
+        itemEl.parentNode.insertBefore(historyDeleteConfirm, itemEl.nextSibling);
+        historyDeleteConfirm.className = "confirm-inline show";
+        historyDeleteConfirm.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        historyDeleteConfirmYes.onclick = function () {
+          state.history = state.history.filter(function (r) { return r.id !== id; });
+          saveData();
+          renderTodayTotal();
+          renderStats();
+          renderHistory();
+        };
       });
     });
   }
+
+  var historyDeleteConfirm = document.getElementById("historyDeleteConfirm");
+  var historyDeleteConfirmYes = document.getElementById("historyDeleteConfirmYes");
+  var historyDeleteConfirmNo = document.getElementById("historyDeleteConfirmNo");
+
+  historyDeleteConfirmNo.addEventListener("click", function () {
+    historyDeleteConfirm.className = "confirm-inline";
+  });
 
   var resetConfirm = document.getElementById("resetConfirm");
   var resetConfirmYes = document.getElementById("resetConfirmYes");
@@ -1837,6 +1956,17 @@
     renderTodayTotal();
     renderStats();
     renderHistory();
+  });
+
+  chartTabs.forEach(function (b) {
+    b.addEventListener("click", function () {
+      chartMode = b.getAttribute("data-mode");
+      renderChart(computeStats());
+    });
+  });
+  chartDaySelect.addEventListener("change", function () {
+    chartDayKey = chartDaySelect.value;
+    renderChart(computeStats());
   });
 
   window.addEventListener("resize", function () {
